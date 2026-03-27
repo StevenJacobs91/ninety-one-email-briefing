@@ -10,7 +10,7 @@ import { buildEmailName } from '../../lib/emailName'
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-8">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">{title}</p>
+      <p className="text-xs font-ni-heading text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">{title}</p>
       <div className="space-y-5">{children}</div>
     </div>
   )

@@ -34,7 +34,7 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
             disabled={!isReachable || isCurrent}
             aria-current={isCurrent ? 'step' : undefined}
             aria-label={`Step ${index + 1}: ${label}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
-            className={`flex-1 py-2 px-0.5 text-[11px] sm:text-xs font-medium rounded-full text-center transition-colors ${
+            className={`flex-1 py-2 px-0.5 text-[11px] sm:text-xs font-ni-heading rounded-full text-center transition-colors ${
               isCurrent
                 ? isPipeline
                   ? 'bg-[#0a3323] text-white'

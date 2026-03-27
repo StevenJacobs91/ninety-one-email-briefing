@@ -5,6 +5,15 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        // Ninety One brand font stack — use these utilities in components
+        'ni-display': ['"Ninety One Visuelt Display"', 'arial', 'helvetica', 'sans-serif'],
+        'ni-heading': ['"Ninety One Visuelt"', 'arial', 'helvetica', 'sans-serif'],
+        'ni-body':    ['"Ninety One Visuelt Light"', 'arial', 'helvetica', 'sans-serif'],
+        'ni-medium':  ['"Ninety One Visuelt Medium"', 'arial', 'helvetica', 'sans-serif'],
+        // Override Tailwind default sans → Visuelt Light (affects font-sans utility)
+        sans: ['"Ninety One Visuelt Light"', 'arial', 'helvetica', 'sans-serif'],
+      },
       colors: {
         brand: {
           primary: '#134848',

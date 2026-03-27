@@ -1,62 +1,119 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Ninety One Brand Fonts
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Titles — Ninety One Visuelt Display */
+@font-face {
+  font-family: 'Ninety One Visuelt Display';
+  src: local('Ninety One Visuelt Display'),
+       local('Ninety-One-Visuelt-Display'),
+       url('Ninety One Visuelt Display.ttf') format('truetype'),
+       url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Headings — Ninety One Visuelt Regular */
+@font-face {
+  font-family: 'Ninety One Visuelt';
+  src: url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Paragraphs / UI body — Ninety One Visuelt Light */
+@font-face {
+  font-family: 'Ninety One Visuelt Light';
+  src: url('https://weare.ninetyone.com/l/28902/2020-10-19/8zs4jq/28902/1603114661MAzRiC9E/NinetyOneVisuelt_Light.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold / emphasis — Ninety One Visuelt Medium */
+@font-face {
+  font-family: 'Ninety One Visuelt Medium';
+  src: url('https://weare.ninetyone.com/l/28902/2020-07-13/8x6784/28902/249453/NinetyOneVisuelt_Medium.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Tailwind layers
+   ───────────────────────────────────────────────────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+/* ─────────────────────────────────────────────────────────────────────────
+   Global base overrides (Tailwind base layer runs first, these win)
+   ───────────────────────────────────────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Base UI copy — Visuelt Light */
+  html,
+  body {
+    font-family: 'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
+
+  /* Titles — Visuelt Display */
+  h1 {
+    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-weight: normal;
+  }
+
+  /* Page-level headings — Visuelt Display */
+  h2 {
+    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-weight: normal;
+  }
+
+  /* Section / sub-headings — Visuelt Regular */
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Ninety One Visuelt', arial, helvetica, sans-serif;
+    font-weight: 200;
+  }
+
+  /* Bold / strong — Visuelt Medium */
+  strong,
+  b {
+    font-family: 'Ninety One Visuelt Medium', arial, helvetica, sans-serif;
+    font-weight: normal;
+  }
+
+  /* Form elements inherit from body */
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+  }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Dark mode transitions */
+/* ─────────────────────────────────────────────────────────────────────────
+   Dark mode
+   ───────────────────────────────────────────────────────────────────────── */
 html.dark {
   color-scheme: dark;
 }
 
-/* ─── Print / PDF export ─────────────────────────────────── */
-@media print {
-  body { background: white !important; color: black !important; font-size: 11pt; }
-
-  /* Hide everything except the print target */
-  body > * { display: none !important; }
-  #print-brief { display: block !important; }
-
-  #print-brief {
-    max-width: 100%;
-    padding: 0;
-    color: black;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
-  #print-brief h1 { font-size: 18pt; font-weight: 700; margin-bottom: 4pt; color: #134848; }
-  #print-brief h2 { font-size: 13pt; font-weight: 600; margin: 14pt 0 4pt; border-bottom: 1px solid #e5e7eb; padding-bottom: 3pt; }
-  #print-brief h3 { font-size: 10pt; font-weight: 600; color: #374151; margin: 8pt 0 2pt; }
-  #print-brief p, #print-brief li { font-size: 10pt; line-height: 1.5; color: #1f2937; margin: 0 0 4pt; }
-  #print-brief .print-meta { font-size: 9pt; color: #6b7280; }
-  #print-brief .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
-  #print-brief .print-badge {
-    display: inline-block; background: #f3f4f6; border: 1px solid #e5e7eb;
-    border-radius: 3pt; padding: 1pt 5pt; font-size: 9pt; margin: 1pt 2pt 1pt 0;
-  }
-  #print-brief .print-section { margin-bottom: 8pt; padding: 8pt; border: 1px solid #e5e7eb; border-radius: 4pt; }
-  #print-brief .print-footer { margin-top: 16pt; border-top: 1px solid #e5e7eb; padding-top: 8pt; font-size: 8pt; color: #9ca3af; }
-
-  /* Avoid page breaks inside key sections */
-  #print-brief h2, #print-brief .print-section { page-break-inside: avoid; }
-}
-
-/* Hidden print container (visible only when printing) */
-#print-brief { display: none; }
-
-/* Settings panel slide-in */
+/* ─────────────────────────────────────────────────────────────────────────
+   Settings panel animation
+   ───────────────────────────────────────────────────────────────────────── */
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
@@ -64,3 +121,84 @@ html.dark {
 .animate-slide-in {
   animation: slide-in-right 0.25s ease-out;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Print / PDF export
+   ───────────────────────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    font-family: 'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+  }
+
+  body > * { display: none !important; }
+  #print-brief { display: block !important; }
+
+  #print-brief {
+    max-width: 100%;
+    padding: 0;
+    color: black;
+  }
+
+  #print-brief h1 {
+    font-size: 18pt;
+    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-weight: normal;
+    margin-bottom: 4pt;
+    color: #134848;
+  }
+  #print-brief h2 {
+    font-size: 13pt;
+    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-weight: normal;
+    margin: 14pt 0 4pt;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 3pt;
+  }
+  #print-brief h3 {
+    font-size: 10pt;
+    font-family: 'Ninety One Visuelt', arial, helvetica, sans-serif;
+    font-weight: 200;
+    color: #374151;
+    margin: 8pt 0 2pt;
+  }
+  #print-brief p,
+  #print-brief li {
+    font-size: 10pt;
+    line-height: 1.5;
+    color: #1f2937;
+    margin: 0 0 4pt;
+  }
+  #print-brief .print-meta { font-size: 9pt; color: #6b7280; }
+  #print-brief .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
+  #print-brief .print-badge {
+    display: inline-block;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 3pt;
+    padding: 1pt 5pt;
+    font-size: 9pt;
+    margin: 1pt 2pt 1pt 0;
+  }
+  #print-brief .print-section {
+    margin-bottom: 8pt;
+    padding: 8pt;
+    border: 1px solid #e5e7eb;
+    border-radius: 4pt;
+  }
+  #print-brief .print-footer {
+    margin-top: 16pt;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8pt;
+    font-size: 8pt;
+    color: #9ca3af;
+  }
+
+  #print-brief h2,
+  #print-brief .print-section { page-break-inside: avoid; }
+}
+
+/* Hidden print container */
+#print-brief { display: none; }

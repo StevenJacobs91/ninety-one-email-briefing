@@ -204,7 +204,7 @@ export function FormShell() {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[#134848] dark:text-[#fbaa96]">Ninety One Email Briefing</h1>
+            <h1 className="text-xl font-ni-display text-[#134848] dark:text-[#fbaa96]">Ninety One Email Briefing</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {isPipelineStep
                 ? 'Review and export your brand-compliant HTML email.'

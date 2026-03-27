@@ -109,7 +109,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-base font-semibold text-[#134848] dark:text-[#fbaa96] border-b border-gray-200 dark:border-gray-700 pb-1 mb-3">{title}</h3>
+      <h3 className="text-base font-ni-display text-[#134848] dark:text-[#fbaa96] border-b border-gray-200 dark:border-gray-700 pb-1 mb-3">{title}</h3>
       <div className="space-y-1">{children}</div>
     </div>
   )
