@@ -9,7 +9,9 @@ import type {
   ModuleCategory,
   SenderDefaults,
   FormDefaults,
+  LegalDisclaimerConfig,
 } from '../types/settings.types'
+import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
 // ─── Default Brand Themes ───────────────────────────────────
 
@@ -215,6 +217,27 @@ export const DEFAULT_FORM_DEFAULTS: FormDefaults = {
   includeUnsubscribe: true,
 }
 
+// ─── Default Legal Disclaimers ──────────────────────────────
+
+export const DEFAULT_LEGAL_DISCLAIMERS: LegalDisclaimerConfig[] = [
+  // Seed from REGION_LEGAL_DISCLAIMERS for every known region
+  ...REGIONS.map((region) => ({
+    id: `disclaimer-${region.toLowerCase().replace(/\s+/g, '-')}`,
+    label: `${region} — Standard`,
+    region,
+    text: REGION_LEGAL_DISCLAIMERS[region] ?? REGION_LEGAL_DISCLAIMERS['GLOBAL'],
+    isDefault: true,
+  })),
+  // Global fallback
+  {
+    id: 'disclaimer-global',
+    label: 'Global — Standard',
+    region: 'GLOBAL',
+    text: REGION_LEGAL_DISCLAIMERS['GLOBAL'],
+    isDefault: true,
+  },
+]
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -227,6 +250,7 @@ export function createDefaultSettings(): AppSettings {
     brandGuardian: DEFAULT_BRAND_GUARDIAN,
     senderDefaults: DEFAULT_SENDER_DEFAULTS,
     formDefaults: DEFAULT_FORM_DEFAULTS,
+    legalDisclaimers: DEFAULT_LEGAL_DISCLAIMERS,
     n8nWebhookUrl: '',
   }
 }

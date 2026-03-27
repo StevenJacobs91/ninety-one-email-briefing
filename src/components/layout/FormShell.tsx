@@ -99,8 +99,8 @@ export function FormShell() {
     if (!valid) {
       // Find the first step with errors and navigate there
       const stepFields = [
-        ['campaign.emailType', 'campaign.campaignName', 'campaign.theme', 'campaign.subjectLine', 'campaign.previewText', 'campaign.fromName', 'campaign.fromAddress', 'campaign.replyToEmail'],
-        ['audience.clientGroup', 'audience.region', 'audience.channel'],
+        ['audience.clientGroup', 'audience.region', 'audience.channel', 'campaign.emailType', 'campaign.campaignName', 'campaign.theme', 'campaign.subjectLine', 'campaign.previewText', 'campaign.fromName', 'campaign.fromAddress', 'campaign.replyToEmail'],
+        [],
         ['content.headline', 'content.bodyIntro', 'content.sections', 'content.cta', 'content.cta.label', 'content.cta.url'],
         ['assets.logoVariant', 'assets.heroImageUrl', 'assets.heroImageAlt'],
         ['deadlines.contentApprovalDate', 'deadlines.sendDate', 'deadlines.urgency'],
@@ -199,7 +199,7 @@ export function FormShell() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-start justify-center py-10 px-4 transition-colors">
       <div
         ref={cardRef}
-        className={`w-full bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 py-10 px-8 transition-all duration-300 ${pipelineStep === 6 ? 'max-w-5xl' : 'max-w-3xl'}`}
+        className={`w-full bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 py-10 px-8 transition-all duration-300 ${pipelineStep === 6 ? 'max-w-7xl' : 'max-w-3xl'}`}
       >
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">

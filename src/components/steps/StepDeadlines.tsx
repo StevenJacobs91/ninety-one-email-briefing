@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
-import { URGENCY_OPTIONS } from '../../lib/constants'
+import { URGENCY_OPTIONS, BRAND_THEMES } from '../../lib/constants'
 import { BriefSummary } from '../ui/BriefSummary'
 import { PrintBrief } from '../ui/PrintBrief'
 
@@ -12,15 +12,60 @@ interface StepDeadlinesProps {
   submitStatus: 'idle' | 'success' | 'error'
 }
 
+function buildTags(data: BriefFormData): string {
+  const emailName = (() => {
+    const now = new Date()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const yy = String(now.getFullYear()).slice(-2)
+    const regionPart = (data.audience.region ?? []).length > 0 ? (data.audience.region ?? []).join(' ') : 'tbd'
+    const audiencePart = (data.audience.channel ?? []).length > 0 ? (data.audience.channel ?? []).join(' ') : 'tbd'
+    const namePart = data.campaign.campaignName || 'untitled'
+    return `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
+  })()
+
+  const themeLabel = BRAND_THEMES.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
+
+  const tags = [
+    `parent - ${emailName}`,
+    'email - primary',
+    `client group - ${(data.audience.clientGroup ?? []).join(' ').toLowerCase()}`,
+    `region - ${(data.audience.region ?? []).join(' ').toLowerCase()}`,
+    `audience - ${(data.audience.channel ?? []).join(' ').toLowerCase()}`,
+    `campaign - ${(data.campaign.campaignName || 'untitled').toLowerCase()}`,
+    `email type - ${(data.campaign.emailType || '').toLowerCase()}`,
+    `colour theme - ${themeLabel.toLowerCase().replace(/\s*\/\s*/g, ' and ')}`,
+  ]
+  return tags.join(', ')
+}
+
 export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
   const form = useFormContext<BriefFormData>()
-  const { register, watch, formState: { errors } } = form
+  const { register, watch, setValue, formState: { errors } } = form
   const [summaryOpen, setSummaryOpen] = useState(false)
+  const [tagsCopied, setTagsCopied] = useState(false)
 
   const notes = watch('deadlines.notes') ?? ''
   const contentApprovalDate = watch('deadlines.contentApprovalDate') ?? ''
   const today = new Date().toISOString().split('T')[0]
   const data = watch()
+
+  // Compute tags from form data
+  const tags = useMemo(() => buildTags(data as BriefFormData), [data])
+
+  // Keep tags field in sync for JSON export
+  useState(() => {
+    setValue('deadlines.tags', tags)
+  })
+
+  async function copyTags() {
+    try {
+      await navigator.clipboard.writeText(tags)
+      setTagsCopied(true)
+      setTimeout(() => setTagsCopied(false), 2000)
+    } catch {
+      // Clipboard unavailable
+    }
+  }
 
   return (
     <div>
@@ -121,6 +166,43 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
         currentLength={notes.length}
         rows={3}
       />
+
+      {/* Auto-generated Tags */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Auto-generated Tags
+          </label>
+          <button
+            type="button"
+            onClick={copyTags}
+            className="text-xs text-[#134848] dark:text-[#fbaa96] hover:underline font-medium flex items-center gap-1"
+          >
+            {tagsCopied ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy tags
+              </>
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+          Comma-separated tags for use in your email marketing platform.
+        </p>
+        <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
+          {tags || '—'}
+        </div>
+      </div>
 
       {/* Collapsible Brief Summary */}
       <div className="mt-8 mb-6 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">

@@ -1,127 +1,16 @@
 import { useState, useCallback } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
-import { CLIENT_GROUPS, REGIONS, CHANNELS } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { formatFileSize } from '../../lib/formatFileSize'
 
 export function StepAudience() {
-  const { register, formState: { errors }, watch, setValue } = useFormContext<BriefFormData>()
-
-  const selectedClientGroups = watch('audience.clientGroup') ?? []
-  const selectedRegions = watch('audience.region') ?? []
-  const selectedChannels = watch('audience.channel') ?? []
-
-  function toggleArrayValue(
-    field: 'audience.clientGroup' | 'audience.region' | 'audience.channel',
-    value: string,
-    current: string[]
-  ) {
-    const next = current.includes(value)
-      ? current.filter((v) => v !== value)
-      : [...current, value]
-    setValue(field, next as never, { shouldValidate: true })
-  }
+  const { register, formState: { errors }, watch } = useFormContext<BriefFormData>()
+  const pardotListId = watch('audience.pardotListId') ?? ''
 
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Audience</h2>
-
-      {/* Client Group */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Client Group<span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {selectedClientGroups.length > 0 ? `${selectedClientGroups.length} selected` : 'Select all that apply'}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {CLIENT_GROUPS.map((group) => (
-            <button
-              key={group}
-              type="button"
-              onClick={() => toggleArrayValue('audience.clientGroup', group, selectedClientGroups)}
-              aria-pressed={selectedClientGroups.includes(group)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                selectedClientGroups.includes(group)
-                  ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              {group}
-            </button>
-          ))}
-        </div>
-        {errors.audience?.clientGroup && (
-          <p className="text-xs text-red-600 mt-1">{errors.audience.clientGroup.message}</p>
-        )}
-      </div>
-
-      {/* Regions */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Region<span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {selectedRegions.length > 0 ? `${selectedRegions.length} of ${REGIONS.length} selected` : 'Select all that apply'}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {REGIONS.map((region) => (
-            <button
-              key={region}
-              type="button"
-              onClick={() => toggleArrayValue('audience.region', region, selectedRegions)}
-              aria-pressed={selectedRegions.includes(region)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                selectedRegions.includes(region)
-                  ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              {region}
-            </button>
-          ))}
-        </div>
-        {errors.audience?.region && (
-          <p className="text-xs text-red-600 mt-1">{errors.audience.region.message}</p>
-        )}
-      </div>
-
-      {/* Channels */}
-      <div className="mb-4">
-        <div className="flex items-baseline justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Channel<span className="text-red-500 ml-0.5">*</span>
-          </label>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            {selectedChannels.length > 0 ? `${selectedChannels.length} of ${CHANNELS.length} selected` : 'Select all that apply'}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {CHANNELS.map((channel) => (
-            <button
-              key={channel}
-              type="button"
-              onClick={() => toggleArrayValue('audience.channel', channel, selectedChannels)}
-              aria-pressed={selectedChannels.includes(channel)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                selectedChannels.includes(channel)
-                  ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-              }`}
-            >
-              {channel}
-            </button>
-          ))}
-        </div>
-        {errors.audience?.channel && (
-          <p className="text-xs text-red-600 mt-1">{errors.audience.channel.message}</p>
-        )}
-      </div>
 
       {/* Distribution List Upload */}
       <DistributionListUpload />
@@ -137,6 +26,39 @@ export function StepAudience() {
           Optional. Find this in Pardot under <em>Marketing &rarr; Segmentation &rarr; Lists</em>. Used by the n8n automation to trigger the send.
         </p>
       </div>
+
+      {/* Pardot List Analysis — mock data shown when a list ID is entered */}
+      {pardotListId && (
+        <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Pardot List Analysis</p>
+            <span className="text-xs text-amber-500 font-medium">Demo data — connect API in Settings</span>
+          </div>
+          <div className="p-4 grid grid-cols-2 gap-3">
+            {[
+              { label: 'Total Prospects', value: '2,847', icon: '👥' },
+              { label: 'Mailable', value: '2,341 (82%)', icon: '✉️' },
+              { label: 'Unsubscribed', value: '298 (10%)', icon: '🚫' },
+              { label: 'Never Active', value: '208 (7%)', icon: '💤' },
+              { label: 'Hard Bounces', value: '42 (1.5%)', icon: '⚠️' },
+              { label: 'Opted In', value: '1,987 (70%)', icon: '✅' },
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-start gap-2">
+                <span className="text-base">{stat.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{stat.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="px-4 py-3 bg-blue-50 dark:bg-blue-950/20 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              💡 <strong>Recommendation:</strong> Consider suppressing Never Active contacts (208) to improve deliverability. Mailable rate of 82% is within acceptable range.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

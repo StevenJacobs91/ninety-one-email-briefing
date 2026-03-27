@@ -57,9 +57,11 @@ const audienceSchema = z.object({
 
 const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
-  bodyIntro: z.string().min(1, 'Body intro is required').max(300, 'Max 300 characters'),
+  subHeadline: z.string().max(80, 'Max 80 characters').optional(),
+  bodyIntro: z.string().min(1, 'Body intro is required').max(1000, 'Max 1000 characters'),
   sections: z.array(contentSectionSchema).min(1, 'At least one section required').max(4, 'Max 4 sections'),
   modules: z.array(z.string()),
+  moduleNotes: z.record(z.string()).optional(),
   cta: ctaSchema,
   legalDisclaimer: z.string().optional(),
   includeUnsubscribe: z.boolean(),
@@ -89,6 +91,7 @@ const deadlineSchema = z.object({
   urgency: z.enum(URGENCY_OPTIONS),
   oneOnOneRequired: z.boolean(),
   notes: z.string().max(300, 'Max 300 characters').optional(),
+  tags: z.string().optional(),
 })
 
 const htmlEditSchema = z.object({

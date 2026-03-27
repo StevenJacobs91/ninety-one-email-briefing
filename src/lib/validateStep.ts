@@ -2,8 +2,11 @@ import type { FieldPath } from 'react-hook-form'
 import type { BriefFormData } from './schema'
 
 const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
-  // Step 0 — Campaign
+  // Step 0 — Campaign (includes Targeting fields now shown in Campaign tab)
   [
+    'audience.clientGroup',
+    'audience.region',
+    'audience.channel',
     'campaign.emailType',
     'campaign.campaignName',
     'campaign.theme',
@@ -13,12 +16,8 @@ const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
     'campaign.fromAddress',
     'campaign.replyToEmail',
   ],
-  // Step 1 — Audience
-  [
-    'audience.clientGroup',
-    'audience.region',
-    'audience.channel',
-  ],
+  // Step 1 — Audience (distribution list / pardot only)
+  [],
   // Step 2 — Content
   [
     'content.headline',

@@ -45,6 +45,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
     },
     content: {
       headline: '',
+      subHeadline: '',
       bodyIntro: '',
       sections: [
         {
@@ -56,6 +57,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
         },
       ],
       modules: [],
+      moduleNotes: {},
       cta: {
         label: '',
         url: '',
@@ -79,6 +81,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
       urgency: defaults?.urgency ?? 'standard',
       oneOnOneRequired: false,
       notes: '',
+      tags: '',
     },
   }
 }

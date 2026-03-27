@@ -288,8 +288,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
               ref={iframeRef}
               srcDoc={html}
               title="Email preview"
-              className={`${viewport === 'desktop' ? 'w-[640px]' : 'w-[375px]'} border border-gray-200 dark:border-gray-700 bg-white shadow-sm transition-all duration-300`}
-              style={{ height: '600px', maxWidth: '100%' }}
+              className={`${viewport === 'desktop' ? 'w-[640px]' : 'w-[375px]'} min-h-[700px] border border-gray-200 dark:border-gray-700 bg-white shadow-sm transition-all duration-300`}
+              style={{ height: 'calc(100vh - 300px)', maxWidth: '100%' }}
               sandbox="allow-same-origin"
               onLoad={(e) => {
                 const iframe = e.currentTarget

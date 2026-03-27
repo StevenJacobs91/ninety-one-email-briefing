@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
-import { EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES } from '../../lib/constants'
-import type { EmailType } from '../../lib/constants'
+import { EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, CLIENT_GROUPS, CHANNELS, CLIENT_GROUP_REGIONS } from '../../lib/constants'
+import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldSelect } from '../ui/FieldSelect'
 import { buildEmailName } from '../../lib/emailName'
@@ -17,23 +17,196 @@ function SubSection({ title, children }: { title: string; children: React.ReactN
 }
 
 export function StepCampaign() {
-  const { register, watch, formState: { errors } } = useFormContext<BriefFormData>()
+  const { register, watch, formState: { errors }, setValue } = useFormContext<BriefFormData>()
 
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
   const campaignName = watch('campaign.campaignName') ?? ''
-  const regions = watch('audience.region') ?? []
-  const channels = watch('audience.channel') ?? []
+  const selectedClientGroups = watch('audience.clientGroup') ?? []
+  const selectedRegions = watch('audience.region') ?? []
+  const selectedChannels = watch('audience.channel') ?? []
 
   const emailName = useMemo(
-    () => buildEmailName(campaignName, regions, channels),
-    [campaignName, regions, channels]
+    () => buildEmailName(campaignName, selectedRegions, selectedChannels),
+    [campaignName, selectedRegions, selectedChannels]
   )
+
+  // Compute available regions based on selected client groups
+  const availableRegions = useMemo(() => {
+    if (selectedClientGroups.length === 0) {
+      // Show all regions when no client group is selected
+      return Object.values(CLIENT_GROUP_REGIONS).flat()
+    }
+    const regionSet = new Set<string>()
+    for (const group of selectedClientGroups) {
+      const groupRegions = CLIENT_GROUP_REGIONS[group] ?? []
+      for (const r of groupRegions) {
+        regionSet.add(r)
+      }
+    }
+    return Array.from(regionSet)
+  }, [selectedClientGroups])
+
+  function toggleArrayValue(
+    field: 'audience.clientGroup' | 'audience.region' | 'audience.channel',
+    value: ClientGroup | Region | Channel,
+    current: string[]
+  ) {
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value]
+    setValue(field, next as never, { shouldValidate: true })
+  }
+
+  // When client groups change, filter out any selected regions that are no longer valid
+  function handleClientGroupToggle(group: ClientGroup) {
+    const currentGroups = selectedClientGroups
+    const isRemoving = currentGroups.includes(group)
+    const nextGroups = isRemoving
+      ? currentGroups.filter((g) => g !== group)
+      : [...currentGroups, group]
+
+    setValue('audience.clientGroup', nextGroups as never, { shouldValidate: true })
+
+    if (isRemoving) {
+      // Compute the still-valid regions for the remaining groups
+      const validRegionSet = new Set<string>()
+      for (const g of nextGroups) {
+        const gr = CLIENT_GROUP_REGIONS[g as ClientGroup] ?? []
+        for (const r of gr) validRegionSet.add(r)
+      }
+      const filteredRegions = selectedRegions.filter((r) => validRegionSet.has(r))
+      if (filteredRegions.length !== selectedRegions.length) {
+        setValue('audience.region', filteredRegions as never, { shouldValidate: true })
+      }
+    }
+  }
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Campaign Details</h2>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+        {emailName && emailName !== `${new Date().toLocaleString('en-US', { month: '2-digit' }).padStart(2, '0')}${String(new Date().getFullYear()).slice(-2)} TBD TBD Untitled`
+          ? emailName
+          : 'New Email Brief'}
+      </h2>
+      {campaignName ? (
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">Campaign Details</p>
+      ) : (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">Fill in the fields below to begin your email brief.</p>
+      )}
+
+      {/* Sub-section: Targeting */}
+      <SubSection title="Targeting">
+        {/* Client Group */}
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Client Group<span className="text-red-500 ml-0.5">*</span>
+            </label>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {selectedClientGroups.length > 0 ? `${selectedClientGroups.length} selected` : 'Select all that apply'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CLIENT_GROUPS.map((group) => (
+              <button
+                key={group}
+                type="button"
+                onClick={() => handleClientGroupToggle(group)}
+                aria-pressed={selectedClientGroups.includes(group)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  selectedClientGroups.includes(group)
+                    ? 'bg-[#134848] text-white border-[#134848]'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                {group}
+              </button>
+            ))}
+          </div>
+          {errors.audience?.clientGroup && (
+            <p className="text-xs text-red-600 mt-1">{errors.audience.clientGroup.message}</p>
+          )}
+        </div>
+
+        {/* Region */}
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Region<span className="text-red-500 ml-0.5">*</span>
+            </label>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {selectedClientGroups.length === 0
+                ? 'Select a client group first'
+                : selectedRegions.length > 0
+                  ? `${selectedRegions.length} of ${availableRegions.length} selected`
+                  : 'Select all that apply'}
+            </span>
+          </div>
+          {selectedClientGroups.length === 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+              Select a client group above to filter available regions.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {availableRegions.map((region) => (
+                <button
+                  key={region}
+                  type="button"
+                  onClick={() => toggleArrayValue('audience.region', region as Region, selectedRegions)}
+                  aria-pressed={selectedRegions.includes(region as Region)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    selectedRegions.includes(region as Region)
+                      ? 'bg-[#134848] text-white border-[#134848]'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
+          )}
+          {errors.audience?.region && (
+            <p className="text-xs text-red-600 mt-1">{errors.audience.region.message}</p>
+          )}
+        </div>
+
+        {/* Channel */}
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Channel<span className="text-red-500 ml-0.5">*</span>
+            </label>
+            <span className="text-xs text-gray-400 dark:text-gray-500">
+              {selectedChannels.length > 0 ? `${selectedChannels.length} of ${CHANNELS.length} selected` : 'Select all that apply'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CHANNELS.map((channel) => (
+              <button
+                key={channel}
+                type="button"
+                onClick={() => toggleArrayValue('audience.channel', channel, selectedChannels)}
+                aria-pressed={selectedChannels.includes(channel)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  selectedChannels.includes(channel)
+                    ? 'bg-[#134848] text-white border-[#134848]'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                {channel}
+              </button>
+            ))}
+          </div>
+          {errors.audience?.channel && (
+            <p className="text-xs text-red-600 mt-1">{errors.audience.channel.message}</p>
+          )}
+        </div>
+      </SubSection>
+
+      {/* Divider */}
+      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
       {/* Sub-section 1: Email Identity */}
       <SubSection title="Email Identity">

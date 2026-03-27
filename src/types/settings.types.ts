@@ -82,6 +82,14 @@ export interface FormDefaults {
   includeUnsubscribe: boolean
 }
 
+export interface LegalDisclaimerConfig {
+  id: string
+  label: string      // Display name, e.g. "South Africa — FSP Standard"
+  region: string     // Which region this applies to (or 'GLOBAL')
+  text: string       // Full disclaimer text
+  isDefault: boolean // Whether this is the auto-selected default for the region
+}
+
 export interface AppSettings {
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
@@ -91,6 +99,7 @@ export interface AppSettings {
   brandGuardian: BrandGuardianConfig
   senderDefaults: SenderDefaults
   formDefaults: FormDefaults
+  legalDisclaimers: LegalDisclaimerConfig[]
   n8nWebhookUrl: string
 }
 
@@ -101,3 +110,4 @@ export type SettingsTab =
   | 'modules'
   | 'layout'
   | 'guardian'
+  | 'disclaimers'

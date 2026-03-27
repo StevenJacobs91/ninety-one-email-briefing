@@ -6,9 +6,79 @@ import { EMAIL_MODULES, REGION_LEGAL_DISCLAIMERS } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { FieldToggle } from '../ui/FieldToggle'
+import { RichTextarea } from '../ui/RichTextarea'
 
 // Derive unique categories from module list
 const ALL_CATEGORIES = Array.from(new Set(EMAIL_MODULES.map((m) => m.category)))
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'Headers': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="5" rx="1"/>
+      <rect x="3" y="10" width="18" height="3" rx="1" opacity="0.4"/>
+      <rect x="3" y="15" width="12" height="3" rx="1" opacity="0.4"/>
+    </svg>
+  ),
+  'Content': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="3" rx="1"/>
+      <rect x="3" y="8" width="18" height="3" rx="1"/>
+      <rect x="3" y="13" width="14" height="3" rx="1"/>
+      <rect x="3" y="18" width="10" height="3" rx="1"/>
+    </svg>
+  ),
+  'CTAs': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="8" width="18" height="8" rx="4"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+    </svg>
+  ),
+  'Events': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="4" width="18" height="17" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  'Speakers': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="3"/>
+      <circle cx="16" cy="8" r="3"/>
+      <path d="M2 20c0-3.314 2.686-6 6-6h8c3.314 0 6 2.686 6 6"/>
+    </svg>
+  ),
+  'Articles': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="8" height="8" rx="1"/>
+      <rect x="13" y="3" width="8" height="3" rx="1"/>
+      <rect x="13" y="8" width="8" height="3" rx="1"/>
+      <rect x="3" y="13" width="18" height="3" rx="1"/>
+      <rect x="3" y="18" width="14" height="3" rx="1"/>
+    </svg>
+  ),
+  'Media': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="5" width="18" height="14" rx="2"/>
+      <polygon points="10,9 10,15 15,12" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
+  'Navigation': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="10" width="18" height="4" rx="2"/>
+      <circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+      <circle cx="16" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+    </svg>
+  ),
+  'Footers': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="3" rx="1" opacity="0.4"/>
+      <rect x="3" y="8" width="18" height="3" rx="1" opacity="0.4"/>
+      <rect x="3" y="16" width="18" height="5" rx="1"/>
+    </svg>
+  ),
+}
 
 export function StepContent() {
   const { register, watch, control, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
@@ -28,9 +98,11 @@ export function StepContent() {
   })
 
   const headline = watch('content.headline') ?? ''
+  const subHeadline = watch('content.subHeadline') ?? ''
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const ctaLabel = watch('content.cta.label') ?? ''
   const selectedModules = watch('content.modules') ?? []
+  const moduleNotes = watch('content.moduleNotes') ?? {}
   const selectedRegions = watch('audience.region') ?? []
   const legalDisclaimer = watch('content.legalDisclaimer') ?? ''
 
@@ -69,6 +141,25 @@ export function StepContent() {
     setValue('content.modules', next, { shouldValidate: true })
   }
 
+  function moveModuleUp(index: number) {
+    if (index === 0) return
+    const next = [...selectedModules]
+    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+    setValue('content.modules', next, { shouldValidate: true })
+  }
+
+  function moveModuleDown(index: number) {
+    if (index === selectedModules.length - 1) return
+    const next = [...selectedModules]
+    ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
+    setValue('content.modules', next, { shouldValidate: true })
+  }
+
+  function setModuleNote(moduleId: string, note: string) {
+    const current = getValues('content.moduleNotes') ?? {}
+    setValue('content.moduleNotes', { ...current, [moduleId]: note }, { shouldValidate: false })
+  }
+
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Content</h2>
@@ -83,15 +174,24 @@ export function StepContent() {
         currentLength={headline.length}
       />
 
-      <FieldTextarea
+      <FieldText
+        label="Sub-headline"
+        registration={register('content.subHeadline')}
+        error={errors.content?.subHeadline}
+        placeholder="Max 80 characters — maps to header subheading in email template"
+        maxLength={80}
+        currentLength={subHeadline.length}
+      />
+
+      <RichTextarea
         label="Body Intro"
-        registration={register('content.bodyIntro')}
-        error={errors.content?.bodyIntro}
+        value={bodyIntro}
+        onChange={(html) => setValue('content.bodyIntro', html, { shouldValidate: true })}
+        maxLength={1000}
         required
-        placeholder="Max 300 characters"
-        maxLength={300}
-        currentLength={bodyIntro.length}
-        rows={3}
+        error={errors.content?.bodyIntro}
+        placeholder="Max 1000 characters"
+        rows={6}
       />
 
       {/* Email Modules */}
@@ -164,6 +264,9 @@ export function StepContent() {
                 >
                   {isSelected ? '\u2713' : ''}
                 </span>
+                <span className={`mt-0.5 shrink-0 ${isSelected ? 'text-[#134848] dark:text-[#fbaa96]' : 'text-gray-400 dark:text-gray-500'}`}>
+                  {CATEGORY_ICONS[mod.category]}
+                </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{mod.label}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{mod.description}</p>
@@ -175,6 +278,84 @@ export function StepContent() {
             <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No modules in this category.</p>
           )}
         </div>
+
+        {/* Selected modules editable cards */}
+        {selectedModules.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+              Selected Modules ({selectedModules.length})
+            </p>
+            <div className="space-y-2">
+              {selectedModules.map((modId, index) => {
+                const mod = EMAIL_MODULES.find((m) => m.id === modId)
+                if (!mod) return null
+                const note = moduleNotes[modId] ?? ''
+                return (
+                  <div
+                    key={modId}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-gray-400 dark:text-gray-500 shrink-0">
+                          {CATEGORY_ICONS[mod.category]}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{mod.label}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{mod.category}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => moveModuleUp(index)}
+                          disabled={index === 0}
+                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 transition-colors"
+                          title="Move up"
+                          aria-label="Move module up"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 15l-6-6-6 6"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveModuleDown(index)}
+                          disabled={index === selectedModules.length - 1}
+                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 transition-colors"
+                          title="Move down"
+                          aria-label="Move module down"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M6 9l6 6 6-6"/>
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleModule(modId)}
+                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove module"
+                          aria-label={`Remove ${mod.label}`}
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2">
+                      <textarea
+                        value={note}
+                        onChange={(e) => setModuleNote(modId, e.target.value)}
+                        placeholder="Notes / instructions for this module (optional)"
+                        rows={2}
+                        className="w-full text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#134848]/30 focus:border-[#134848] resize-none placeholder-gray-400 dark:placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dynamic sections */}

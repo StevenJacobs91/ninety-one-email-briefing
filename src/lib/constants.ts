@@ -39,11 +39,35 @@ export const BRAND_THEMES = [
 export type BrandTheme = (typeof BRAND_THEMES)[number]['id']
 
 export const CLIENT_GROUPS = ['Southern Africa', 'United Kingdom', 'Europe', 'Northern America', 'Asia'] as const
-export const REGIONS = ['South Africa', 'Namibia', 'Botswana'] as const
+export type ClientGroup = (typeof CLIENT_GROUPS)[number]
+
+// All possible regions (used for Zod schema validation)
+export const REGIONS = [
+  // Southern Africa
+  'South Africa', 'Namibia', 'Botswana',
+  // United Kingdom
+  'United Kingdom', 'Ireland',
+  // Europe
+  'Germany', 'Sweden', 'Switzerland', 'Belgium', 'France', 'Netherlands', 'Luxembourg', 'Austria',
+  // Americas
+  'United States', 'Canada', 'Latin America',
+  // Asia
+  'Singapore', 'Hong Kong', 'Australia', 'New Zealand', 'Japan', 'Taiwan',
+] as const
+
+export type Region = (typeof REGIONS)[number]
+
+// Maps each client group to its available regions
+export const CLIENT_GROUP_REGIONS: Record<ClientGroup, readonly string[]> = {
+  'Southern Africa': ['South Africa', 'Namibia', 'Botswana'],
+  'United Kingdom': ['United Kingdom', 'Ireland'],
+  'Europe': ['Germany', 'Sweden', 'Switzerland', 'Belgium', 'France', 'Netherlands', 'Luxembourg', 'Austria'],
+  'Northern America': ['United States', 'Canada', 'Latin America'],
+  'Asia': ['Singapore', 'Hong Kong', 'Australia', 'New Zealand', 'Japan', 'Taiwan'],
+}
+
 export const CHANNELS = ['Advisor', 'Institutional', 'Corporate Solutions', 'Individual Investor', 'Internal'] as const
 
-export type ClientGroup = (typeof CLIENT_GROUPS)[number]
-export type Region = (typeof REGIONS)[number]
 export type Channel = (typeof CHANNELS)[number]
 
 export const LOGO_VARIANTS = ['horizontal', 'stacked', 'icon'] as const
@@ -203,9 +227,34 @@ export const BRIEF_TEMPLATES: BriefTemplate[] = [
 ]
 
 export const REGION_LEGAL_DISCLAIMERS: Record<string, string> = {
+  // Southern Africa
   'South Africa': 'Ninety One SA (Pty) Ltd is an authorised financial services provider (FSP No. 19224). This communication is for informational purposes only and does not constitute financial advice. Collective investment schemes are generally medium to long-term investments.',
   'Namibia': 'Ninety One Namibia (Pty) Ltd is registered and incorporated in Namibia (Registration No. 2016/0566) and is licensed as a Financial Services Provider under NAMFISA. This communication is for informational purposes only.',
   'Botswana': 'Ninety One Botswana (Pty) Ltd is licensed by the Non-Bank Financial Institutions Regulatory Authority (NBFIRA). This communication is for informational purposes only and does not constitute investment advice.',
+  // United Kingdom
+  'United Kingdom': 'Ninety One UK Limited is authorised and regulated by the Financial Conduct Authority (FRN 183798). This communication is directed at professional clients and eligible counterparties only. Not for retail distribution.',
+  'Ireland': 'This communication is directed at professional investors only. It is not intended for retail distribution in Ireland. Recipients should seek their own legal, regulatory and financial advice.',
+  // Europe
+  'Germany': 'Ninety One Luxembourg S.A. is authorised and regulated by the Commission de Surveillance du Secteur Financier (CSSF). Distributed in Germany to professional clients only as defined by MiFID II.',
+  'Sweden': 'Ninety One Luxembourg S.A. is authorised and regulated by the CSSF. Distributed in Sweden to professional clients only as defined by MiFID II. Not for retail distribution.',
+  'Switzerland': 'This communication is directed at qualified investors as defined in the Swiss Collective Investment Schemes Act. Not for distribution to retail investors in Switzerland.',
+  'Belgium': 'Ninety One Luxembourg S.A. is authorised and regulated by the CSSF. Distributed in Belgium to professional clients only as defined by MiFID II. Not for retail distribution.',
+  'France': 'Ninety One Luxembourg S.A. is authorised and regulated by the CSSF. Distributed in France to professional clients only as defined by MiFID II. Not for retail distribution.',
+  'Netherlands': 'Ninety One Luxembourg S.A. is authorised and regulated by the CSSF. Distributed in the Netherlands to professional clients only as defined by MiFID II. Not for retail distribution.',
+  'Luxembourg': 'Ninety One Luxembourg S.A. is authorised and regulated by the Commission de Surveillance du Secteur Financier (CSSF). This communication is directed at professional clients only as defined by MiFID II.',
+  'Austria': 'Ninety One Luxembourg S.A. is authorised and regulated by the CSSF. Distributed in Austria to professional clients only as defined by MiFID II. Not for retail distribution.',
+  // Americas
+  'United States': 'This communication is for institutional and accredited investors only. It does not constitute an offer to buy or sell any security. Not for retail distribution in the United States.',
+  'Canada': 'This communication is for permitted clients only as defined under Canadian securities legislation. It does not constitute investment advice and is not intended for retail distribution.',
+  'Latin America': 'This communication is for institutional investors only and is distributed in Latin America for informational purposes. Recipients should seek their own legal, regulatory and financial advice.',
+  // Asia
+  'Singapore': 'This communication is for accredited investors and institutional investors only as defined under the Securities and Futures Act of Singapore. Not for retail distribution.',
+  'Hong Kong': 'This communication is directed at professional investors as defined in the Securities and Futures Ordinance of Hong Kong. Not for retail distribution.',
+  'Australia': 'Ninety One Australia Pty Ltd is authorised and regulated in Australia. This communication is for wholesale clients only as defined under the Corporations Act 2001. Not for retail distribution.',
+  'New Zealand': 'This communication is for wholesale investors only as defined under the Financial Markets Conduct Act 2013. Not for retail distribution in New Zealand.',
+  'Japan': 'This communication is for qualified institutional investors only as defined under the Financial Instruments and Exchange Act of Japan. Not for retail distribution.',
+  'Taiwan': 'This communication is for institutional investors only. It is not intended for retail distribution in Taiwan. Recipients should seek their own legal and financial advice.',
+  // Legacy keys (for backwards compatibility)
   'UK': 'Ninety One UK Limited is authorised and regulated by the Financial Conduct Authority (FRN 183798). This communication is directed at professional clients and eligible counterparties only. Not for retail distribution.',
   'EU': 'Ninety One Luxembourg S.A. is authorised and regulated by the Commission de Surveillance du Secteur Financier (CSSF). This communication is directed at professional clients only as defined by MiFID II.',
   'ASIA': 'This communication is for institutional investors only and is not intended for retail investors. Recipients should seek their own legal, regulatory, tax and financial advice.',

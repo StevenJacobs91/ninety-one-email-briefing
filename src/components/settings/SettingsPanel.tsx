@@ -7,6 +7,7 @@ import { TabTemplates } from './TabTemplates'
 import { TabModules } from './TabModules'
 import { TabFormLayout } from './TabFormLayout'
 import { TabBrandGuardian } from './TabBrandGuardian'
+import { TabDisclaimers } from './TabDisclaimers'
 
 const TABS: { id: SettingsTab; label: string; description: string }[] = [
   { id: 'general', label: 'General', description: 'Sender defaults, form defaults, and n8n integration' },
@@ -15,6 +16,7 @@ const TABS: { id: SettingsTab; label: string; description: string }[] = [
   { id: 'modules', label: 'Email Modules', description: 'Add, remove, and organise email modules' },
   { id: 'layout', label: 'Form Layout', description: 'Reorder fields and set required/optional' },
   { id: 'guardian', label: 'Brand Guardian', description: 'Tune review thresholds and checks' },
+  { id: 'disclaimers', label: 'Disclaimers', description: 'Configure legal disclaimer text per region' },
 ]
 
 export function SettingsPanel() {
@@ -117,6 +119,7 @@ export function SettingsPanel() {
           {activeTab === 'modules' && <TabModules />}
           {activeTab === 'layout' && <TabFormLayout />}
           {activeTab === 'guardian' && <TabBrandGuardian />}
+          {activeTab === 'disclaimers' && <TabDisclaimers />}
         </div>
 
         {/* Reset confirmation modal */}
