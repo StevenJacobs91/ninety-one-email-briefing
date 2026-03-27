@@ -3,12 +3,7 @@ import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { CLIENT_GROUPS, REGIONS, CHANNELS } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+import { formatFileSize } from '../../lib/formatFileSize'
 
 export function StepAudience() {
   const { register, formState: { errors }, watch, setValue } = useFormContext<BriefFormData>()
@@ -30,23 +25,29 @@ export function StepAudience() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Audience</h2>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Audience</h2>
 
       {/* Client Group */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Client Group<span className="text-red-500 ml-0.5">*</span>
-        </label>
+        <div className="flex items-baseline justify-between mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Client Group<span className="text-red-500 ml-0.5">*</span>
+          </label>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {selectedClientGroups.length > 0 ? `${selectedClientGroups.length} selected` : 'Select all that apply'}
+          </span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {CLIENT_GROUPS.map((group) => (
             <button
               key={group}
               type="button"
               onClick={() => toggleArrayValue('audience.clientGroup', group, selectedClientGroups)}
+              aria-pressed={selectedClientGroups.includes(group)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 selectedClientGroups.includes(group)
                   ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {group}
@@ -60,19 +61,25 @@ export function StepAudience() {
 
       {/* Regions */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Region<span className="text-red-500 ml-0.5">*</span>
-        </label>
+        <div className="flex items-baseline justify-between mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Region<span className="text-red-500 ml-0.5">*</span>
+          </label>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {selectedRegions.length > 0 ? `${selectedRegions.length} of ${REGIONS.length} selected` : 'Select all that apply'}
+          </span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {REGIONS.map((region) => (
             <button
               key={region}
               type="button"
               onClick={() => toggleArrayValue('audience.region', region, selectedRegions)}
+              aria-pressed={selectedRegions.includes(region)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 selectedRegions.includes(region)
                   ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {region}
@@ -86,19 +93,25 @@ export function StepAudience() {
 
       {/* Channels */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Channel<span className="text-red-500 ml-0.5">*</span>
-        </label>
+        <div className="flex items-baseline justify-between mb-2">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Channel<span className="text-red-500 ml-0.5">*</span>
+          </label>
+          <span className="text-xs text-gray-400 dark:text-gray-500">
+            {selectedChannels.length > 0 ? `${selectedChannels.length} of ${CHANNELS.length} selected` : 'Select all that apply'}
+          </span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {CHANNELS.map((channel) => (
             <button
               key={channel}
               type="button"
               onClick={() => toggleArrayValue('audience.channel', channel, selectedChannels)}
+              aria-pressed={selectedChannels.includes(channel)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 selectedChannels.includes(channel)
                   ? 'bg-[#134848] text-white border-[#134848]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
             >
               {channel}
@@ -113,12 +126,17 @@ export function StepAudience() {
       {/* Distribution List Upload */}
       <DistributionListUpload />
 
-      <FieldText
-        label="Pardot List ID"
-        registration={register('audience.pardotListId')}
-        error={errors.audience?.pardotListId}
-        placeholder="Optional — for n8n Pardot workflow"
-      />
+      <div>
+        <FieldText
+          label="Pardot List ID"
+          registration={register('audience.pardotListId')}
+          error={errors.audience?.pardotListId}
+          placeholder="e.g. 12345"
+        />
+        <p className="text-xs text-gray-400 dark:text-gray-500 -mt-3 mb-4">
+          Optional. Find this in Pardot under <em>Marketing &rarr; Segmentation &rarr; Lists</em>. Used by the n8n automation to trigger the send.
+        </p>
+      </div>
     </div>
   )
 }
@@ -189,6 +207,7 @@ function DistributionListUpload() {
             onClick={removeList}
             className="text-gray-400 hover:text-red-500 text-sm px-2 shrink-0"
             title="Remove"
+            aria-label="Remove distribution list"
           >
             &times;
           </button>
@@ -201,7 +220,7 @@ function DistributionListUpload() {
           className={`relative border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer ${
             isDragging
               ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96] dark:bg-[#fbaa96]/5'
-              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-[#134848] focus-within:border-[#134848]'
           }`}
         >
           <input

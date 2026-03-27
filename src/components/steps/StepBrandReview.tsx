@@ -8,6 +8,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 interface StepBrandReviewProps {
   onAccept: () => void
   onDecline: () => void
+  onGoToStep: (step: number) => void
 }
 
 const REVIEW_SECTIONS = [
@@ -28,7 +29,23 @@ const REVIEW_SECTIONS = [
   },
 ] as const
 
-export function StepBrandReview({ onAccept, onDecline }: StepBrandReviewProps) {
+// Map field prefixes to step indices
+const FIELD_TO_STEP: Array<[string, number]> = [
+  ['campaign', 0],
+  ['audience', 1],
+  ['content', 2],
+  ['assets', 3],
+  ['deadlines', 4],
+]
+
+function fieldToStep(field: string): number | null {
+  for (const [prefix, step] of FIELD_TO_STEP) {
+    if (field.startsWith(prefix)) return step
+  }
+  return null
+}
+
+export function StepBrandReview({ onAccept, onDecline, onGoToStep }: StepBrandReviewProps) {
   const { getValues } = useFormContext<BriefFormData>()
   const data = getValues() as BriefPayload
   const { settings } = useSettings()
@@ -172,7 +189,7 @@ export function StepBrandReview({ onAccept, onDecline }: StepBrandReviewProps) {
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{category}</h3>
               <div className="space-y-2">
                 {categoryItems.map((item, i) => (
-                  <FeedbackRow key={i} item={item} />
+                  <FeedbackRow key={i} item={item} onGoToStep={onGoToStep} />
                 ))}
               </div>
             </div>
@@ -210,32 +227,44 @@ export function StepBrandReview({ onAccept, onDecline }: StepBrandReviewProps) {
         <button
           type="button"
           onClick={onDecline}
-          className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
-          Go Back &amp; Edit Brief
+          Go Back &amp; Edit
         </button>
       </div>
     </div>
   )
 }
 
-function FeedbackRow({ item }: { item: BrandFeedbackItem }) {
+function FeedbackRow({ item, onGoToStep }: { item: BrandFeedbackItem; onGoToStep: (step: number) => void }) {
   const icons = {
     pass: { symbol: '\u2713', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/30' },
     warning: { symbol: '!', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30' },
     error: { symbol: '\u2717', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30' },
   }
   const icon = icons[item.severity]
+  const step = fieldToStep(item.field)
+  const stepLabels = ['Campaign', 'Audience', 'Content', 'Assets', 'Deadlines']
 
   return (
     <div className={`flex items-start gap-3 p-3 rounded-md ${icon.bg}`}>
       <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${icon.color} shrink-0 mt-0.5`}>
         {icon.symbol}
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">{item.field}</p>
         <p className="text-sm text-gray-700 dark:text-gray-300">{item.message}</p>
       </div>
+      {item.severity !== 'pass' && step !== null && (
+        <button
+          type="button"
+          onClick={() => onGoToStep(step)}
+          className="shrink-0 text-xs font-medium text-[#134848] dark:text-[#fbaa96] hover:underline whitespace-nowrap"
+          title={`Go to ${stepLabels[step]} step`}
+        >
+          Go to {stepLabels[step]}
+        </button>
+      )}
     </div>
   )
 }

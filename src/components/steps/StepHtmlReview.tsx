@@ -7,7 +7,11 @@ import { buildEmailName } from '../../lib/emailName'
 
 type ViewportMode = 'desktop' | 'mobile'
 
-export function StepHtmlReview() {
+interface StepHtmlReviewProps {
+  onComplete?: () => void
+}
+
+export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
   const data = getValues() as BriefPayload
 
@@ -123,23 +127,42 @@ export function StepHtmlReview() {
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
     try {
+      // 1. Download both files for attachment
       const briefJson = JSON.stringify(data, null, 2)
+      const briefBlob = new Blob([briefJson], { type: 'application/json' })
+      const briefUrl = URL.createObjectURL(briefBlob)
+      const briefLink = document.createElement('a')
+      briefLink.href = briefUrl
+      briefLink.download = `brief-${data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`
+      briefLink.click()
+      URL.revokeObjectURL(briefUrl)
+
+      const htmlBlob = new Blob([html], { type: 'text/html' })
+      const htmlUrl = URL.createObjectURL(htmlBlob)
+      const htmlLink = document.createElement('a')
+      htmlLink.href = htmlUrl
+      htmlLink.download = `email-${data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.html`
+      htmlLink.click()
+      URL.revokeObjectURL(htmlUrl)
+
+      // 2. Open mailto with summary only (no large body)
       const subject = encodeURIComponent(`Email Brief - ${emailName}`)
       const body = encodeURIComponent(
-        `Hi Steven,\n\nPlease find the email brief and HTML template attached below.\n\n` +
+        `Hi Steven,\n\n` +
+        `Please find the email brief JSON and HTML template attached (downloaded to your computer).\n\n` +
         `Campaign: ${data.campaign.campaignName}\n` +
         `Email Type: ${data.campaign.emailType}\n` +
         `Theme: ${data.campaign.theme}\n` +
         `Subject Line: ${data.campaign.subjectLine}\n` +
         `Send Date: ${data.deadlines.sendDate}\n` +
         `Urgency: ${data.deadlines.urgency}\n\n` +
-        `--- BRIEF JSON ---\n${briefJson}\n\n` +
-        `--- HTML TEMPLATE ---\n${html}`
+        `Please attach the two downloaded files to this email before sending.`
       )
-
       window.location.href = `mailto:steven.jacobs@ninetyone.com?subject=${subject}&body=${body}`
+
       setSubmitStatus('sent')
-      setTimeout(() => setSubmitStatus('idle'), 3000)
+      onComplete?.()
+      setTimeout(() => setSubmitStatus('idle'), 5000)
     } catch {
       setSubmitStatus('error')
       setTimeout(() => setSubmitStatus('idle'), 3000)
@@ -148,8 +171,8 @@ export function StepHtmlReview() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-1">HTML Email Preview</h2>
-      <p className="text-sm text-gray-500 mb-4">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">HTML Email Preview</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Review the generated email template below. Download, copy, or submit the HTML when ready.
       </p>
 
@@ -251,7 +274,7 @@ export function StepHtmlReview() {
           </div>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-6">
           <div className="bg-gray-800 px-3 py-2 border-b border-gray-700 flex items-center gap-2">
             <span className="text-xs text-gray-400">HTML Source</span>
             <span className="text-xs text-gray-500 ml-auto">{html.length.toLocaleString()} chars</span>
@@ -282,37 +305,48 @@ export function StepHtmlReview() {
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="flex gap-3 flex-wrap">
+      {/* Utility actions — secondary */}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Save or copy the HTML template:</p>
+      <div className="flex gap-3 flex-wrap mb-4">
         <button
           type="button"
           onClick={handleDownload}
-          className="flex-1 min-w-[140px] bg-[#134848] text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#0d3232] transition-colors"
+          className="flex-1 min-w-[130px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Download HTML
         </button>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex-1 min-w-[140px] border border-[#134848] text-[#134848] py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#134848]/5 transition-colors"
+          className="flex-1 min-w-[130px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'error' ? 'Failed' : 'Copy HTML'}
         </button>
-        <button
-          type="button"
-          onClick={handleSubmitBriefAndTemplate}
-          disabled={submitStatus === 'sending'}
-          className="flex-1 min-w-[200px] bg-[#0a3323] text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#071f15] transition-colors disabled:opacity-50"
-        >
-          {submitStatus === 'sending'
-            ? 'Opening email...'
-            : submitStatus === 'sent'
-              ? 'Email client opened!'
-              : submitStatus === 'error'
-                ? 'Error — try again'
-                : 'Submit Brief & Template'}
-        </button>
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-gray-100 dark:border-gray-800 mb-4" />
+
+      {/* Primary submission action */}
+      <button
+        type="button"
+        onClick={handleSubmitBriefAndTemplate}
+        disabled={submitStatus === 'sending'}
+        className="w-full bg-[#0a3323] text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-[#071f15] transition-colors disabled:opacity-50"
+      >
+        {submitStatus === 'sending'
+          ? 'Opening email client…'
+          : submitStatus === 'sent'
+            ? 'Files downloaded — attach to email before sending'
+            : submitStatus === 'error'
+              ? 'Error — try again'
+              : 'Submit Brief & Template'}
+      </button>
+      {submitStatus !== 'sent' && submitStatus !== 'error' && (
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+          Downloads both files and opens your email client with a pre-filled message to steven.jacobs@ninetyone.com
+        </p>
+      )}
     </div>
   )
 }

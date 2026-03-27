@@ -3,12 +3,7 @@ import { useFormContext, useFieldArray } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { FieldText } from '../ui/FieldText'
 import { LOGO_VARIANTS } from '../../lib/constants'
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+import { formatFileSize } from '../../lib/formatFileSize'
 
 export function StepAssets() {
   const { register, watch, control, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
@@ -62,10 +57,10 @@ export function StepAssets() {
 
       {/* Logo variant */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Logo Variant<span className="text-red-500 ml-0.5">*</span>
-        </label>
-        <div className="flex gap-3">
+        </p>
+        <div className="flex gap-3" role="radiogroup" aria-labelledby="logo-variant-label">
           {LOGO_VARIANTS.map((variant) => {
             const selected = watch('assets.logoVariant') === variant
             return (
@@ -90,11 +85,16 @@ export function StepAssets() {
         </div>
       </div>
 
-      <FieldText
-        label="Stripe Colour"
-        registration={register('assets.stripeColour')}
-        placeholder="Hex value — overrides theme default, e.g. #fbaa96"
-      />
+      <div>
+        <FieldText
+          label="Stripe Colour"
+          registration={register('assets.stripeColour')}
+          placeholder="e.g. #fbaa96"
+        />
+        <p className="text-xs text-gray-400 dark:text-gray-500 -mt-3 mb-4">
+          Optional. Hex value that overrides the selected theme's default stripe/accent colour.
+        </p>
+      </div>
 
       <FieldText
         label="Hero Image URL"
@@ -114,7 +114,10 @@ export function StepAssets() {
       {/* Additional asset URLs */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Additional Asset URLs</label>
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Additional Asset URLs</label>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">{fields.length} / 4</span>
+          </div>
           {fields.length < 4 && (
             <button
               type="button"
@@ -137,6 +140,7 @@ export function StepAssets() {
               onClick={() => remove(index)}
               className="text-gray-400 hover:text-red-500 px-2"
               title="Remove"
+              aria-label={`Remove URL ${index + 1}`}
             >
               &times;
             </button>
@@ -157,7 +161,7 @@ export function StepAssets() {
           className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
             isDragging
               ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96] dark:bg-[#fbaa96]/5'
-              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-[#134848] focus-within:border-[#134848]'
           }`}
         >
           <input
@@ -199,6 +203,7 @@ export function StepAssets() {
                   onClick={() => removeAttachment(index)}
                   className="text-gray-400 hover:text-red-500 text-sm px-2 shrink-0"
                   title="Remove"
+                  aria-label={`Remove ${att.name}`}
                 >
                   &times;
                 </button>

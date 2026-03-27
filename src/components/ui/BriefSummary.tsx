@@ -1,6 +1,18 @@
 import type { BriefFormData } from '../../lib/schema'
 import { BRAND_THEMES, EMAIL_TYPE_LABELS, EMAIL_MODULES } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
+import { buildEmailName } from '../../lib/emailName'
+
+function formatDate(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function capitalize(s: string): string {
+  if (!s) return ''
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
 interface BriefSummaryProps {
   data: BriefFormData
@@ -10,12 +22,14 @@ export function BriefSummary({ data }: BriefSummaryProps) {
   const theme = BRAND_THEMES.find((t) => t.id === data.campaign.theme)
   const selectedModuleLabels = (data.content.modules ?? [])
     .map((id) => EMAIL_MODULES.find((m) => m.id === id)?.label ?? id)
+  const emailName = buildEmailName(data.campaign.campaignName, data.audience?.region ?? [], data.audience?.channel ?? [])
 
   return (
     <div className="space-y-6 text-sm">
       <Section title="Campaign">
         <Row label="Email Type" value={EMAIL_TYPE_LABELS[data.campaign.emailType as EmailType]} />
         <Row label="Campaign Name" value={data.campaign.campaignName} />
+        <Row label="Email Name" value={emailName} />
         <Row label="Theme" value={theme?.label ?? data.campaign.theme} />
         <Row label="Subject Line" value={data.campaign.subjectLine} />
         <Row label="Preview Text" value={data.campaign.previewText} />
@@ -37,10 +51,10 @@ export function BriefSummary({ data }: BriefSummaryProps) {
         <Row label="Body Intro" value={data.content.bodyIntro} />
         {selectedModuleLabels.length > 0 && (
           <div className="mt-2">
-            <p className="font-medium text-gray-600 mb-1">Modules ({selectedModuleLabels.length})</p>
+            <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Modules ({selectedModuleLabels.length})</p>
             <div className="flex flex-wrap gap-1.5 ml-3">
               {selectedModuleLabels.map((label) => (
-                <span key={label} className="text-xs bg-[#134848]/10 text-[#134848] px-2 py-0.5 rounded-full">
+                <span key={label} className="text-xs bg-[#134848]/10 dark:bg-[#134848]/20 text-[#134848] dark:text-[#fbaa96] px-2 py-0.5 rounded-full">
                   {label}
                 </span>
               ))}
@@ -48,7 +62,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
           </div>
         )}
         <div className="mt-2">
-          <p className="font-medium text-gray-600 mb-1">Sections ({data.content.sections.length})</p>
+          <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Sections ({data.content.sections.length})</p>
           {data.content.sections.map((s, i) => (
             <div key={s.id} className="ml-3 mb-2 border-l-2 border-gray-200 pl-3">
               <p className="font-medium">{s.heading || `Section ${i + 1}`}</p>
@@ -77,9 +91,9 @@ export function BriefSummary({ data }: BriefSummaryProps) {
       </Section>
 
       <Section title="Deadlines">
-        <Row label="Content Approval Date" value={data.deadlines.contentApprovalDate} />
-        <Row label="Send Date" value={data.deadlines.sendDate} />
-        <Row label="Urgency" value={data.deadlines.urgency} />
+        <Row label="Content Approval Date" value={formatDate(data.deadlines.contentApprovalDate)} />
+        <Row label="Send Date" value={formatDate(data.deadlines.sendDate)} />
+        <Row label="Urgency" value={capitalize(data.deadlines.urgency)} />
         <Row label="1-1 Required" value={data.deadlines.oneOnOneRequired ? 'Yes' : 'No'} />
         {data.deadlines.notes && <Row label="Notes" value={data.deadlines.notes} />}
       </Section>

@@ -10,15 +10,17 @@ const PIPELINE_LABELS = [
 
 interface StepIndicatorProps {
   currentStep: number
+  highestStepReached: number
   onStepClick: (step: number) => void
 }
 
-export function StepIndicator({ currentStep, onStepClick }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, highestStepReached, onStepClick }: StepIndicatorProps) {
   return (
-    <nav className="flex items-center gap-1.5 mb-8">
+    <nav className="flex items-center gap-1.5 mb-8" aria-label="Form progress">
       {PIPELINE_LABELS.map((label, index) => {
         const isCompleted = index < currentStep
         const isCurrent = index === currentStep
+        const isReachable = index <= highestStepReached
         const isBrief = index <= 4
         const isPipeline = index > 4
 
@@ -27,20 +29,24 @@ export function StepIndicator({ currentStep, onStepClick }: StepIndicatorProps) 
             key={label}
             type="button"
             onClick={() => {
-              if (isCompleted) onStepClick(index)
+              if (isReachable && !isCurrent) onStepClick(index)
             }}
-            className={`flex-1 py-2 px-0.5 text-[10px] sm:text-xs font-medium rounded-full text-center transition-colors ${
+            disabled={!isReachable || isCurrent}
+            aria-current={isCurrent ? 'step' : undefined}
+            aria-label={`Step ${index + 1}: ${label}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
+            className={`flex-1 py-2 px-0.5 text-[11px] sm:text-xs font-medium rounded-full text-center transition-colors ${
               isCurrent
                 ? isPipeline
                   ? 'bg-[#0a3323] text-white'
                   : 'bg-[#134848] text-white'
                 : isCompleted
                   ? isBrief
-                    ? 'bg-[#134848]/20 text-[#134848] cursor-pointer hover:bg-[#134848]/30'
-                    : 'bg-[#0a3323]/20 text-[#0a3323] cursor-pointer hover:bg-[#0a3323]/30'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default'
+                    ? 'bg-[#134848]/20 text-[#134848] dark:text-[#fbaa96] cursor-pointer hover:bg-[#134848]/30'
+                    : 'bg-[#0a3323]/20 text-[#0a3323] dark:text-[#fbaa96] cursor-pointer hover:bg-[#0a3323]/30'
+                  : isReachable
+                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default'
             }`}
-            disabled={!isCompleted}
           >
             {label}
           </button>

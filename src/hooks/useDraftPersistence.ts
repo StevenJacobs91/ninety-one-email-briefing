@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import type { BriefFormData } from '../lib/schema'
 
@@ -7,8 +7,12 @@ const DRAFT_VERSION_KEY = 'ni-email-brief-draft-version'
 const CURRENT_VERSION = 5 // Bump when schema changes
 const DEBOUNCE_MS = 500
 
+export type SaveStatus = 'idle' | 'saving' | 'saved'
+
 export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   // Restore draft on mount — clear stale drafts from old schema versions
   useEffect(() => {
@@ -32,6 +36,7 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
           draft.content.modules = []
         }
         form.reset(draft)
+        setSaveStatus('saved')
       }
     } catch {
       // Ignore corrupt data
@@ -42,30 +47,35 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
   // Watch and persist with debounce
   useEffect(() => {
     const subscription = form.watch((values) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      setSaveStatus('saving')
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+
       timeoutRef.current = setTimeout(() => {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
           localStorage.setItem(DRAFT_VERSION_KEY, String(CURRENT_VERSION))
+          setSaveStatus('saved')
+          // Reset to idle after 3s
+          savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000)
         } catch {
           // Storage full or unavailable
+          setSaveStatus('idle')
         }
       }, DEBOUNCE_MS)
     })
 
     return () => {
       subscription.unsubscribe()
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
     }
   }, [form])
 
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
+    setSaveStatus('idle')
   }, [])
 
-  return { clearDraft }
+  return { clearDraft, saveStatus }
 }

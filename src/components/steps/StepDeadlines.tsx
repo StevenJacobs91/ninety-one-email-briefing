@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { FieldText } from '../ui/FieldText'
@@ -13,8 +14,11 @@ interface StepDeadlinesProps {
 export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
   const form = useFormContext<BriefFormData>()
   const { register, watch, formState: { errors } } = form
+  const [summaryOpen, setSummaryOpen] = useState(false)
 
   const notes = watch('deadlines.notes') ?? ''
+  const contentApprovalDate = watch('deadlines.contentApprovalDate') ?? ''
+  const today = new Date().toISOString().split('T')[0]
   const data = watch()
 
   return (
@@ -27,6 +31,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
         error={errors.deadlines?.contentApprovalDate}
         required
         type="date"
+        min={today}
       />
 
       <FieldText
@@ -35,14 +40,15 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
         error={errors.deadlines?.sendDate}
         required
         type="date"
+        min={contentApprovalDate || today}
       />
 
       {/* Urgency */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <p id="urgency-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Urgency<span className="text-red-500 ml-0.5">*</span>
-        </label>
-        <div className="flex gap-3">
+        </p>
+        <div className="flex gap-3" role="radiogroup" aria-labelledby="urgency-label">
           {URGENCY_OPTIONS.map((opt) => {
             const selected = watch('deadlines.urgency') === opt
             return (
@@ -53,7 +59,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
                     ? opt === 'urgent'
                       ? 'bg-red-600 text-white border-red-600'
                       : 'bg-[#134848] text-white border-[#134848]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
                 <input
@@ -71,10 +77,13 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
 
       {/* 1-1 Required */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <p id="one-on-one-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           1-1 Required?
-        </label>
-        <div className="flex gap-3">
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          Does this email require a personalised one-to-one send (e.g. individual adviser targeting)?
+        </p>
+        <div className="flex gap-3" role="radiogroup" aria-labelledby="one-on-one-label">
           {(['yes', 'no'] as const).map((opt) => {
             const isYes = opt === 'yes'
             const selected = isYes ? watch('deadlines.oneOnOneRequired') === true : watch('deadlines.oneOnOneRequired') === false
@@ -84,7 +93,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
                 className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
                   selected
                     ? 'bg-[#134848] text-white border-[#134848]'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
                 <input
@@ -112,37 +121,53 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
         rows={3}
       />
 
-      {/* Brief Summary */}
-      <div className="mt-8 mb-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-3">Review Your Brief</h3>
-        <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
-          <BriefSummary data={data as BriefFormData} />
-        </div>
+      {/* Collapsible Brief Summary */}
+      <div className="mt-8 mb-6 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setSummaryOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-3 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+          aria-expanded={summaryOpen}
+        >
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Review Your Brief</span>
+          <svg
+            className={`w-4 h-4 text-gray-500 transition-transform ${summaryOpen ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {summaryOpen && (
+          <div className="p-5 bg-white dark:bg-gray-900">
+            <BriefSummary data={data as BriefFormData} />
+          </div>
+        )}
       </div>
 
-      {/* Submit controls */}
-      <div className="flex gap-3">
+      {/* Export utilities — secondary actions */}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Export brief data only:</p>
+      <div className="flex gap-3 mb-6">
         <button
           type="button"
           onClick={() => onSubmit('download')}
-          className="flex-1 bg-[#134848] text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#0d3232] transition-colors"
+          className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Download JSON
         </button>
         <button
           type="button"
           onClick={() => onSubmit('clipboard')}
-          className="flex-1 border border-[#134848] text-[#134848] py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#134848]/5 transition-colors"
+          className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
-          Copy to Clipboard
+          Copy JSON
         </button>
       </div>
 
       {submitStatus === 'success' && (
-        <p className="text-sm text-green-600 mt-3 text-center">Brief exported successfully.</p>
+        <p className="text-sm text-green-600 dark:text-green-400 -mt-4 mb-4 text-center">Brief exported successfully.</p>
       )}
       {submitStatus === 'error' && (
-        <p className="text-sm text-red-600 mt-3 text-center">Export failed. Please try again.</p>
+        <p className="text-sm text-red-600 dark:text-red-400 -mt-4 mb-4 text-center">Export failed. Please try again.</p>
       )}
     </div>
   )
