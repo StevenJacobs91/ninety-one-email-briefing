@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { SettingsTab } from '../../types/settings.types'
+import { TabGeneral } from './TabGeneral'
 import { TabThemes } from './TabThemes'
 import { TabTemplates } from './TabTemplates'
 import { TabModules } from './TabModules'
@@ -8,6 +9,7 @@ import { TabFormLayout } from './TabFormLayout'
 import { TabBrandGuardian } from './TabBrandGuardian'
 
 const TABS: { id: SettingsTab; label: string; description: string }[] = [
+  { id: 'general', label: 'General', description: 'Sender defaults, form defaults, and n8n integration' },
   { id: 'themes', label: 'Brand Themes', description: 'Manage colour palettes and brand themes' },
   { id: 'templates', label: 'HTML Templates', description: 'Configure template file mappings' },
   { id: 'modules', label: 'Email Modules', description: 'Add, remove, and organise email modules' },
@@ -17,7 +19,7 @@ const TABS: { id: SettingsTab; label: string; description: string }[] = [
 
 export function SettingsPanel() {
   const { isOpen, closeSettings, resetSettings } = useSettings()
-  const [activeTab, setActiveTab] = useState<SettingsTab>('themes')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   // Trap focus and handle escape
@@ -109,6 +111,7 @@ export function SettingsPanel() {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {activeTab === 'general' && <TabGeneral />}
           {activeTab === 'themes' && <TabThemes />}
           {activeTab === 'templates' && <TabTemplates />}
           {activeTab === 'modules' && <TabModules />}

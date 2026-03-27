@@ -69,6 +69,19 @@ export interface BrandGuardianConfig {
   enableBrandProtectionChecks: boolean
 }
 
+export interface SenderDefaults {
+  fromName: string
+  fromAddress: string
+  replyToEmail: string
+}
+
+export interface FormDefaults {
+  theme: string
+  urgency: 'standard' | 'urgent'
+  emailType: string
+  includeUnsubscribe: boolean
+}
+
 export interface AppSettings {
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
@@ -76,9 +89,13 @@ export interface AppSettings {
   formSteps: FormStepConfig[]
   formFields: FormFieldConfig[]
   brandGuardian: BrandGuardianConfig
+  senderDefaults: SenderDefaults
+  formDefaults: FormDefaults
+  n8nWebhookUrl: string
 }
 
 export type SettingsTab =
+  | 'general'
   | 'themes'
   | 'templates'
   | 'modules'

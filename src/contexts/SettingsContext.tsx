@@ -34,6 +34,8 @@ function loadSettings(): AppSettings {
         ...defaults,
         ...parsed,
         brandGuardian: { ...defaults.brandGuardian, ...parsed.brandGuardian },
+        senderDefaults: { ...defaults.senderDefaults, ...parsed.senderDefaults },
+        formDefaults: { ...defaults.formDefaults, ...parsed.formDefaults },
       }
     }
   } catch {

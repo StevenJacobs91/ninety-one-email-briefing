@@ -5,6 +5,7 @@ import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { URGENCY_OPTIONS } from '../../lib/constants'
 import { BriefSummary } from '../ui/BriefSummary'
+import { PrintBrief } from '../ui/PrintBrief'
 
 interface StepDeadlinesProps {
   onSubmit: (mode: 'download' | 'clipboard') => void
@@ -145,23 +146,33 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
       </div>
 
       {/* Export utilities — secondary actions */}
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Export brief data only:</p>
-      <div className="flex gap-3 mb-6">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Export brief data:</p>
+      <div className="flex gap-3 mb-6 flex-wrap">
         <button
           type="button"
           onClick={() => onSubmit('download')}
-          className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="flex-1 min-w-[100px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Download JSON
         </button>
         <button
           type="button"
           onClick={() => onSubmit('clipboard')}
-          className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          className="flex-1 min-w-[100px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Copy JSON
         </button>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="flex-1 min-w-[100px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          Print / PDF
+        </button>
       </div>
+
+      {/* Print content (injected into #print-brief portal for @media print) */}
+      <PrintBrief data={data as BriefFormData} />
 
       {submitStatus === 'success' && (
         <p className="text-sm text-green-600 dark:text-green-400 -mt-4 mb-4 text-center">Brief exported successfully.</p>

@@ -101,6 +101,7 @@ export function StepAssets() {
         registration={register('assets.heroImageUrl')}
         error={errors.assets?.heroImageUrl as never}
         placeholder="https://cdn.example.com/hero.jpg"
+        validateUrl
       />
 
       <FieldText

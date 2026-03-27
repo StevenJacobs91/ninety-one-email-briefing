@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { v4 as uuidv4 } from 'uuid'
 import type { BriefFormData } from '../../lib/schema'
-import { EMAIL_MODULES } from '../../lib/constants'
+import { EMAIL_MODULES, REGION_LEGAL_DISCLAIMERS } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { FieldToggle } from '../ui/FieldToggle'
@@ -31,6 +31,18 @@ export function StepContent() {
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const ctaLabel = watch('content.cta.label') ?? ''
   const selectedModules = watch('content.modules') ?? []
+  const selectedRegions = watch('audience.region') ?? []
+  const legalDisclaimer = watch('content.legalDisclaimer') ?? ''
+
+  // Derive region default disclaimer for helper text
+  const regionDefaultDisclaimer = useMemo(() => {
+    if (selectedRegions.length === 0) return null
+    // Use the first matched region that has a disclaimer
+    for (const region of selectedRegions) {
+      if (REGION_LEGAL_DISCLAIMERS[region]) return REGION_LEGAL_DISCLAIMERS[region]
+    }
+    return null
+  }, [selectedRegions])
 
   // Module category filter
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
@@ -295,6 +307,7 @@ export function StepContent() {
           error={errors.content?.cta?.url}
           required
           placeholder="https://..."
+          validateUrl
         />
 
         <FieldToggle
@@ -303,12 +316,29 @@ export function StepContent() {
         />
       </div>
 
-      <FieldTextarea
-        label="Legal Disclaimer"
-        registration={register('content.legalDisclaimer')}
-        placeholder="Optional — overrides region default"
-        rows={2}
-      />
+      <div className="mb-4">
+        <FieldTextarea
+          label="Legal Disclaimer"
+          registration={register('content.legalDisclaimer')}
+          placeholder={regionDefaultDisclaimer ? 'Leave blank to use region default, or enter a custom disclaimer' : 'Optional — overrides region default'}
+          rows={2}
+        />
+        {regionDefaultDisclaimer && !legalDisclaimer && (
+          <div className="mt-1 rounded-md bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-3">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Region default ({selectedRegions[0]}):
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{regionDefaultDisclaimer}</p>
+            <button
+              type="button"
+              onClick={() => setValue('content.legalDisclaimer', regionDefaultDisclaimer)}
+              className="mt-2 text-xs text-[#134848] dark:text-[#fbaa96] font-medium hover:underline"
+            >
+              Use this disclaimer →
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="mb-4">
         <FieldToggle

@@ -9,7 +9,17 @@ import type { BriefPayload } from '../types/brief.types'
 
 const TOTAL_STEPS = 5
 
-function createDefaultValues(): BriefFormData {
+interface BriefFormDefaults {
+  fromName?: string
+  fromAddress?: string
+  replyToEmail?: string
+  theme?: string
+  urgency?: 'standard' | 'urgent'
+  emailType?: string
+  includeUnsubscribe?: boolean
+}
+
+function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
   return {
     meta: {
       briefId: uuidv4(),
@@ -18,14 +28,14 @@ function createDefaultValues(): BriefFormData {
       status: 'draft',
     },
     campaign: {
-      emailType: 'campaign',
+      emailType: (defaults?.emailType ?? 'campaign') as BriefFormData['campaign']['emailType'],
       campaignName: '',
-      theme: 'leatherback-coral',
+      theme: (defaults?.theme ?? 'leatherback-coral') as BriefFormData['campaign']['theme'],
       subjectLine: '',
       previewText: '',
-      fromName: 'Ninety One',
-      fromAddress: '',
-      replyToEmail: '',
+      fromName: defaults?.fromName ?? 'Ninety One',
+      fromAddress: defaults?.fromAddress ?? '',
+      replyToEmail: defaults?.replyToEmail ?? '',
     },
     audience: {
       clientGroup: [],
@@ -52,7 +62,7 @@ function createDefaultValues(): BriefFormData {
         openInNewTab: true,
       },
       legalDisclaimer: '',
-      includeUnsubscribe: true,
+      includeUnsubscribe: defaults?.includeUnsubscribe ?? true,
     },
     htmlEdits: [],
     assets: {
@@ -66,20 +76,20 @@ function createDefaultValues(): BriefFormData {
     deadlines: {
       contentApprovalDate: '',
       sendDate: '',
-      urgency: 'standard',
+      urgency: defaults?.urgency ?? 'standard',
       oneOnOneRequired: false,
       notes: '',
     },
   }
 }
 
-export function useBriefForm() {
+export function useBriefForm(defaults?: BriefFormDefaults) {
   const [currentStep, setCurrentStep] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   const form = useForm<BriefFormData>({
     resolver: zodResolver(briefSchema),
-    defaultValues: createDefaultValues(),
+    defaultValues: createDefaultValues(defaults),
     mode: 'onTouched',
   })
 

@@ -4,9 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ninety One — Email Briefing Form</title>
+    <!-- Prevent flash of wrong colour scheme on initial load -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('ni-dark-mode')
+        var isDark = stored === 'dark' || ((!stored || stored === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (isDark) document.documentElement.classList.add('dark')
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Print portal — populated by PrintBrief component; visible only via @media print -->
+    <div id="print-brief"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

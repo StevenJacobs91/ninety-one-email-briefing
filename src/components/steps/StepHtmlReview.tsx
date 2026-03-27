@@ -4,6 +4,7 @@ import type { BriefFormData } from '../../lib/schema'
 import type { BriefPayload, HtmlEdit } from '../../types/brief.types'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
 import { buildEmailName } from '../../lib/emailName'
+import { useSettings } from '../../contexts/SettingsContext'
 
 type ViewportMode = 'desktop' | 'mobile'
 
@@ -13,6 +14,7 @@ interface StepHtmlReviewProps {
 
 export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
+  const { settings } = useSettings()
   const data = getValues() as BriefPayload
 
   const html = useMemo(() => generateEmailHtml(data), [data])
@@ -126,39 +128,58 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
 
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
+    const webhookUrl = settings.n8nWebhookUrl?.trim()
+
     try {
-      // 1. Download both files for attachment
-      const briefJson = JSON.stringify(data, null, 2)
-      const briefBlob = new Blob([briefJson], { type: 'application/json' })
-      const briefUrl = URL.createObjectURL(briefBlob)
-      const briefLink = document.createElement('a')
-      briefLink.href = briefUrl
-      briefLink.download = `brief-${data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`
-      briefLink.click()
-      URL.revokeObjectURL(briefUrl)
+      if (webhookUrl) {
+        // POST directly to n8n webhook
+        const payload = {
+          brief: data,
+          html,
+          emailName,
+          submittedAt: new Date().toISOString(),
+        }
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!response.ok) throw new Error(`Webhook returned ${response.status}`)
+      } else {
+        // Fallback: download both files + open mailto
+        const slugName = data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()
+        const dateStr = new Date().toISOString().slice(0, 10)
 
-      const htmlBlob = new Blob([html], { type: 'text/html' })
-      const htmlUrl = URL.createObjectURL(htmlBlob)
-      const htmlLink = document.createElement('a')
-      htmlLink.href = htmlUrl
-      htmlLink.download = `email-${data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.html`
-      htmlLink.click()
-      URL.revokeObjectURL(htmlUrl)
+        const briefBlob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        const briefLink = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(briefBlob),
+          download: `brief-${slugName}-${dateStr}.json`,
+        })
+        briefLink.click()
+        URL.revokeObjectURL(briefLink.href)
 
-      // 2. Open mailto with summary only (no large body)
-      const subject = encodeURIComponent(`Email Brief - ${emailName}`)
-      const body = encodeURIComponent(
-        `Hi Steven,\n\n` +
-        `Please find the email brief JSON and HTML template attached (downloaded to your computer).\n\n` +
-        `Campaign: ${data.campaign.campaignName}\n` +
-        `Email Type: ${data.campaign.emailType}\n` +
-        `Theme: ${data.campaign.theme}\n` +
-        `Subject Line: ${data.campaign.subjectLine}\n` +
-        `Send Date: ${data.deadlines.sendDate}\n` +
-        `Urgency: ${data.deadlines.urgency}\n\n` +
-        `Please attach the two downloaded files to this email before sending.`
-      )
-      window.location.href = `mailto:steven.jacobs@ninetyone.com?subject=${subject}&body=${body}`
+        const htmlBlob = new Blob([html], { type: 'text/html' })
+        const htmlLink = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(htmlBlob),
+          download: `email-${slugName}-${dateStr}.html`,
+        })
+        htmlLink.click()
+        URL.revokeObjectURL(htmlLink.href)
+
+        const subject = encodeURIComponent(`Email Brief - ${emailName}`)
+        const body = encodeURIComponent(
+          `Hi Steven,\n\n` +
+          `Please find the email brief JSON and HTML template attached (downloaded to your computer).\n\n` +
+          `Campaign: ${data.campaign.campaignName}\n` +
+          `Email Type: ${data.campaign.emailType}\n` +
+          `Theme: ${data.campaign.theme}\n` +
+          `Subject Line: ${data.campaign.subjectLine}\n` +
+          `Send Date: ${data.deadlines.sendDate}\n` +
+          `Urgency: ${data.deadlines.urgency}\n\n` +
+          `Please attach the two downloaded files to this email before sending.`
+        )
+        window.location.href = `mailto:steven.jacobs@ninetyone.com?subject=${subject}&body=${body}`
+      }
 
       setSubmitStatus('sent')
       onComplete?.()
@@ -268,8 +289,18 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
               srcDoc={html}
               title="Email preview"
               className={`${viewport === 'desktop' ? 'w-[640px]' : 'w-[375px]'} border border-gray-200 dark:border-gray-700 bg-white shadow-sm transition-all duration-300`}
-              style={{ height: '800px', maxWidth: '100%' }}
+              style={{ height: '600px', maxWidth: '100%' }}
               sandbox="allow-same-origin"
+              onLoad={(e) => {
+                const iframe = e.currentTarget
+                try {
+                  const body = iframe.contentDocument?.body
+                  if (body) {
+                    const h = body.scrollHeight
+                    if (h > 100) iframe.style.height = `${h + 32}px`
+                  }
+                } catch { /* cross-origin guard */ }
+              }}
             />
           </div>
         </div>
@@ -344,7 +375,9 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       </button>
       {submitStatus !== 'sent' && submitStatus !== 'error' && (
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-          Downloads both files and opens your email client with a pre-filled message to steven.jacobs@ninetyone.com
+          {settings.n8nWebhookUrl?.trim()
+            ? 'Sends brief JSON and HTML directly to your n8n workflow'
+            : 'Downloads both files and opens your email client with a pre-filled message'}
         </p>
       )}
     </div>

@@ -7,6 +7,8 @@ import type {
   FormFieldConfig,
   BrandGuardianConfig,
   ModuleCategory,
+  SenderDefaults,
+  FormDefaults,
 } from '../types/settings.types'
 
 // ─── Default Brand Themes ───────────────────────────────────
@@ -196,6 +198,23 @@ export const DEFAULT_BRAND_GUARDIAN: BrandGuardianConfig = {
   enableBrandProtectionChecks: true,
 }
 
+// ─── Default Sender Defaults ────────────────────────────────
+
+export const DEFAULT_SENDER_DEFAULTS: SenderDefaults = {
+  fromName: 'Ninety One',
+  fromAddress: '',
+  replyToEmail: '',
+}
+
+// ─── Default Form Defaults ──────────────────────────────────
+
+export const DEFAULT_FORM_DEFAULTS: FormDefaults = {
+  theme: 'leatherback-coral',
+  urgency: 'standard',
+  emailType: 'campaign',
+  includeUnsubscribe: true,
+}
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -206,5 +225,8 @@ export function createDefaultSettings(): AppSettings {
     formSteps: DEFAULT_FORM_STEPS,
     formFields: DEFAULT_FORM_FIELDS,
     brandGuardian: DEFAULT_BRAND_GUARDIAN,
+    senderDefaults: DEFAULT_SENDER_DEFAULTS,
+    formDefaults: DEFAULT_FORM_DEFAULTS,
+    n8nWebhookUrl: '',
   }
 }

@@ -48,7 +48,15 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default'
             }`}
           >
-            {label}
+            {isCompleted && !isCurrent ? (
+              <span className="inline-flex items-center gap-1 justify-center">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="2 6 5 9 10 3" />
+                </svg>
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{label.split(' ')[0]}</span>
+              </span>
+            ) : label}
           </button>
         )
       })}

@@ -93,3 +93,121 @@ export const EMAIL_MODULES = [
 ] as const
 
 export type EmailModule = (typeof EMAIL_MODULES)[number]['id']
+
+// ─── Brief Templates ─────────────────────────────────────────────────────────
+
+export interface BriefTemplate {
+  id: string
+  label: string
+  description: string
+  icon: string
+  emailType: EmailType
+  suggestedTheme: string
+  suggestedModules: string[]
+  sectionScaffold: Array<{ heading: string; body: string }>
+  ctaLabel: string
+  includeUnsubscribe: boolean
+}
+
+export const BRIEF_TEMPLATES: BriefTemplate[] = [
+  {
+    id: 'tpl-campaign',
+    label: 'Campaign',
+    description: 'General marketing campaign with hero image, body content and a clear CTA.',
+    icon: '📣',
+    emailType: 'campaign',
+    suggestedTheme: 'leatherback-coral',
+    suggestedModules: ['header-image', 'body-content', 'cta-single-primary', 'footer-v1'],
+    sectionScaffold: [
+      { heading: 'Key Message', body: 'Describe the core value proposition or campaign message here.' },
+    ],
+    ctaLabel: 'Learn More',
+    includeUnsubscribe: true,
+  },
+  {
+    id: 'tpl-newsletter',
+    label: 'Newsletter',
+    description: 'Monthly or quarterly newsletter with multiple content sections and article links.',
+    icon: '📰',
+    emailType: 'newsletter',
+    suggestedTheme: 'leatherback-coral',
+    suggestedModules: ['header-small', 'greeting', 'body-content', 'article-list-v1', 'cta-single-secondary', 'footer-v1'],
+    sectionScaffold: [
+      { heading: 'Market Update', body: 'Provide a brief summary of recent market conditions and outlook.' },
+      { heading: 'Featured Insights', body: 'Highlight key articles, reports or research pieces.' },
+    ],
+    ctaLabel: 'Read More',
+    includeUnsubscribe: true,
+  },
+  {
+    id: 'tpl-fund-update',
+    label: 'Fund Update',
+    description: 'Performance update for a specific fund with key metrics and portfolio commentary.',
+    icon: '📈',
+    emailType: 'fund-update',
+    suggestedTheme: 'marula-gold',
+    suggestedModules: ['header-small', 'body-content', 'body-inner-content', 'cta-primary-secondary', 'footer-v2'],
+    sectionScaffold: [
+      { heading: 'Fund Performance', body: 'Summarise fund performance over the period, including key metrics and benchmark comparison.' },
+      { heading: 'Portfolio Commentary', body: 'Describe portfolio positioning, key holdings and any significant changes during the period.' },
+      { heading: 'Outlook', body: 'Provide the portfolio manager\'s forward-looking view and investment thesis.' },
+    ],
+    ctaLabel: 'View Fund Factsheet',
+    includeUnsubscribe: true,
+  },
+  {
+    id: 'tpl-event-invitation',
+    label: 'Event Invitation',
+    description: 'Webinar, roadshow or in-person event invitation with registration CTA.',
+    icon: '🎟️',
+    emailType: 'event-invitation',
+    suggestedTheme: 'agulhas-teal',
+    suggestedModules: ['header-image', 'event-registration-1cta', 'speaker-2pm-1cta', 'footer-v1'],
+    sectionScaffold: [
+      { heading: 'About This Event', body: 'Describe the event format, topics to be covered and why attendees should register.' },
+    ],
+    ctaLabel: 'Register Now',
+    includeUnsubscribe: true,
+  },
+  {
+    id: 'tpl-thought-leadership',
+    label: 'Thought Leadership',
+    description: 'In-depth article, white paper or research piece driving to a content asset.',
+    icon: '💡',
+    emailType: 'thought-leadership',
+    suggestedTheme: 'agulhas-gold',
+    suggestedModules: ['header-image', 'body-content', 'body-inner-content', 'cta-single-primary', 'footer-v1'],
+    sectionScaffold: [
+      { heading: 'The Opportunity', body: 'Introduce the key investment theme or market insight being explored.' },
+      { heading: 'Our Perspective', body: 'Share Ninety One\'s unique view and supporting rationale.' },
+    ],
+    ctaLabel: 'Read the Report',
+    includeUnsubscribe: true,
+  },
+  {
+    id: 'tpl-client-announcement',
+    label: 'Client Announcement',
+    description: 'Important news, product change or regulatory update communicated to clients.',
+    icon: '📢',
+    emailType: 'client-announcement',
+    suggestedTheme: 'leatherback-coral',
+    suggestedModules: ['header-small', 'body-content', 'footer-v2'],
+    sectionScaffold: [
+      { heading: 'What Is Changing', body: 'Clearly state the change, effective date and any action required from the client.' },
+      { heading: 'Why This Change', body: 'Provide context and rationale for the change.' },
+      { heading: 'What This Means For You', body: 'Explain the practical impact on the client and any next steps.' },
+    ],
+    ctaLabel: 'Contact Us',
+    includeUnsubscribe: false,
+  },
+]
+
+export const REGION_LEGAL_DISCLAIMERS: Record<string, string> = {
+  'South Africa': 'Ninety One SA (Pty) Ltd is an authorised financial services provider (FSP No. 19224). This communication is for informational purposes only and does not constitute financial advice. Collective investment schemes are generally medium to long-term investments.',
+  'Namibia': 'Ninety One Namibia (Pty) Ltd is registered and incorporated in Namibia (Registration No. 2016/0566) and is licensed as a Financial Services Provider under NAMFISA. This communication is for informational purposes only.',
+  'Botswana': 'Ninety One Botswana (Pty) Ltd is licensed by the Non-Bank Financial Institutions Regulatory Authority (NBFIRA). This communication is for informational purposes only and does not constitute investment advice.',
+  'UK': 'Ninety One UK Limited is authorised and regulated by the Financial Conduct Authority (FRN 183798). This communication is directed at professional clients and eligible counterparties only. Not for retail distribution.',
+  'EU': 'Ninety One Luxembourg S.A. is authorised and regulated by the Commission de Surveillance du Secteur Financier (CSSF). This communication is directed at professional clients only as defined by MiFID II.',
+  'ASIA': 'This communication is for institutional investors only and is not intended for retail investors. Recipients should seek their own legal, regulatory, tax and financial advice.',
+  'GLOBAL': 'This communication is intended for professional and institutional investors only. Not for distribution to retail investors. Please refer to the relevant fund documentation for full risk disclosures.',
+}
