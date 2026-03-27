@@ -44,7 +44,21 @@ const distributionListSchema = z.object({
   name: z.string(),
   size: z.number(),
   type: z.string(),
+  /** Total clean contacts after deduplication and filtering */
   rowCount: z.number().optional(),
+  /** UTF-8 CSV string of the cleaned list — 5 columns only */
+  csvContent: z.string().optional(),
+  /** Summary stats for the List Analysis panel */
+  analysis: z.object({
+    rawRowCount: z.number(),
+    cleanRowCount: z.number(),
+    blankEmailCount: z.number(),
+    unknownEmailCount: z.number(),
+    duplicateCount: z.number(),
+    blankRowCount: z.number(),
+    discardedColumns: z.array(z.string()),
+    warnings: z.array(z.string()),
+  }).optional(),
 })
 
 const audienceSchema = z.object({

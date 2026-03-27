@@ -90,6 +90,23 @@ export interface LegalDisclaimerConfig {
   isDefault: boolean // Whether this is the auto-selected default for the region
 }
 
+export interface PardotConfig {
+  /** Use mock data instead of live API calls */
+  useMockData: boolean
+  /** Salesforce Account Engagement Business Unit ID (18-char) */
+  businessUnitId: string
+  /**
+   * URL of your server-side proxy that forwards requests to the Pardot v5 API.
+   * Required when useMockData = false.
+   */
+  apiProxyUrl: string
+  /**
+   * Pardot instance base URL.
+   * Standard: https://pi.pardot.com  |  EU: https://pi.eu.pardot.com
+   */
+  instanceUrl: string
+}
+
 export interface AppSettings {
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
@@ -101,6 +118,7 @@ export interface AppSettings {
   formDefaults: FormDefaults
   legalDisclaimers: LegalDisclaimerConfig[]
   n8nWebhookUrl: string
+  pardot: PardotConfig
 }
 
 export type SettingsTab =
@@ -111,3 +129,4 @@ export type SettingsTab =
   | 'layout'
   | 'guardian'
   | 'disclaimers'
+  | 'pardot'

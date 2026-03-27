@@ -8,6 +8,7 @@ import { TabModules } from './TabModules'
 import { TabFormLayout } from './TabFormLayout'
 import { TabBrandGuardian } from './TabBrandGuardian'
 import { TabDisclaimers } from './TabDisclaimers'
+import { TabPardot } from './TabPardot'
 
 const TABS: { id: SettingsTab; label: string; description: string }[] = [
   { id: 'general', label: 'General', description: 'Sender defaults, form defaults, and n8n integration' },
@@ -17,6 +18,7 @@ const TABS: { id: SettingsTab; label: string; description: string }[] = [
   { id: 'layout', label: 'Form Layout', description: 'Reorder fields and set required/optional' },
   { id: 'guardian', label: 'Brand Guardian', description: 'Tune review thresholds and checks' },
   { id: 'disclaimers', label: 'Disclaimers', description: 'Configure legal disclaimer text per region' },
+  { id: 'pardot', label: 'Pardot API', description: 'Configure Salesforce Account Engagement integration' },
 ]
 
 export function SettingsPanel() {
@@ -120,6 +122,7 @@ export function SettingsPanel() {
           {activeTab === 'layout' && <TabFormLayout />}
           {activeTab === 'guardian' && <TabBrandGuardian />}
           {activeTab === 'disclaimers' && <TabDisclaimers />}
+          {activeTab === 'pardot' && <TabPardot />}
         </div>
 
         {/* Reset confirmation modal */}

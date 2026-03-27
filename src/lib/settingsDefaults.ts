@@ -10,6 +10,7 @@ import type {
   SenderDefaults,
   FormDefaults,
   LegalDisclaimerConfig,
+  PardotConfig,
 } from '../types/settings.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
@@ -238,6 +239,15 @@ export const DEFAULT_LEGAL_DISCLAIMERS: LegalDisclaimerConfig[] = [
   },
 ]
 
+// ─── Default Pardot Config ──────────────────────────────────
+
+export const DEFAULT_PARDOT_CONFIG: PardotConfig = {
+  useMockData: true,
+  businessUnitId: '',
+  apiProxyUrl: '',
+  instanceUrl: 'https://pi.pardot.com',
+}
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -252,5 +262,6 @@ export function createDefaultSettings(): AppSettings {
     formDefaults: DEFAULT_FORM_DEFAULTS,
     legalDisclaimers: DEFAULT_LEGAL_DISCLAIMERS,
     n8nWebhookUrl: '',
+    pardot: DEFAULT_PARDOT_CONFIG,
   }
 }
