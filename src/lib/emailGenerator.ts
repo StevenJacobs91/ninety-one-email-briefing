@@ -72,7 +72,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${escapeHtml(s.body)}</p>
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(s.body)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -237,7 +237,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${escapeHtml(brief.content.bodyIntro)}</p>
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(brief.content.bodyIntro)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -424,6 +424,28 @@ function escapeHtml(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+/**
+ * sanitizeRichHtml
+ *
+ * Used for rich-text fields (bodyIntro, section bodies) where the value
+ * is already HTML produced by the in-app RichTextarea editor.
+ * Passes the HTML through as-is so that <span>, <em>, <u>, <a> tags
+ * with brand styles are preserved in the email output.
+ *
+ * Only strips event handler attributes (onclick, onerror, etc.) and
+ * javascript: href schemes as a lightweight XSS guard — the content
+ * originates from the same origin editor, not external input.
+ */
+function sanitizeRichHtml(html: string): string {
+  if (!html) return ''
+  return html
+    // Strip event handler attributes
+    .replace(/\s+on\w+="[^"]*"/gi, '')
+    .replace(/\s+on\w+='[^']*'/gi, '')
+    // Strip javascript: hrefs
+    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
 }
 
 function adjustBrightness(hex: string, percent: number): string {

@@ -66,7 +66,8 @@ const audienceSchema = z.object({
   region: z.array(z.enum(REGIONS)).min(1, 'Select at least one region'),
   channel: z.array(z.enum(CHANNELS)).min(1, 'Select at least one channel'),
   pardotListId: z.string().optional(),
-  distributionList: distributionListSchema.optional(),
+  /** Supports multiple distribution list uploads — each processed independently */
+  distributionLists: z.array(distributionListSchema).optional(),
 })
 
 const contentSchema = z.object({

@@ -42,7 +42,12 @@ export function BriefSummary({ data }: BriefSummaryProps) {
         <Row label="Client Group" value={data.audience.clientGroup.join(', ')} />
         <Row label="Regions" value={data.audience.region.join(', ')} />
         <Row label="Channels" value={data.audience.channel.join(', ')} />
-        {data.audience.distributionList && <Row label="Distribution List" value={`${data.audience.distributionList.name} (${Math.round(data.audience.distributionList.size / 1024)} KB)`} />}
+        {data.audience.distributionLists && data.audience.distributionLists.length > 0 && (
+          <Row
+            label={`Distribution List${data.audience.distributionLists.length > 1 ? 's' : ''}`}
+            value={data.audience.distributionLists.map((l) => `${l.name}${l.rowCount ? ` (${l.rowCount.toLocaleString()} contacts)` : ''}`).join(', ')}
+          />
+        )}
         {data.audience.pardotListId && <Row label="Pardot List ID" value={data.audience.pardotListId} />}
       </Section>
 

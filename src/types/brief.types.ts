@@ -38,7 +38,7 @@ export interface AudienceDetails {
   region: string[]
   channel: string[]
   pardotListId?: string
-  distributionList?: DistributionListFile
+  distributionLists?: DistributionListFile[]
 }
 
 export interface ContentDetails {

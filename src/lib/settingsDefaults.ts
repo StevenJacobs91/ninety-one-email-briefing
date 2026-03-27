@@ -149,7 +149,7 @@ export const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
   { id: 'audience.clientGroup', label: 'Client Group', stepIndex: 1, required: true, visible: true, order: 0 },
   { id: 'audience.region', label: 'Region', stepIndex: 1, required: true, visible: true, order: 1 },
   { id: 'audience.channel', label: 'Channel', stepIndex: 1, required: true, visible: true, order: 2 },
-  { id: 'audience.distributionList', label: 'Distribution List', stepIndex: 1, required: false, visible: true, order: 3 },
+  { id: 'audience.distributionLists', label: 'Distribution Lists', stepIndex: 1, required: false, visible: true, order: 3 },
   { id: 'audience.pardotListId', label: 'Pardot List ID', stepIndex: 1, required: false, visible: true, order: 4 },
 
   // Step 2 — Content

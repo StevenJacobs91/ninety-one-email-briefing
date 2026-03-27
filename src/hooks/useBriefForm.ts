@@ -42,6 +42,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
       region: [],
       channel: [],
       pardotListId: '',
+      distributionLists: [],
     },
     content: {
       headline: '',
