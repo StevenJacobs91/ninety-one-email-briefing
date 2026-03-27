@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { v4 as uuidv4 } from 'uuid'
 import type { BriefFormData } from '../../lib/schema'
-import { EMAIL_MODULES, REGION_LEGAL_DISCLAIMERS } from '../../lib/constants'
+import { EMAIL_MODULES, REGION_LEGAL_DISCLAIMERS, BRAND_THEMES } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { FieldToggle } from '../ui/FieldToggle'
@@ -105,6 +105,11 @@ export function StepContent() {
   const moduleNotes = watch('content.moduleNotes') ?? {}
   const selectedRegions = watch('audience.region') ?? []
   const legalDisclaimer = watch('content.legalDisclaimer') ?? ''
+  const selectedTheme = watch('campaign.theme')
+  const accentColour = useMemo(() => {
+    const theme = BRAND_THEMES.find((t) => t.id === selectedTheme)
+    return theme?.accent ?? '#fbaa96'
+  }, [selectedTheme])
 
   // Derive region default disclaimer for helper text
   const regionDefaultDisclaimer = useMemo(() => {
@@ -190,8 +195,9 @@ export function StepContent() {
         maxLength={1000}
         required
         error={errors.content?.bodyIntro}
-        placeholder="Max 1000 characters"
+        placeholder="Max 1000 characters — use the toolbar to bold, italicise, underline, or add links"
         rows={6}
+        accentColour={accentColour}
       />
 
       {/* Email Modules */}

@@ -199,7 +199,7 @@ export function FormShell() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-start justify-center py-10 px-4 transition-colors">
       <div
         ref={cardRef}
-        className={`w-full bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 py-10 px-8 transition-all duration-300 ${pipelineStep === 6 ? 'max-w-7xl' : 'max-w-3xl'}`}
+        className="w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 py-10 px-8 transition-all duration-300"
       >
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">

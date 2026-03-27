@@ -9,9 +9,9 @@ import { buildEmailName } from '../../lib/emailName'
 
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{title}</p>
-      <div className="space-y-0">{children}</div>
+    <div className="mb-8">
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">{title}</p>
+      <div className="space-y-5">{children}</div>
     </div>
   )
 }
@@ -115,7 +115,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => handleClientGroupToggle(group)}
                 aria-pressed={selectedClientGroups.includes(group)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                   selectedClientGroups.includes(group)
                     ? 'bg-[#134848] text-white border-[#134848]'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -156,7 +156,7 @@ export function StepCampaign() {
                   type="button"
                   onClick={() => toggleArrayValue('audience.region', region as Region, selectedRegions)}
                   aria-pressed={selectedRegions.includes(region as Region)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                     selectedRegions.includes(region as Region)
                       ? 'bg-[#134848] text-white border-[#134848]'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -189,7 +189,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => toggleArrayValue('audience.channel', channel, selectedChannels)}
                 aria-pressed={selectedChannels.includes(channel)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                   selectedChannels.includes(channel)
                     ? 'bg-[#134848] text-white border-[#134848]'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
