@@ -63,6 +63,8 @@ export interface PardotListStats {
   unsubscribed: number
   optedIn: number
   optedInPercent: number
+  openRate: number
+  clickRate: number
 }
 
 export interface PardotListAnalysis {
@@ -158,6 +160,8 @@ function mapApiResponse(
 
   const mailablePercent = total > 0 ? Math.round((mailable / total) * 100) : 0
   const optedInPercent = total > 0 ? Math.round((optedIn / total) * 100) : 0
+  const openRate = json.openRate ?? json.open_rate ?? 0
+  const clickRate = json.clickRate ?? json.click_rate ?? 0
 
   const stats: PardotListStats = {
     totalProspects: total,
@@ -170,6 +174,8 @@ function mapApiResponse(
     unsubscribed,
     optedIn,
     optedInPercent,
+    openRate,
+    clickRate,
   }
 
   return {
@@ -204,6 +210,8 @@ function generateMockAnalysis(listId: string, rawInput: string): PardotListAnaly
 
   const mailablePercent = Math.round((mailable / total) * 100)
   const optedInPercent = Math.round((optedIn / total) * 100)
+  const openRate = Math.round((18 + rand(0, 14)) * 10) / 10
+  const clickRate = Math.round((4 + rand(0, 8)) * 10) / 10
 
   const listName = inferListName(rawInput, listId)
 
@@ -218,6 +226,8 @@ function generateMockAnalysis(listId: string, rawInput: string): PardotListAnaly
     unsubscribed,
     optedIn,
     optedInPercent,
+    openRate,
+    clickRate,
   }
 
   return {
