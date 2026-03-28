@@ -92,7 +92,7 @@ const assetSchema = z.object({
   logoVariant: z.enum(LOGO_VARIANTS),
   stripeColour: z.string().optional(),
   heroImageUrl: z.string().optional().refine(
-    (val) => !val || val.startsWith('https://'),
+    (val) => !val || val.startsWith('https://') || val.startsWith('data:'),
     { message: 'Must be an HTTPS URL' }
   ),
   heroImageAlt: z.string(),
