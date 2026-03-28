@@ -284,7 +284,7 @@ export function StepAssets() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Assets</h2>
+      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-8">Assets</h2>
 
       {/* Logo variant + Stripe colour — two column */}
       <div className="grid grid-cols-2 gap-6 mb-6">

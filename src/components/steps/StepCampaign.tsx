@@ -10,7 +10,7 @@ import { buildEmailName } from '../../lib/emailName'
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-8">
-      <p className="text-xs font-ni-heading text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">{title}</p>
+      <p className="text-[10px] font-ni-heading text-[#134848] dark:text-[#fbaa96]/70 uppercase tracking-[0.18em] border-b border-[#e5e0d8] dark:border-gray-700 pb-2 mb-5">{title}</p>
       <div className="space-y-5">{children}</div>
     </div>
   )
@@ -85,15 +85,15 @@ export function StepCampaign() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-1">
         {emailName && emailName !== `${new Date().toLocaleString('en-US', { month: '2-digit' }).padStart(2, '0')}${String(new Date().getFullYear()).slice(-2)} TBD TBD Untitled`
           ? emailName
           : 'New Email Brief'}
       </h2>
       {campaignName ? (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">Campaign Details</p>
+        <p className="text-sm text-[#6b6660] dark:text-gray-400 mb-8">Campaign Details</p>
       ) : (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">Fill in the fields below to begin your email brief.</p>
+        <p className="text-sm text-[#6b6660] dark:text-gray-400 mb-8">Fill in the fields below to begin your email brief.</p>
       )}
 
       {/* Sub-section: Targeting */}

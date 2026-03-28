@@ -16,12 +16,11 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep, highestStepReached, onStepClick }: StepIndicatorProps) {
   return (
-    <nav className="flex items-center gap-1.5 mb-8" aria-label="Form progress">
+    <nav className="flex" aria-label="Form progress">
       {PIPELINE_LABELS.map((label, index) => {
         const isCompleted = index < currentStep
         const isCurrent = index === currentStep
         const isReachable = index <= highestStepReached
-        const isBrief = index <= 4
         const isPipeline = index > 4
 
         return (
@@ -34,29 +33,40 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
             disabled={!isReachable || isCurrent}
             aria-current={isCurrent ? 'step' : undefined}
             aria-label={`Step ${index + 1}: ${label}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
-            className={`flex-1 py-2 px-0.5 text-[11px] sm:text-xs font-ni-heading rounded-full text-center transition-colors ${
+            className={`relative flex items-center gap-2 px-4 py-3.5 text-[11px] font-ni-heading tracking-[0.12em] uppercase whitespace-nowrap transition-colors border-b-[3px] ${
               isCurrent
                 ? isPipeline
-                  ? 'bg-[#0a3323] text-white'
-                  : 'bg-[#134848] text-white'
+                  ? 'text-[#0a3323] dark:text-[#fbaa96] border-[#0a3323] dark:border-[#fbaa96]'
+                  : 'text-[#134848] dark:text-[#fbaa96] border-[#134848] dark:border-[#fbaa96]'
                 : isCompleted
-                  ? isBrief
-                    ? 'bg-[#134848]/20 text-[#134848] dark:text-[#fbaa96] cursor-pointer hover:bg-[#134848]/30'
-                    : 'bg-[#0a3323]/20 text-[#0a3323] dark:text-[#fbaa96] cursor-pointer hover:bg-[#0a3323]/30'
+                  ? 'text-[#134848]/60 dark:text-[#fbaa96]/60 border-transparent cursor-pointer hover:text-[#134848] dark:hover:text-[#fbaa96]'
                   : isReachable
-                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default'
+                    ? 'text-gray-400 dark:text-gray-500 border-transparent cursor-pointer hover:text-gray-600 dark:hover:text-gray-300'
+                    : 'text-gray-300 dark:text-gray-600 border-transparent cursor-default'
             }`}
           >
-            {isCompleted && !isCurrent ? (
-              <span className="inline-flex items-center gap-1 justify-center">
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {/* Step number circle */}
+            {isCompleted ? (
+              <span className="w-4 h-4 rounded-full bg-[#009d80] flex items-center justify-center shrink-0">
+                <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="2 6 5 9 10 3" />
                 </svg>
-                <span className="hidden sm:inline">{label}</span>
-                <span className="sm:hidden">{label.split(' ')[0]}</span>
               </span>
-            ) : label}
+            ) : (
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                isCurrent
+                  ? isPipeline
+                    ? 'bg-[#0a3323] text-white'
+                    : 'bg-[#134848] text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+              }`}>
+                {index + 1}
+              </span>
+            )}
+            {/* Label — hide some on small screens */}
+            <span className={index >= 5 ? 'hidden lg:inline' : index >= 3 ? 'hidden sm:inline' : ''}>
+              {label}
+            </span>
           </button>
         )
       })}
