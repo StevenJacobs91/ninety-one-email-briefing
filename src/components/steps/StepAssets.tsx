@@ -8,26 +8,26 @@ import { formatFileSize } from '../../lib/formatFileSize'
 // ─── Logo Preview ──────────────────────────────────────────────────────────────
 function LogoPreview({ variant }: { variant: string }) {
   return (
-    <div className="flex items-center justify-center h-10 w-full rounded bg-[#134848]/10 dark:bg-[#134848]/20 border border-[#134848]/20">
+    <div className="flex items-center justify-center h-10 w-full rounded bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20">
       {variant === 'horizontal' && (
         <div className="flex items-center gap-1">
-          <div className="w-5 h-5 rounded bg-[#134848] flex items-center justify-center">
-            <span className="text-[7px] font-bold text-[#fbaa96]">N1</span>
+          <div className="w-5 h-5 rounded bg-brand-primary flex items-center justify-center">
+            <span className="text-[7px] font-bold text-brand-accent">N1</span>
           </div>
-          <div className="w-8 h-1.5 bg-[#134848] rounded-sm" />
+          <div className="w-8 h-1.5 bg-brand-primary rounded-sm" />
         </div>
       )}
       {variant === 'stacked' && (
         <div className="flex flex-col items-center gap-0.5">
-          <div className="w-5 h-5 rounded bg-[#134848] flex items-center justify-center">
-            <span className="text-[7px] font-bold text-[#fbaa96]">N1</span>
+          <div className="w-5 h-5 rounded bg-brand-primary flex items-center justify-center">
+            <span className="text-[7px] font-bold text-brand-accent">N1</span>
           </div>
-          <div className="w-8 h-1 bg-[#134848] rounded-sm" />
+          <div className="w-8 h-1 bg-brand-primary rounded-sm" />
         </div>
       )}
       {variant === 'icon' && (
-        <div className="w-6 h-6 rounded bg-[#134848] flex items-center justify-center">
-          <span className="text-[9px] font-bold text-[#fbaa96]">N1</span>
+        <div className="w-6 h-6 rounded bg-brand-primary flex items-center justify-center">
+          <span className="text-xs font-bold text-brand-accent">N1</span>
         </div>
       )}
     </div>
@@ -175,7 +175,7 @@ function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
             step={0.001}
             value={scale}
             onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
-            className="w-full accent-[#134848]"
+            className="w-full accent-brand-primary"
           />
         </div>
 
@@ -205,7 +205,7 @@ function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
           <button
             type="button"
             onClick={handleCropAndUse}
-            className="px-4 py-1.5 text-xs bg-[#134848] text-white font-medium rounded-md hover:bg-[#0d3232] transition-colors"
+            className="px-4 py-1.5 text-xs bg-brand-primary text-white font-medium rounded-md hover:bg-brand-primary-hover transition-colors"
           >
             Crop & Use (640 × 270)
           </button>
@@ -284,7 +284,7 @@ export function StepAssets() {
 
   return (
     <div>
-      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-8">Assets</h2>
+      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-8">Assets</h2>
 
       {/* Logo variant + Stripe colour — two column */}
       <div className="grid grid-cols-2 gap-6 mb-6">
@@ -301,7 +301,7 @@ export function StepAssets() {
                   key={variant}
                   className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-colors ${
                     selected
-                      ? 'bg-[#134848]/5 dark:bg-[#134848]/10 border-[#134848] dark:border-[#fbaa96] ring-1 ring-[#134848] dark:ring-[#fbaa96]'
+                      ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary dark:ring-brand-accent'
                       : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400'
                   }`}
                 >
@@ -330,7 +330,7 @@ export function StepAssets() {
             <input
               {...register('assets.stripeColour')}
               placeholder="e.g. #fbaa96"
-              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
               onChange={(e) => {
                 const val = e.target.value
                 register('assets.stripeColour').onChange(e)
@@ -404,7 +404,7 @@ export function StepAssets() {
                   className="w-full rounded-md border border-gray-200 dark:border-gray-700"
                   style={{ aspectRatio: '640/270', objectFit: 'cover' }}
                 />
-                <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs font-medium px-1.5 py-0.5 rounded">
                   640 × 270 px
                 </div>
                 <button
@@ -434,7 +434,7 @@ export function StepAssets() {
 
             {/* Upload drop zone */}
             {!cropSrc && !heroImagePreview && (
-              <label className="relative flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center cursor-pointer border-gray-300 dark:border-gray-600 hover:border-[#134848] dark:hover:border-[#fbaa96] transition-colors bg-gray-50 dark:bg-gray-800/50">
+              <label className="relative flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center cursor-pointer border-gray-300 dark:border-gray-600 hover:border-brand-primary dark:hover:border-brand-accent transition-colors bg-gray-50 dark:bg-gray-800/50">
                 <input
                   ref={heroFileInputRef}
                   type="file"
@@ -478,7 +478,7 @@ export function StepAssets() {
             <button
               type="button"
               onClick={() => append('' as never)}
-              className="text-xs font-medium text-[#134848] dark:text-[#fbaa96] px-2 py-1 rounded border border-[#134848]/30 dark:border-[#fbaa96]/30 hover:bg-[#134848]/5 transition-colors"
+              className="text-xs font-medium text-brand-primary dark:text-brand-accent px-2 py-1 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors"
             >
               + Add URL
             </button>
@@ -489,7 +489,7 @@ export function StepAssets() {
             <input
               {...register(`assets.additionalAssetUrls.${index}` as const)}
               placeholder="https://..."
-              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
             <button type="button" onClick={() => remove(index)} className="text-gray-400 hover:text-red-500 px-2" title="Remove" aria-label={`Remove URL ${index + 1}`}>
               &times;
@@ -510,7 +510,7 @@ export function StepAssets() {
           onDragLeave={handleDragLeave}
           className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
             isDragging
-              ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96] dark:bg-[#fbaa96]/5'
+              ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent dark:bg-brand-accent/5'
               : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
           }`}
         >

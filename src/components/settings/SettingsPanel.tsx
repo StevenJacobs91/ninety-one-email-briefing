@@ -9,24 +9,62 @@ import { TabFormLayout } from './TabFormLayout'
 import { TabBrandGuardian } from './TabBrandGuardian'
 import { TabDisclaimers } from './TabDisclaimers'
 import { TabPardot } from './TabPardot'
+import { TabCampaigns } from './TabCampaigns'
+import { TabLists } from './TabLists'
+import { TabSignatures } from './TabSignatures'
 
-const TABS: { id: SettingsTab; label: string; description: string }[] = [
-  { id: 'general', label: 'General', description: 'Sender defaults, form defaults, and n8n integration' },
-  { id: 'themes', label: 'Brand Themes', description: 'Manage colour palettes and brand themes' },
-  { id: 'templates', label: 'HTML Templates', description: 'Configure template file mappings' },
-  { id: 'modules', label: 'Email Modules', description: 'Add, remove, and organise email modules' },
-  { id: 'layout', label: 'Form Layout', description: 'Reorder fields and set required/optional' },
-  { id: 'guardian', label: 'Brand Guardian', description: 'Tune review thresholds and checks' },
-  { id: 'disclaimers', label: 'Disclaimers', description: 'Configure legal disclaimer text per region' },
-  { id: 'pardot', label: 'Pardot API', description: 'Configure Salesforce Account Engagement integration' },
+interface TabConfig {
+  id: SettingsTab
+  label: string
+  description: string
+}
+
+interface NavGroup {
+  label: string
+  tabs: TabConfig[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Setup',
+    tabs: [
+      { id: 'general',    label: 'General',    description: 'Sender defaults, form defaults, and n8n integration' },
+      { id: 'campaigns',  label: 'Campaigns',  description: 'Manage campaigns, audience filters, and sender presets' },
+      { id: 'lists',      label: 'Lists',      description: 'Add custom client groups, regions, channels, and email types' },
+      { id: 'signatures', label: 'Signatures', description: 'Manage footer sign-off signatures for the Content step' },
+    ],
+  },
+  {
+    label: 'Design',
+    tabs: [
+      { id: 'themes',    label: 'Brand Themes',  description: 'Manage colour palettes and brand themes' },
+      { id: 'templates', label: 'HTML Templates', description: 'Configure template file mappings' },
+      { id: 'layout',    label: 'Form Layout',    description: 'Reorder fields and set required/optional' },
+    ],
+  },
+  {
+    label: 'Content',
+    tabs: [
+      { id: 'modules', label: 'Email Modules', description: 'Add, remove, and organise email modules' },
+    ],
+  },
+  {
+    label: 'Compliance',
+    tabs: [
+      { id: 'guardian',    label: 'Brand Guardian', description: 'Tune review thresholds and checks' },
+      { id: 'disclaimers', label: 'Disclaimers',    description: 'Configure legal disclaimer text per region' },
+      { id: 'pardot',      label: 'Pardot API',     description: 'Configure Salesforce Account Engagement integration' },
+    ],
+  },
 ]
+
+const ALL_TABS: TabConfig[] = NAV_GROUPS.flatMap((g) => g.tabs)
 
 export function SettingsPanel() {
   const { isOpen, closeSettings, resetSettings } = useSettings()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
-  // Trap focus and handle escape
   useEffect(() => {
     if (!isOpen) return
     const handleKey = (e: KeyboardEvent) => {
@@ -36,7 +74,6 @@ export function SettingsPanel() {
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, closeSettings])
 
-  // Prevent body scroll when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -48,6 +85,8 @@ export function SettingsPanel() {
 
   if (!isOpen) return null
 
+  const activeTabConfig = ALL_TABS.find((t) => t.id === activeTab)
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
@@ -57,7 +96,7 @@ export function SettingsPanel() {
       />
 
       {/* Panel */}
-      <div className="relative ml-auto w-full max-w-3xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in">
+      <div className="relative ml-auto w-full max-w-4xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col animate-slide-in">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div>
@@ -87,42 +126,56 @@ export function SettingsPanel() {
           </div>
         </div>
 
-        {/* Tab navigation */}
-        <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700 px-6 shrink-0 overflow-x-auto">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-2.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                activeTab === tab.id
-                  ? 'border-[#134848] dark:border-[#fbaa96] text-[#134848] dark:text-[#fbaa96]'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-              title={tab.description}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Body: sidebar + content */}
+        <div className="flex flex-1 min-h-0">
+          {/* Sidebar nav */}
+          <nav className="w-44 shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto py-4 bg-gray-50/60 dark:bg-gray-900/60">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="mb-4">
+                <p className="px-4 py-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                  {group.label}
+                </p>
+                {group.tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'text-brand-primary dark:text-brand-accent bg-brand-primary/8 dark:bg-brand-primary/20 border-r-2 border-brand-primary dark:border-brand-accent'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
 
-        {/* Tab description */}
-        <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {TABS.find((t) => t.id === activeTab)?.description}
-          </p>
-        </div>
+          {/* Content area */}
+          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+            {/* Tab description */}
+            <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 shrink-0">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{activeTabConfig?.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{activeTabConfig?.description}</p>
+            </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {activeTab === 'general' && <TabGeneral />}
-          {activeTab === 'themes' && <TabThemes />}
-          {activeTab === 'templates' && <TabTemplates />}
-          {activeTab === 'modules' && <TabModules />}
-          {activeTab === 'layout' && <TabFormLayout />}
-          {activeTab === 'guardian' && <TabBrandGuardian />}
-          {activeTab === 'disclaimers' && <TabDisclaimers />}
-          {activeTab === 'pardot' && <TabPardot />}
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {activeTab === 'general'    && <TabGeneral />}
+              {activeTab === 'campaigns'  && <TabCampaigns />}
+              {activeTab === 'lists'      && <TabLists />}
+              {activeTab === 'signatures' && <TabSignatures />}
+              {activeTab === 'themes'     && <TabThemes />}
+              {activeTab === 'templates'  && <TabTemplates />}
+              {activeTab === 'modules'    && <TabModules />}
+              {activeTab === 'layout'     && <TabFormLayout />}
+              {activeTab === 'guardian'   && <TabBrandGuardian />}
+              {activeTab === 'disclaimers' && <TabDisclaimers />}
+              {activeTab === 'pardot'     && <TabPardot />}
+            </div>
+          </div>
         </div>
 
         {/* Reset confirmation modal */}
@@ -131,7 +184,7 @@ export function SettingsPanel() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Reset All Settings?</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                This will restore all settings to their factory defaults. Custom themes, modules, field configurations, and Brand Guardian parameters will be lost.
+                This will restore all settings to their factory defaults. Custom campaigns, signatures, lists, themes, modules, and Brand Guardian parameters will all be lost.
               </p>
               <div className="flex gap-2">
                 <button

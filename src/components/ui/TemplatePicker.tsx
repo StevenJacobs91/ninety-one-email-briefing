@@ -26,7 +26,7 @@ export function TemplatePicker({ onSelect, onSkip }: TemplatePickerProps) {
             onMouseLeave={() => setHovered(null)}
             className={`text-left p-4 rounded-lg border transition-all ${
               hovered === tpl.id
-                ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96] dark:bg-[#fbaa96]/5'
+                ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent dark:bg-brand-accent/5'
                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
             }`}
           >
@@ -37,12 +37,12 @@ export function TemplatePicker({ onSelect, onSkip }: TemplatePickerProps) {
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{tpl.description}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {tpl.suggestedModules.slice(0, 3).map((mod) => (
-                    <span key={mod} className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
+                    <span key={mod} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
                       {mod.replace(/-/g, ' ')}
                     </span>
                   ))}
                   {tpl.suggestedModules.length > 3 && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
+                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
                       +{tpl.suggestedModules.length - 3} more
                     </span>
                   )}

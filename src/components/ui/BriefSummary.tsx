@@ -59,7 +59,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
             <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">Modules ({selectedModuleLabels.length})</p>
             <div className="flex flex-wrap gap-1.5 ml-3">
               {selectedModuleLabels.map((label) => (
-                <span key={label} className="text-xs bg-[#134848]/10 dark:bg-[#134848]/20 text-[#134848] dark:text-[#fbaa96] px-2 py-0.5 rounded-full">
+                <span key={label} className="text-xs bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-accent px-2 py-0.5 rounded-full">
                   {label}
                 </span>
               ))}
@@ -109,7 +109,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-base font-ni-display text-[#134848] dark:text-[#fbaa96] border-b border-gray-200 dark:border-gray-700 pb-1 mb-3">{title}</h3>
+      <h3 className="text-base font-ni-display text-brand-primary dark:text-brand-accent border-b border-gray-200 dark:border-gray-700 pb-1 mb-3">{title}</h3>
       <div className="space-y-1">{children}</div>
     </div>
   )

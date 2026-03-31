@@ -93,7 +93,7 @@ export function TabFormLayout() {
               key={step.id}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
                 activeStep === step.order
-                  ? 'bg-[#134848]/10 dark:bg-[#fbaa96]/10 ring-1 ring-[#134848]/30 dark:ring-[#fbaa96]/30'
+                  ? 'bg-brand-primary/10 dark:bg-brand-accent/10 ring-1 ring-brand-primary/30 dark:ring-brand-accent/30'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
               } ${!step.visible ? 'opacity-50' : ''}`}
             >
@@ -108,7 +108,7 @@ export function TabFormLayout() {
               </div>
 
               {/* Step number */}
-              <span className="w-6 h-6 rounded-full bg-[#134848] dark:bg-[#fbaa96] text-white dark:text-gray-900 text-xs font-bold flex items-center justify-center shrink-0">
+              <span className="w-6 h-6 rounded-full bg-brand-primary dark:bg-brand-accent text-white dark:text-gray-900 text-xs font-bold flex items-center justify-center shrink-0">
                 {index + 1}
               </span>
 
@@ -119,7 +119,7 @@ export function TabFormLayout() {
                 className="flex-1 text-left"
               >
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{step.label}</p>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-xs text-gray-400">
                   {fields.filter((f) => f.stepIndex === step.order && f.visible).length} fields visible
                 </p>
               </button>
@@ -129,7 +129,7 @@ export function TabFormLayout() {
                 type="button"
                 onClick={() => toggleStepVisible(step.order)}
                 className={`w-8 h-[18px] rounded-full relative transition-colors shrink-0 ${
-                  step.visible ? 'bg-[#134848] dark:bg-[#fbaa96]' : 'bg-gray-300 dark:bg-gray-600'
+                  step.visible ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
                 title={step.visible ? 'Hide step' : 'Show step'}
               >
@@ -170,14 +170,14 @@ export function TabFormLayout() {
               {/* Field label */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-700 dark:text-gray-300">{field.label}</p>
-                <p className="text-[10px] font-mono text-gray-400">{field.id}</p>
+                <p className="text-xs font-mono text-gray-400">{field.id}</p>
               </div>
 
               {/* Required badge */}
               <button
                 type="button"
                 onClick={() => toggleRequired(field.id)}
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors shrink-0 ${
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors shrink-0 ${
                   field.required
                     ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -192,7 +192,7 @@ export function TabFormLayout() {
                 type="button"
                 onClick={() => toggleVisible(field.id)}
                 className={`w-8 h-[18px] rounded-full relative transition-colors shrink-0 ${
-                  field.visible ? 'bg-[#134848] dark:bg-[#fbaa96]' : 'bg-gray-300 dark:bg-gray-600'
+                  field.visible ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
                 title={field.visible ? 'Hide field' : 'Show field'}
               >

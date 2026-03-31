@@ -1,12 +1,5 @@
 import { z } from 'zod'
-import { EMAIL_TYPES, REGIONS, CHANNELS, CLIENT_GROUPS, LOGO_VARIANTS, URGENCY_OPTIONS } from './constants'
-
-const brandThemeIds = [
-  'leatherback-coral', 'leatherback-yellowood', 'marula-gold', 'marula-coral',
-  'pinotage-coral', 'springbok-red', 'springbok-teal', 'springbok-burgundy',
-  'agulhas-gold', 'agulhas-teal', 'agulhas-red', 'agulhas-coral',
-  'agulhas-yellowwood', 'galjoen-coral', 'galjoen-green',
-] as const
+import { LOGO_VARIANTS, URGENCY_OPTIONS } from './constants'
 
 const contentSectionSchema = z.object({
   id: z.string(),
@@ -30,9 +23,9 @@ const metaSchema = z.object({
 })
 
 const campaignSchema = z.object({
-  emailType: z.enum(EMAIL_TYPES, { required_error: 'Email type is required' }),
+  emailType: z.string().min(1, 'Email type is required'),
   campaignName: z.string().min(1, 'Campaign name is required'),
-  theme: z.enum(brandThemeIds, { required_error: 'Theme is required' }),
+  theme: z.string().min(1, 'Theme is required'),
   subjectLine: z.string().min(1, 'Subject line is required').max(60, 'Max 60 characters'),
   previewText: z.string().min(1, 'Preview text is required').max(90, 'Max 90 characters'),
   fromName: z.string().min(1, 'From name is required'),
@@ -62,9 +55,9 @@ const distributionListSchema = z.object({
 })
 
 const audienceSchema = z.object({
-  clientGroup: z.array(z.enum(CLIENT_GROUPS)).min(1, 'Select at least one client group'),
-  region: z.array(z.enum(REGIONS)).min(1, 'Select at least one region'),
-  channel: z.array(z.enum(CHANNELS)).min(1, 'Select at least one channel'),
+  clientGroup: z.array(z.string()).min(1, 'Select at least one client group'),
+  region: z.array(z.string()).min(1, 'Select at least one region'),
+  channel: z.array(z.string()).min(1, 'Select at least one channel'),
   pardotListId: z.string().optional(),
   /** Supports multiple distribution list uploads — each processed independently */
   distributionLists: z.array(distributionListSchema).optional(),
@@ -79,6 +72,8 @@ const contentSchema = z.object({
   moduleNotes: z.record(z.string()).optional(),
   cta: ctaSchema,
   legalDisclaimer: z.string().optional(),
+  footerSignoff: z.string().optional(),
+  footerSignoffId: z.string().optional(),
   includeUnsubscribe: z.boolean(),
 })
 

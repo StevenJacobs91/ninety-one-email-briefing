@@ -3,10 +3,13 @@ import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import type { BriefPayload, HtmlEdit } from '../../types/brief.types'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
+import { generateBriefHtml } from '../../lib/generateBriefHtml'
+import { generateTextEmail } from '../../lib/generateTextEmail'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
 
 type ViewportMode = 'desktop' | 'mobile'
+type ViewMode = 'preview' | 'source' | 'text'
 
 interface StepHtmlReviewProps {
   onComplete?: () => void
@@ -18,13 +21,17 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   const data = getValues() as BriefPayload
 
   const html = useMemo(() => generateEmailHtml(data), [data])
+  const textEmail = useMemo(() => generateTextEmail(data), [data])
   const emailName = useMemo(
     () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel),
     [data.campaign.campaignName, data.audience.region, data.audience.channel]
   )
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
-  const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview')
+  const [testRecipient, setTestRecipient] = useState('')
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [testError, setTestError] = useState('')
+  const [viewMode, setViewMode] = useState<ViewMode>('preview')
   const [viewport, setViewport] = useState<ViewportMode>('desktop')
   const [editMode, setEditMode] = useState(false)
   const [htmlEdits, setHtmlEdits] = useState<HtmlEdit[]>(data.htmlEdits ?? [])
@@ -126,6 +133,55 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
     }
   }
 
+  const handleSendTestEmail = async () => {
+    const recipient = testRecipient.trim()
+    if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+      setTestError('Enter a valid email address.')
+      return
+    }
+    setTestError('')
+    setTestStatus('sending')
+    const webhookUrl = settings.n8nWebhookUrl?.trim()
+
+    try {
+      if (webhookUrl) {
+        const payload = {
+          isTest: true,
+          testRecipient: recipient,
+          brief: data,
+          html,
+          subject: data.campaign.subjectLine || `[TEST] ${emailName}`,
+          emailName,
+          sentAt: new Date().toISOString(),
+        }
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!response.ok) throw new Error(`Webhook returned ${response.status}`)
+        setTestStatus('sent')
+        setTimeout(() => setTestStatus('idle'), 4000)
+      } else {
+        // Fallback: open mailto with the recipient pre-filled
+        const subject = encodeURIComponent(`[TEST] ${data.campaign.subjectLine || emailName}`)
+        const body = encodeURIComponent(
+          `This is a test send of the following email brief.\n\n` +
+          `Campaign: ${data.campaign.campaignName}\n` +
+          `Subject: ${data.campaign.subjectLine}\n\n` +
+          `Note: No n8n webhook is configured. Copy the HTML from the platform and paste it into your ESP to send a proper test.`
+        )
+        window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`
+        setTestStatus('sent')
+        setTimeout(() => setTestStatus('idle'), 4000)
+      }
+    } catch (err) {
+      setTestError(err instanceof Error ? err.message : 'Send failed — check your n8n webhook configuration.')
+      setTestStatus('error')
+      setTimeout(() => { setTestStatus('idle'); setTestError('') }, 4000)
+    }
+  }
+
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
     const webhookUrl = settings.n8nWebhookUrl?.trim()
@@ -136,6 +192,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
         const payload = {
           brief: data,
           html,
+          briefHtml: generateBriefHtml(data),
+          textEmail: generateTextEmail(data),
           emailName,
           submittedAt: new Date().toISOString(),
         }
@@ -150,10 +208,11 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
         const slugName = data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()
         const dateStr = new Date().toISOString().slice(0, 10)
 
-        const briefBlob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+        const briefHtmlContent = generateBriefHtml(data)
+        const briefBlob = new Blob([briefHtmlContent], { type: 'text/html' })
         const briefLink = Object.assign(document.createElement('a'), {
           href: URL.createObjectURL(briefBlob),
-          download: `brief-${slugName}-${dateStr}.json`,
+          download: `brief-${slugName}-${dateStr}.html`,
         })
         briefLink.click()
         URL.revokeObjectURL(briefLink.href)
@@ -201,24 +260,18 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         {/* View mode toggle */}
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-md p-0.5">
-          <button
-            type="button"
-            onClick={() => setViewMode('preview')}
-            className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-              viewMode === 'preview' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Preview
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('source')}
-            className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-              viewMode === 'source' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            HTML Source
-          </button>
+          {(['preview', 'source', 'text'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                viewMode === mode ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              {mode === 'preview' ? 'Preview' : mode === 'source' ? 'HTML Source' : 'Plain Text'}
+            </button>
+          ))}
         </div>
 
         {/* Viewport toggle — only in preview mode */}
@@ -255,7 +308,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
             }}
             className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors ${
               editMode
-                ? 'bg-[#134848] text-white border-[#134848]'
+                ? 'bg-brand-primary text-white border-brand-primary'
                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
             }`}
           >
@@ -304,7 +357,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
             />
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'source' ? (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-6">
           <div className="bg-gray-800 px-3 py-2 border-b border-gray-700 flex items-center gap-2">
             <span className="text-xs text-gray-400">HTML Source</span>
@@ -312,6 +365,16 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
           </div>
           <pre className="bg-gray-900 text-green-400 text-xs p-4 overflow-auto max-h-[600px] leading-relaxed">
             <code>{html}</code>
+          </pre>
+        </div>
+      ) : (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-6">
+          <div className="bg-gray-800 px-3 py-2 border-b border-gray-700 flex items-center justify-between gap-2">
+            <span className="text-xs text-gray-400">Plain Text Version</span>
+            <span className="text-xs text-gray-500">{textEmail.length.toLocaleString()} chars</span>
+          </div>
+          <pre className="bg-gray-900 text-gray-300 text-xs p-4 overflow-auto max-h-[600px] leading-relaxed whitespace-pre-wrap font-mono">
+            {textEmail}
           </pre>
         </div>
       )}
@@ -355,6 +418,44 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
         </button>
       </div>
 
+      {/* Send Test Email */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Test Email</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {settings.n8nWebhookUrl?.trim()
+            ? 'Sends the rendered HTML to the specified address via your n8n workflow.'
+            : 'No n8n webhook configured — will open your email client with a pre-filled message.'}
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={testRecipient}
+            onChange={(e) => { setTestRecipient(e.target.value); setTestError('') }}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendTestEmail()}
+            placeholder="recipient@example.com"
+            className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          />
+          <button
+            type="button"
+            onClick={handleSendTestEmail}
+            disabled={testStatus === 'sending' || !testRecipient.trim()}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-hover transition-colors disabled:opacity-40 shrink-0"
+          >
+            {testStatus === 'sending' ? 'Sending…' : testStatus === 'sent' ? 'Sent!' : 'Send Test'}
+          </button>
+        </div>
+        {testError && (
+          <p className="text-xs text-red-600 dark:text-red-400 mt-2">{testError}</p>
+        )}
+        {testStatus === 'sent' && !testError && (
+          <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+            {settings.n8nWebhookUrl?.trim()
+              ? `Test email dispatched to ${testRecipient} via n8n.`
+              : 'Email client opened — attach the HTML file before sending.'}
+          </p>
+        )}
+      </div>
+
       {/* Divider */}
       <div className="border-t border-gray-100 dark:border-gray-800 mb-4" />
 
@@ -363,7 +464,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
         type="button"
         onClick={handleSubmitBriefAndTemplate}
         disabled={submitStatus === 'sending'}
-        className="w-full bg-[#0a3323] text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-[#071f15] transition-colors disabled:opacity-50"
+        className="w-full bg-brand-secondary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-secondary-hover transition-colors disabled:opacity-50"
       >
         {submitStatus === 'sending'
           ? 'Opening email client…'

@@ -140,23 +140,23 @@ export function StepBrandReview({ onAccept, onDecline, onGoToStep }: StepBrandRe
               onClick={() => setActiveTab(section.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
                 isActive
-                  ? 'border-[#134848] dark:border-[#fbaa96] text-[#134848] dark:text-[#fbaa96]'
+                  ? 'border-brand-primary dark:border-brand-accent text-brand-primary dark:text-brand-accent'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               {section.label}
               {stats.errors > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 text-[10px] font-bold">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 text-xs font-bold">
                   {stats.errors}
                 </span>
               )}
               {stats.errors === 0 && stats.warnings > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 text-xs font-bold">
                   {stats.warnings}
                 </span>
               )}
               {stats.errors === 0 && stats.warnings === 0 && stats.total > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 text-[10px] font-bold">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 text-xs font-bold">
                   {'\u2713'}
                 </span>
               )}
@@ -211,7 +211,7 @@ export function StepBrandReview({ onAccept, onDecline, onGoToStep }: StepBrandRe
           <button
             type="button"
             onClick={onAccept}
-            className="flex-1 bg-[#134848] text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-[#0d3232] transition-colors"
+            className="flex-1 bg-brand-primary text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-brand-primary-hover transition-colors"
           >
             Accept &amp; Generate Email
           </button>
@@ -259,7 +259,7 @@ function FeedbackRow({ item, onGoToStep }: { item: BrandFeedbackItem; onGoToStep
         <button
           type="button"
           onClick={() => onGoToStep(step)}
-          className="shrink-0 text-xs font-medium text-[#134848] dark:text-[#fbaa96] hover:underline whitespace-nowrap"
+          className="shrink-0 text-xs font-medium text-brand-primary dark:text-brand-accent hover:underline whitespace-nowrap"
           title={`Go to ${stepLabels[step]} step`}
         >
           Go to {stepLabels[step]}

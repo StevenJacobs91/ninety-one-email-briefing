@@ -87,13 +87,13 @@ export function DraftsDrawer({ isOpen, onClose, drafts, currentData, onSave, onL
               onChange={(e) => setSaveNameInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder={currentData.campaign.campaignName || 'Draft name…'}
-              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
             <button
               type="button"
               onClick={handleSave}
               disabled={drafts.length >= 10}
-              className="px-3 py-1.5 bg-[#134848] text-white text-xs font-medium rounded-md hover:bg-[#0d3232] disabled:opacity-50 transition-colors whitespace-nowrap"
+              className="px-3 py-1.5 bg-brand-primary text-white text-xs font-medium rounded-md hover:bg-brand-primary-hover disabled:opacity-50 transition-colors whitespace-nowrap"
             >
               {justSaved ? '✓ Saved' : 'Save'}
             </button>
@@ -125,9 +125,9 @@ export function DraftsDrawer({ isOpen, onClose, drafts, currentData, onSave, onL
                           if (e.key === 'Enter') { onRename(draft.id, editingName); setEditingId(null) }
                           if (e.key === 'Escape') setEditingId(null)
                         }}
-                        className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#134848]"
+                        className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-primary"
                       />
-                      <button type="button" onClick={() => { onRename(draft.id, editingName); setEditingId(null) }} className="text-xs text-[#134848] dark:text-[#fbaa96] font-medium">Save</button>
+                      <button type="button" onClick={() => { onRename(draft.id, editingName); setEditingId(null) }} className="text-xs text-brand-primary dark:text-brand-accent font-medium">Save</button>
                       <button type="button" onClick={() => setEditingId(null)} className="text-xs text-gray-400">Cancel</button>
                     </div>
                   ) : (
@@ -142,7 +142,7 @@ export function DraftsDrawer({ isOpen, onClose, drafts, currentData, onSave, onL
                         <button
                           type="button"
                           onClick={() => onLoad(draft)}
-                          className="text-xs px-2 py-1 text-[#134848] dark:text-[#fbaa96] font-medium hover:underline"
+                          className="text-xs px-2 py-1 text-brand-primary dark:text-brand-accent font-medium hover:underline"
                         >
                           Load
                         </button>

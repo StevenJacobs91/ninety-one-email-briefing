@@ -1,6 +1,7 @@
 import type { BriefPayload } from '../types/brief.types'
 import { BRAND_THEMES } from './constants'
 import { generateModuleHtml } from './moduleHtml'
+import { appendUtm, applyUtmToHtml } from './utm'
 
 /** Map brief theme IDs to the HTML template filenames in "Themes and Modules/" */
 const THEME_TO_FILE: Record<string, string> = {
@@ -42,6 +43,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
 
   const sections = brief.content.sections
   const cta = brief.content.cta
+  const campaignName = brief.campaign.campaignName ?? ''
 
   // Generate HTML for selected modules
   const selectedModules = brief.content.modules ?? []
@@ -72,7 +74,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(s.body)}</p>
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(s.body, campaignName)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -86,7 +88,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
     ? `
           <!-- Hero Image -->
           <tr>
-            <td background="${escapeHtml(brief.assets.heroImageUrl)}" bgcolor="${tint01}" class="stack-column darkmode" style="height:260px; background-image:url(${escapeHtml(brief.assets.heroImageUrl)}); background-color:${tint01}; background-repeat: no-repeat; background-size: cover;" valign="top">
+            <td background="${escapeHtml(brief.assets.heroImageUrl)}" bgcolor="${tint01}" class="stack-column darkmode" style="height:260px; background-image:url('${brief.assets.heroImageUrl.replace(/'/g, "\\'")}'); background-color:${tint01}; background-repeat: no-repeat; background-size: cover;" valign="top">
               <!--[if gte mso 9]>
               <v:image xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="border: 0;display: inline-block; width: 640px; height: 270px;" src="${escapeHtml(brief.assets.heroImageUrl)}"></v:image>
               <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="border: 0;display: inline-block;position: absolute; width: 640px; height: 270px;">
@@ -200,6 +202,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
             </td>
           </tr>`
 
+  const ctaUrl = appendUtm(cta.url, campaignName)
   const ctaTarget = cta.openInNewTab ? ' target="_blank"' : ''
   const ctaBlock = `
           <!-- Primary CTA -->
@@ -214,7 +217,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                           <tr>
                             <td class="button-copy" style="font-family: arial, helvetica, sans-serif; font-size: 16px; line-height: 22px; font-weight: normal; text-align: center; padding: 12px 20px;" width="100%">
                               <p pardot-region="detail" style="font-size: 16px; mso-line-height-rule: exactly; line-height: 16px; font-family: Ninety One Visuelt Medium, arial, helvetica, sans-serif; font-weight: normal; margin: 0px 0 0px; color: #e8e5ce;">
-                                <a class="link-2" href="${escapeHtml(cta.url)}" pardot-region="button" pardot-region-type="link" style="text-decoration:none; color:${primary};"${ctaTarget}>${escapeHtml(cta.label)}</a>
+                                <a class="link-2" href="${escapeHtml(ctaUrl)}" pardot-region="button" pardot-region-type="link" style="text-decoration:none; color:${primary};"${ctaTarget}>${escapeHtml(cta.label)}</a>
                               </p>
                             </td>
                           </tr>
@@ -237,7 +240,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(brief.content.bodyIntro)}</p>
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(brief.content.bodyIntro, campaignName)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -438,14 +441,18 @@ function escapeHtml(text: string): string {
  * javascript: href schemes as a lightweight XSS guard — the content
  * originates from the same origin editor, not external input.
  */
-function sanitizeRichHtml(html: string): string {
+function sanitizeRichHtml(html: string, campaignName?: string): string {
   if (!html) return ''
-  return html
+  let result = html
     // Strip event handler attributes
     .replace(/\s+on\w+="[^"]*"/gi, '')
     .replace(/\s+on\w+='[^']*'/gi, '')
     // Strip javascript: hrefs
     .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
+  if (campaignName) {
+    result = applyUtmToHtml(result, campaignName)
+  }
+  return result
 }
 
 function adjustBrightness(hex: string, percent: number): string {

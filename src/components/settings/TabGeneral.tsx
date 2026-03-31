@@ -23,7 +23,7 @@ export function TabGeneral() {
               value={senderDefaults.fromName}
               onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromName: e.target.value } })}
               placeholder="Ninety One"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
           </div>
           <div>
@@ -33,7 +33,7 @@ export function TabGeneral() {
               value={senderDefaults.fromAddress}
               onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromAddress: e.target.value } })}
               placeholder="noreply@ninetyone.com"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
           </div>
           <div>
@@ -43,7 +43,7 @@ export function TabGeneral() {
               value={senderDefaults.replyToEmail}
               onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, replyToEmail: e.target.value } })}
               placeholder="Optional"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
           </div>
         </div>
@@ -63,7 +63,7 @@ export function TabGeneral() {
             <select
               value={formDefaults.emailType}
               onChange={(e) => updateSettings({ formDefaults: { ...formDefaults, emailType: e.target.value } })}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             >
               {EMAIL_TYPES.map((t) => (
                 <option key={t} value={t}>{EMAIL_TYPE_LABELS[t as EmailType]}</option>
@@ -76,7 +76,7 @@ export function TabGeneral() {
             <select
               value={formDefaults.theme}
               onChange={(e) => updateSettings({ formDefaults: { ...formDefaults, theme: e.target.value } })}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             >
               {BRAND_THEMES.map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
@@ -96,7 +96,7 @@ export function TabGeneral() {
                     formDefaults.urgency === opt
                       ? opt === 'urgent'
                         ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-[#134848] text-white border-[#134848]'
+                        : 'bg-brand-primary text-white border-brand-primary'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
                   }`}
                 >
@@ -115,7 +115,7 @@ export function TabGeneral() {
               type="button"
               onClick={() => updateSettings({ formDefaults: { ...formDefaults, includeUnsubscribe: !formDefaults.includeUnsubscribe } })}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                formDefaults.includeUnsubscribe ? 'bg-[#134848]' : 'bg-gray-300 dark:bg-gray-600'
+                formDefaults.includeUnsubscribe ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
               }`}
               role="switch"
               aria-checked={formDefaults.includeUnsubscribe}
@@ -143,7 +143,7 @@ export function TabGeneral() {
             value={n8nWebhookUrl}
             onChange={(e) => updateSettings({ n8nWebhookUrl: e.target.value })}
             placeholder="https://your-n8n-instance.com/webhook/..."
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848] font-mono"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono"
           />
           {n8nWebhookUrl && (
             <p className="text-xs text-green-600 dark:text-green-400 mt-1.5">

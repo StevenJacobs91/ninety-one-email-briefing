@@ -11,6 +11,8 @@ import type {
   FormDefaults,
   LegalDisclaimerConfig,
   PardotConfig,
+  CampaignEntry,
+  SignoffEntry,
 } from '../types/settings.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
@@ -248,6 +250,27 @@ export const DEFAULT_PARDOT_CONFIG: PardotConfig = {
   instanceUrl: 'https://pi.pardot.com',
 }
 
+// ─── Default Campaigns ──────────────────────────────────────
+
+export const DEFAULT_CAMPAIGNS: CampaignEntry[] = [
+  { id: 'camp-global-all', name: 'Quarterly Market Update', regions: [], channels: [], clientGroups: [] },
+  { id: 'camp-za-int', name: 'SA Intermediary Newsletter', regions: ['South Africa'], channels: ['Advisor'], clientGroups: ['Southern Africa'] },
+  { id: 'camp-uk-inst', name: 'UK Institutional Webinar Series', regions: ['United Kingdom'], channels: ['Institutional'], clientGroups: ['United Kingdom'] },
+  { id: 'camp-global-inst', name: 'Global Institutional Outlook', regions: [], channels: ['Institutional'], clientGroups: [] },
+  { id: 'camp-eu-ret', name: 'EU Retail Fund Update', regions: [], channels: ['Individual Investor'], clientGroups: ['Europe'] },
+]
+
+// ─── Default Sign-off Signatures ────────────────────────────
+
+export const DEFAULT_SIGNOFFS: SignoffEntry[] = [
+  {
+    id: 'signoff-ninety-one',
+    name: 'Ninety One (Corporate)',
+    text: 'Kind regards,\n\nNinety One\nwww.ninetyone.com',
+    isDefault: true,
+  },
+]
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -263,5 +286,11 @@ export function createDefaultSettings(): AppSettings {
     legalDisclaimers: DEFAULT_LEGAL_DISCLAIMERS,
     n8nWebhookUrl: '',
     pardot: DEFAULT_PARDOT_CONFIG,
+    campaigns: DEFAULT_CAMPAIGNS,
+    signoffs: DEFAULT_SIGNOFFS,
+    customEmailTypes: [],
+    customClientGroups: [],
+    customChannels: [],
+    customRegions: [],
   }
 }

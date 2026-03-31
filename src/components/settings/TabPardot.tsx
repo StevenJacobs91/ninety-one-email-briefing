@@ -27,8 +27,8 @@ export function TabPardot() {
             role="switch"
             aria-checked={cfg.useMockData}
             onClick={() => update({ useMockData: !cfg.useMockData })}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#134848] focus:ring-offset-1 ${
-              cfg.useMockData ? 'bg-amber-400' : 'bg-[#134848]'
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-1 ${
+              cfg.useMockData ? 'bg-amber-400' : 'bg-brand-primary'
             }`}
           >
             <span
@@ -67,7 +67,7 @@ export function TabPardot() {
             value={cfg.businessUnitId}
             onChange={(e) => update({ businessUnitId: e.target.value })}
             placeholder="0Uv000000000000AAA"
-            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#134848] font-mono"
+            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Found in Salesforce Setup → Account Engagement → Business Units. 18-character ID starting with "0Uv".
@@ -83,12 +83,12 @@ export function TabPardot() {
             value={cfg.apiProxyUrl}
             onChange={(e) => update({ apiProxyUrl: e.target.value })}
             placeholder="https://your-proxy.workers.dev/pardot"
-            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#134848]"
+            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             A server-side proxy is required because Pardot does not support browser CORS requests.
             Deploy a Cloudflare Worker, Vercel Edge Function, or n8n webhook that forwards to{' '}
-            <code className="font-mono text-[11px]">https://pi.pardot.com/api/v5/objects/lists/&#123;id&#125;</code>.
+            <code className="font-mono text-xs">https://pi.pardot.com/api/v5/objects/lists/&#123;id&#125;</code>.
           </p>
         </div>
 
@@ -101,11 +101,11 @@ export function TabPardot() {
             value={cfg.instanceUrl}
             onChange={(e) => update({ instanceUrl: e.target.value })}
             placeholder="https://pi.pardot.com"
-            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#134848]"
+            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Standard: <code className="font-mono text-[11px]">https://pi.pardot.com</code>&nbsp;&nbsp;
-            EU tenants: <code className="font-mono text-[11px]">https://pi.eu.pardot.com</code>
+            Standard: <code className="font-mono text-xs">https://pi.pardot.com</code>&nbsp;&nbsp;
+            EU tenants: <code className="font-mono text-xs">https://pi.eu.pardot.com</code>
           </p>
         </div>
       </fieldset>

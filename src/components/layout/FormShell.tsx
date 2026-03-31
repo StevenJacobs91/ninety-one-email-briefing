@@ -13,8 +13,7 @@ import { SettingsPanel } from '../settings/SettingsPanel'
 import { StepCampaign } from '../steps/StepCampaign'
 import { StepAudience } from '../steps/StepAudience'
 import { StepContent } from '../steps/StepContent'
-import { StepAssets } from '../steps/StepAssets'
-import { StepDeadlines } from '../steps/StepDeadlines'
+import { StepReview } from '../steps/StepReview'
 import { StepBrandReview } from '../steps/StepBrandReview'
 import { StepHtmlReview } from '../steps/StepHtmlReview'
 import type { BriefTemplate } from '../../lib/constants'
@@ -61,21 +60,12 @@ const STEP_HELP = [
     ],
   },
   {
-    title: 'Adding visual assets',
-    body: 'Select your logo variant and provide asset URLs for hero and supporting images. All assets must be hosted on an approved CDN.',
+    title: 'Reviewing your brief',
+    body: 'Check all the details you have entered before generating the HTML email. Export the brief as JSON or PDF for your records.',
     tips: [
-      'Hero image URLs must start with https://',
-      'Always provide descriptive alt text — required for accessibility compliance',
-      'The stripe colour overrides the theme default for this email only',
-    ],
-  },
-  {
-    title: 'Confirming your timeline',
-    body: 'Set content approval and send dates and flag the urgency level. This helps the production team prioritise your request accurately.',
-    tips: [
-      'Content approval date must fall before the send date',
-      'Allow at least 3 business days for standard production turnaround',
-      'Urgent requests are reviewed same-day but may require additional sign-off',
+      'Download or copy the JSON to share the brief with your production team',
+      'Use Print / PDF to generate a formatted PDF version of your brief',
+      'Once you proceed, the brief will be validated against Ninety One brand standards',
     ],
   },
   {
@@ -93,32 +83,33 @@ const STEP_HELP = [
 interface HelpPanelProps {
   step: number
   currentTheme: string
+  onChangeTemplate?: () => void
 }
 
-function HelpPanel({ step, currentTheme }: HelpPanelProps) {
+function HelpPanel({ step, currentTheme, onChangeTemplate }: HelpPanelProps) {
   const help = STEP_HELP[Math.min(step, STEP_HELP.length - 1)]
   const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
-  const stepLabels = ['Campaign', 'Audience', 'Content', 'Assets', 'Deadlines']
-  const eyebrow = step < 5 ? `Step ${step + 1} of 5 · ${stepLabels[step]}` : step === 5 ? 'Pipeline · Brand Review' : 'Pipeline · HTML Email'
+  const stepLabels = ['Campaign', 'Audience', 'Content', 'Review your Brief']
+  const eyebrow = step < 4 ? `Step ${step + 1} of 4 · ${stepLabels[step]}` : step === 4 ? 'Pipeline · Brand Review' : 'Pipeline · HTML Email'
 
   return (
-    <aside className="w-[320px] xl:w-[340px] shrink-0 self-start sticky top-[101px] space-y-4">
+    <aside className="help-panel-sticky w-full space-y-4">
       {/* Step guide */}
-      <div className="bg-[#f8f5ee] dark:bg-gray-800 border border-[#ddd8cf] dark:border-gray-700 p-7">
+      <div className="bg-brand-bg-panel dark:bg-brand-bg-panel-dark border border-brand-border-warm dark:border-gray-700 p-7">
         <div className="flex items-center gap-3 mb-4">
-          <span className="inline-block w-6 h-px bg-[#134848] dark:bg-[#fbaa96]" />
-          <p className="text-[10px] tracking-[0.2em] uppercase font-ni-heading text-[#134848] dark:text-[#fbaa96]">Step Guide</p>
+          <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
+          <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">Step Guide</p>
         </div>
-        <p className="text-[10px] tracking-[0.15em] uppercase font-ni-heading text-[#6b6660] dark:text-gray-400 mb-2">{eyebrow}</p>
-        <h2 className="font-ni-display text-[#134848] dark:text-[#fbaa96] text-[1.25rem] leading-snug mb-3">{help.title}</h2>
-        <p className="text-[#4a4a4a] dark:text-gray-300 text-sm leading-relaxed">{help.body}</p>
+        <p className="text-xs tracking-[0.15em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">{eyebrow}</p>
+        <h2 className="font-ni-display text-brand-primary dark:text-brand-accent text-xl leading-snug mb-3">{help.title}</h2>
+        <p className="text-brand-text-body dark:text-gray-300 text-sm leading-relaxed">{help.body}</p>
         {help.tips.length > 0 && (
           <>
-            <div className="my-5 h-px bg-[#ddd8cf] dark:bg-gray-700" />
+            <div className="my-5 h-px bg-brand-border-warm dark:bg-gray-700" />
             <ul className="space-y-3">
               {help.tips.map((tip, i) => (
-                <li key={i} className="flex gap-3 text-sm text-[#4a4a4a] dark:text-gray-300 leading-relaxed">
-                  <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#fbaa96] shrink-0" />
+                <li key={i} className="flex gap-3 text-sm text-brand-text-body dark:text-gray-300 leading-relaxed">
+                  <span className="mt-2 w-1.5 h-1.5 rounded-full bg-brand-accent shrink-0" />
                   <span>{tip}</span>
                 </li>
               ))}
@@ -128,29 +119,45 @@ function HelpPanel({ step, currentTheme }: HelpPanelProps) {
       </div>
 
       {/* Active brand theme swatch */}
-      {theme && step < 5 && (
-        <div className="bg-white dark:bg-gray-900 border border-[#ddd8cf] dark:border-gray-700 p-5">
-          <p className="text-[10px] tracking-[0.2em] uppercase font-ni-heading text-[#6b6660] dark:text-gray-400 mb-4">Active Brand Theme</p>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-1.5">
+      {theme && step < 4 && (
+        <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
+          <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-4">Active Brand Theme</p>
+          <div className="flex items-start gap-3">
+            <div className="flex gap-1.5 shrink-0">
               <span className="w-7 h-7 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: theme.primary }} />
               <span className="w-7 h-7 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: theme.accent }} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-ni-heading text-[#134848] dark:text-gray-200 leading-tight truncate">{theme.label}</p>
-              <p className="text-[11px] text-[#6b6660] dark:text-gray-500 mt-0.5">{theme.primary} · {theme.accent}</p>
+              <p
+                className="text-sm font-ni-heading text-brand-primary dark:text-gray-200 leading-tight"
+                title={theme.label}
+              >
+                {theme.label}
+              </p>
+              <p className="text-xs text-brand-text-muted dark:text-gray-500 mt-0.5">{theme.primary} · {theme.accent}</p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Change template — only on step 0 */}
+      {step === 0 && onChangeTemplate && (
+        <button
+          type="button"
+          onClick={onChangeTemplate}
+          className="w-full text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 py-2.5 transition-colors"
+        >
+          Change template
+        </button>
       )}
     </aside>
   )
 }
 
-const TOTAL_PIPELINE_STEPS = 7
-const LAST_BRIEF_STEP = 4
+const TOTAL_PIPELINE_STEPS = 6
+const LAST_BRIEF_STEP = 3
 
-const STEP_LABELS = ['Campaign', 'Audience', 'Content', 'Assets', 'Deadlines']
+const STEP_LABELS = ['Campaign', 'Audience', 'Content', 'Review your Brief']
 
 export function FormShell() {
   const { openSettings, settings } = useSettings()
@@ -180,27 +187,23 @@ export function FormShell() {
 
   const [pipelineStep, setPipelineStep] = useState<number | null>(null)
   const [highestStep, setHighestStep] = useState(0)
-  // Show template picker on fresh start (no existing draft)
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
   )
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
-  // Effective step: brief steps 0-4, then pipeline steps 5-6
   const effectiveStep = pipelineStep ?? currentStep
 
   useEffect(() => {
     setHighestStep((prev) => Math.max(prev, effectiveStep))
   }, [effectiveStep])
 
-  // Scroll to top on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [effectiveStep])
 
   useEffect(() => {
-    // Focus the first heading in the new step for keyboard/screen reader users
     const heading = stepContentRef.current?.querySelector('h2, h3')
     if (heading instanceof HTMLElement) {
       heading.setAttribute('tabindex', '-1')
@@ -208,7 +211,6 @@ export function FormShell() {
     }
   }, [effectiveStep])
 
-  // Unsaved-changes warning on tab close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (saveStatus !== 'idle' || form.formState.isDirty) {
@@ -222,13 +224,11 @@ export function FormShell() {
   const handleBriefSubmitAndAdvance = useCallback(async () => {
     const valid = await form.trigger()
     if (!valid) {
-      // Find the first step with errors and navigate there
       const stepFields = [
-        ['audience.clientGroup', 'audience.region', 'audience.channel', 'campaign.emailType', 'campaign.campaignName', 'campaign.theme', 'campaign.subjectLine', 'campaign.previewText', 'campaign.fromName', 'campaign.fromAddress', 'campaign.replyToEmail'],
+        ['audience.clientGroup', 'audience.region', 'audience.channel', 'campaign.emailType', 'campaign.campaignName', 'campaign.theme', 'campaign.subjectLine', 'campaign.previewText', 'campaign.fromName', 'campaign.fromAddress', 'campaign.replyToEmail', 'assets.logoVariant', 'assets.heroImageUrl', 'assets.heroImageAlt', 'deadlines.contentApprovalDate', 'deadlines.sendDate', 'deadlines.urgency'],
         [],
         ['content.headline', 'content.bodyIntro', 'content.sections', 'content.cta', 'content.cta.label', 'content.cta.url'],
-        ['assets.logoVariant', 'assets.heroImageUrl', 'assets.heroImageAlt'],
-        ['deadlines.contentApprovalDate', 'deadlines.sendDate', 'deadlines.urgency'],
+        [],
       ]
       const errors = form.formState.errors
       for (let i = 0; i < stepFields.length; i++) {
@@ -252,15 +252,14 @@ export function FormShell() {
       }
       return
     }
-    setPipelineStep(5)
+    setPipelineStep(4)
   }, [form, goToStep])
 
   const handleBrandAccept = useCallback(() => {
-    setPipelineStep(6) // Move to HTML Review
+    setPipelineStep(5)
   }, [])
 
   const handleBrandDecline = useCallback(() => {
-    // Go back to the last brief step (Deadlines)
     setPipelineStep(null)
     goToStep(LAST_BRIEF_STEP)
   }, [goToStep])
@@ -298,6 +297,12 @@ export function FormShell() {
     setShowTemplatePicker(false)
   }, [form])
 
+  const handleChangeTemplate = useCallback(() => {
+    setShowTemplatePicker(true)
+    setPipelineStep(null)
+    goToStep(0)
+  }, [goToStep])
+
   const handlePipelineStepClick = useCallback(
     (step: number) => {
       if (step <= LAST_BRIEF_STEP) {
@@ -317,50 +322,58 @@ export function FormShell() {
   const currentTheme = form.watch('campaign.theme')
 
   return (
-    <div className="min-h-screen bg-[#f0ece4] dark:bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-brand-bg-warm dark:bg-[#1a1714] flex flex-col">
       {/* ── Sticky navigation bar ── */}
-      <header className="sticky top-0 z-40 bg-[#134848] dark:bg-[#0d3232]">
+      <header className="sticky top-0 z-40 bg-brand-primary dark:bg-brand-primary-dark">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo + platform label */}
           <div className="flex items-center gap-0 shrink-0">
             <NinetyOneLogo className="h-5 w-auto" />
             <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block">
-              <span className="text-white/50 text-[10px] tracking-[0.2em] uppercase font-ni-heading">Email Briefing Platform</span>
+              <span className="text-white/70 text-xs tracking-[0.2em] uppercase font-ni-heading">Email Briefing Platform</span>
             </div>
           </div>
 
           {/* Right controls */}
           <div className="flex items-center gap-1">
             {/* Desktop nav items */}
-            <nav className="hidden md:flex items-center mr-3">
-              <span className="relative text-white text-[11px] tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-[#fbaa96] after:content-['']">
+            <nav className="hidden md:flex items-center mr-3" aria-label="Platform navigation">
+              <span className="relative text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
                 Email Briefing
               </span>
               <button
                 type="button"
                 onClick={openDrafts}
-                className="group relative text-white/60 hover:text-white text-[11px] tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors"
+                className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
               >
                 Drafts
-                {drafts.length > 0 && <span className="ml-1 text-[#fbaa96]">({drafts.length})</span>}
-                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#fbaa96] scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                {drafts.length > 0 && <span className="ml-1 text-brand-accent">({drafts.length})</span>}
+                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={openSettings}
-                className="group relative text-white/60 hover:text-white text-[11px] tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors"
+                className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
               >
                 Settings
-                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#fbaa96] scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
               </button>
             </nav>
 
-            {/* Save status */}
-            {saveStatus !== 'idle' && (
-              <span className={`text-[11px] mr-2 transition-opacity ${saveStatus === 'saving' ? 'text-white/40' : 'text-[#fbaa96]'}`}>
-                {saveStatus === 'saving' ? 'Saving…' : 'Saved'}
-              </span>
-            )}
+            {/* Save status — always present so layout doesn't shift */}
+            <span
+              className={`text-xs mr-2 min-w-[52px] text-right transition-opacity ${
+                saveStatus === 'idle'
+                  ? 'opacity-0'
+                  : saveStatus === 'saving'
+                    ? 'text-white/50'
+                    : 'text-brand-accent'
+              }`}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : ''}
+            </span>
 
             <DarkModeToggle mode={mode} onModeChange={setMode} />
 
@@ -369,15 +382,15 @@ export function FormShell() {
               <button
                 type="button"
                 onClick={openDrafts}
-                className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors relative"
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                 aria-label="Saved drafts"
               >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                 </svg>
                 {drafts.length > 0 && (
-                  <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-[#fbaa96] text-[#134848] text-[8px] font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-brand-accent text-brand-primary text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
                     {drafts.length}
                   </span>
                 )}
@@ -385,10 +398,10 @@ export function FormShell() {
               <button
                 type="button"
                 onClick={openSettings}
-                className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                 aria-label="Settings"
               >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="3" />
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
@@ -397,38 +410,40 @@ export function FormShell() {
           </div>
         </div>
         {/* Coral accent line */}
-        <div className="h-[2px] bg-[#fbaa96]/50" />
+        <div className="h-[2px] bg-brand-accent/50" aria-hidden="true" />
       </header>
 
-      {/* ── Hero band ── */}
-      <div className="bg-[#134848] dark:bg-[#0d3232] py-8 px-4">
+      {/* ── Hero band — compact on interior steps ── */}
+      <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
         <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
           <div>
-            <p className="text-[#fbaa96] text-[10px] tracking-[0.2em] uppercase font-ni-heading mb-2">Marketing Operations</p>
-            <h1 className="font-ni-display text-white text-4xl lg:text-5xl leading-none tracking-tight">Email Briefing</h1>
-            <p className="text-white/50 text-sm mt-3">
-              {isPipelineStep
-                ? 'Review and export your brand-compliant HTML email.'
-                : 'Create brand-compliant HTML emails for Ninety One marketing campaigns.'}
-            </p>
+            <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
+            <h1 className={`font-ni-display text-white leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
+              Email Briefing
+            </h1>
+            {showTemplatePicker && (
+              <p className="text-white/60 text-sm mt-2">
+                Create brand-compliant HTML emails for Ninety One marketing campaigns.
+              </p>
+            )}
           </div>
           {!showTemplatePicker && (
             <div className="text-right hidden sm:block shrink-0">
               {!isPipelineStep ? (
                 <>
-                  <p className="text-[#fbaa96] text-[10px] tracking-[0.2em] uppercase font-ni-heading mb-1">Current Step</p>
+                  <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Current Step</p>
                   <p className="font-ni-display leading-none">
-                    <span className="text-[#fbaa96] text-4xl">{currentStep + 1}</span>
-                    <span className="text-white/30 text-3xl mx-1.5">/</span>
-                    <span className="text-white/60 text-3xl">5</span>
+                    <span className="text-brand-accent text-3xl">{currentStep + 1}</span>
+                    <span className="text-white/30 text-2xl mx-1.5">/</span>
+                    <span className="text-white/50 text-2xl">4</span>
                   </p>
-                  <p className="text-white/40 text-[10px] uppercase tracking-[0.18em] mt-2 font-ni-heading">{STEP_LABELS[currentStep]}</p>
+                  <p className="text-white/50 text-xs uppercase tracking-[0.18em] mt-1.5 font-ni-heading">{STEP_LABELS[currentStep]}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-[#fbaa96] text-[10px] tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
-                  <p className="font-ni-display text-white text-2xl leading-none">
-                    {pipelineStep === 5 ? 'Brand Review' : 'HTML Email'}
+                  <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
+                  <p className="font-ni-display text-white text-xl leading-none">
+                    {pipelineStep === 4 ? 'Brand Review' : 'HTML Email'}
                   </p>
                 </>
               )}
@@ -438,7 +453,7 @@ export function FormShell() {
       </div>
 
       {/* ── Step tabs (sticky below nav) ── */}
-      <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-[#e5e0d8] dark:border-gray-700 overflow-x-auto">
+      <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-6">
           <StepIndicator
             currentStep={effectiveStep}
@@ -461,26 +476,25 @@ export function FormShell() {
                 />
               </div>
             ) : (
-              /* Two-column: form card + help panel */
-              <div className="flex gap-8 items-start">
+              /* Two-column on lg+: form card + help panel. Single column on md and below. */
+              <div className="flex flex-col lg:flex-row gap-8 items-start">
                 {/* Form card */}
-                <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-[#ddd8cf] dark:border-gray-700">
+                <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700">
                   <div ref={stepContentRef} className="p-8 lg:p-10">
                     {!isPipelineStep && currentStep === 0 && <StepCampaign />}
                     {!isPipelineStep && currentStep === 1 && <StepAudience />}
                     {!isPipelineStep && currentStep === 2 && <StepContent />}
-                    {!isPipelineStep && currentStep === 3 && <StepAssets />}
-                    {!isPipelineStep && currentStep === 4 && (
-                      <StepDeadlines onSubmit={submitBrief} submitStatus={submitStatus} />
+                    {!isPipelineStep && currentStep === 3 && (
+                      <StepReview onSubmit={submitBrief} submitStatus={submitStatus} />
                     )}
-                    {pipelineStep === 5 && (
+                    {pipelineStep === 4 && (
                       <StepBrandReview
                         onAccept={handleBrandAccept}
                         onDecline={handleBrandDecline}
                         onGoToStep={handleGoToStep}
                       />
                     )}
-                    {pipelineStep === 6 && (
+                    {pipelineStep === 5 && (
                       <StepHtmlReview
                         onComplete={() => {
                           saveDraft(form.getValues(), form.getValues().campaign.campaignName)
@@ -491,8 +505,14 @@ export function FormShell() {
                   </div>
                 </div>
 
-                {/* Help panel */}
-                <HelpPanel step={effectiveStep} currentTheme={currentTheme} />
+                {/* Help panel — full width on < lg, fixed sidebar on lg+ */}
+                <div className="w-full lg:w-[320px] xl:w-[340px] shrink-0">
+                  <HelpPanel
+                    step={effectiveStep}
+                    currentTheme={currentTheme}
+                    onChangeTemplate={!isPipelineStep && currentStep === 0 ? handleChangeTemplate : undefined}
+                  />
+                </div>
               </div>
             )}
           </form>
@@ -501,13 +521,13 @@ export function FormShell() {
 
       {/* ── Sticky footer navigation — brief steps only ── */}
       {!isPipelineStep && !showTemplatePicker && (
-        <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-[#e5e0d8] dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+        <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
             {!isFirstStep ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex items-center gap-2 text-sm font-ni-heading text-[#134848] dark:text-[#fbaa96] tracking-wide hover:opacity-70 transition-opacity"
+                className="min-h-[44px] flex items-center gap-2 text-sm font-ni-heading text-brand-primary dark:text-brand-accent tracking-wide hover:opacity-70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent px-2"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="15 18 9 12 15 6" />
@@ -517,14 +537,14 @@ export function FormShell() {
             ) : (
               <div />
             )}
-            <span className="text-xs text-[#6b6660] dark:text-gray-500 hidden sm:block">
-              Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">5</strong>
+            <span className="text-xs text-brand-text-muted dark:text-gray-500 hidden sm:block">
+              Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">4</strong>
             </span>
             {isLastBriefStep ? (
               <button
                 type="button"
                 onClick={handleBriefSubmitAndAdvance}
-                className="flex items-center gap-2 bg-[#0a3323] text-white px-7 py-3 text-[11px] font-ni-heading tracking-[0.15em] uppercase hover:bg-[#071f15] transition-colors"
+                className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
               >
                 Review Brief
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -535,7 +555,7 @@ export function FormShell() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="flex items-center gap-2 bg-[#134848] text-white px-7 py-3 text-[11px] font-ni-heading tracking-[0.15em] uppercase hover:bg-[#0d3232] transition-colors"
+                className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
               >
                 Continue to {STEP_LABELS[currentStep + 1]}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -547,19 +567,29 @@ export function FormShell() {
         </footer>
       )}
 
-      {/* Pipeline step 6 footer */}
-      {pipelineStep === 6 && (
-        <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-[#e5e0d8] dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-3.5">
+      {/* Pipeline step 5 footer */}
+      {pipelineStep === 5 && (
+        <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
             <button
               type="button"
-              onClick={() => setPipelineStep(5)}
-              className="flex items-center gap-2 text-sm font-ni-heading text-[#134848] dark:text-[#fbaa96] tracking-wide hover:opacity-70 transition-opacity"
+              onClick={() => setPipelineStep(4)}
+              className="min-h-[44px] flex items-center gap-2 text-sm font-ni-heading text-brand-primary dark:text-brand-accent tracking-wide hover:opacity-70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent px-2"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               Back to Brand Review
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPipelineStep(null); goToStep(0) }}
+              className="min-h-[44px] flex items-center gap-2 text-sm font-ni-heading text-brand-text-muted dark:text-gray-500 tracking-wide hover:text-brand-primary dark:hover:text-brand-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent px-2"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Return to Brief
             </button>
           </div>
         </footer>

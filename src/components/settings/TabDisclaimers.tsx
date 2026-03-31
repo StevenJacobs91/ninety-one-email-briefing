@@ -56,7 +56,7 @@ export function TabDisclaimers() {
         <button
           type="button"
           onClick={addDisclaimer}
-          className="text-xs font-medium text-[#134848] dark:text-[#fbaa96] px-3 py-1.5 rounded border border-[#134848]/30 dark:border-[#fbaa96]/30 hover:bg-[#134848]/5 transition-colors"
+          className="text-xs font-medium text-brand-primary dark:text-brand-accent px-3 py-1.5 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors"
         >
           + Add Disclaimer
         </button>
@@ -80,11 +80,11 @@ export function TabDisclaimers() {
                 onKeyDown={(e) => e.key === 'Enter' && setExpandedId(isExpanded ? null : d.id)}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${d.isDefault ? 'bg-[#134848] dark:bg-[#fbaa96]' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${d.isDefault ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'}`} />
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{d.label}</p>
                   <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{d.region}</span>
                   {d.isDefault && (
-                    <span className="text-xs bg-[#134848]/10 dark:bg-[#fbaa96]/10 text-[#134848] dark:text-[#fbaa96] px-1.5 py-0.5 rounded shrink-0">Default</span>
+                    <span className="text-xs bg-brand-primary/10 dark:bg-brand-accent/10 text-brand-primary dark:text-brand-accent px-1.5 py-0.5 rounded shrink-0">Default</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -115,7 +115,7 @@ export function TabDisclaimers() {
                       type="text"
                       value={d.label}
                       onChange={(e) => updateDisclaimer(d.id, { label: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
                       placeholder="e.g. South Africa — FSP Standard"
                     />
                   </div>
@@ -124,7 +124,7 @@ export function TabDisclaimers() {
                     <select
                       value={d.region}
                       onChange={(e) => updateDisclaimer(d.id, { region: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
                     >
                       {allRegions.map((r) => (
                         <option key={r} value={r}>{r}</option>
@@ -137,7 +137,7 @@ export function TabDisclaimers() {
                       value={d.text}
                       onChange={(e) => updateDisclaimer(d.id, { text: e.target.value })}
                       rows={4}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848] resize-y"
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary resize-y"
                       placeholder="Full disclaimer text..."
                     />
                   </div>
@@ -153,7 +153,7 @@ export function TabDisclaimers() {
                           updateDisclaimer(d.id, { isDefault: false })
                         }
                       }}
-                      className="rounded border-gray-300 text-[#134848]"
+                      className="rounded border-gray-300 text-brand-primary"
                     />
                     <label htmlFor={`default-${d.id}`} className="text-xs text-gray-600 dark:text-gray-400">
                       Set as default for {d.region}

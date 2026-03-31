@@ -37,6 +37,12 @@ function loadSettings(): AppSettings {
         senderDefaults: { ...defaults.senderDefaults, ...parsed.senderDefaults },
         formDefaults: { ...defaults.formDefaults, ...parsed.formDefaults },
         pardot: { ...defaults.pardot, ...(parsed.pardot ?? {}) },
+        campaigns: parsed.campaigns ?? defaults.campaigns,
+        signoffs: parsed.signoffs ?? defaults.signoffs,
+        customEmailTypes: parsed.customEmailTypes ?? defaults.customEmailTypes,
+        customClientGroups: parsed.customClientGroups ?? defaults.customClientGroups,
+        customChannels: parsed.customChannels ?? defaults.customChannels,
+        customRegions: parsed.customRegions ?? defaults.customRegions,
       }
     }
   } catch {

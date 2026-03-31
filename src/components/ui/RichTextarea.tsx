@@ -222,7 +222,7 @@ export function RichTextarea({
           onMouseDown={(e) => { e.preventDefault(); applyBold() }}
           className={`w-8 h-7 flex items-center justify-center rounded text-sm font-bold transition-colors ${
             activeFormats.bold
-              ? 'bg-[#134848] text-white'
+              ? 'bg-brand-primary text-white'
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Bold (Ctrl+B) — wraps selected text in brand span"
@@ -235,7 +235,7 @@ export function RichTextarea({
           onMouseDown={(e) => { e.preventDefault(); applyItalic() }}
           className={`w-8 h-7 flex items-center justify-center rounded text-sm italic transition-colors ${
             activeFormats.italic
-              ? 'bg-[#134848] text-white'
+              ? 'bg-brand-primary text-white'
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Italic (Ctrl+I)"
@@ -248,7 +248,7 @@ export function RichTextarea({
           onMouseDown={(e) => { e.preventDefault(); applyUnderline() }}
           className={`w-8 h-7 flex items-center justify-center rounded text-sm underline transition-colors ${
             activeFormats.underline
-              ? 'bg-[#134848] text-white'
+              ? 'bg-brand-primary text-white'
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Underline (Ctrl+U)"
@@ -297,7 +297,7 @@ export function RichTextarea({
         onMouseUp={updateActiveFormats}
         onKeyUp={updateActiveFormats}
         data-placeholder={placeholder}
-        className={`w-full rounded-b-md border px-3 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848] overflow-y-auto leading-relaxed ${
+        className={`w-full rounded-b-md border px-3 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary overflow-y-auto leading-relaxed ${
           error ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
         } [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 dark:[&:empty]:before:text-gray-500 [&:empty]:before:pointer-events-none`}
         style={{ minHeight }}
@@ -308,10 +308,10 @@ export function RichTextarea({
 
       {/* Link dialog */}
       {showLinkDialog && (
-        <div className="mt-1.5 p-3 border border-[#134848]/30 rounded-md bg-[#134848]/5 dark:bg-[#134848]/10">
+        <div className="mt-1.5 p-3 border border-brand-primary/30 rounded-md bg-brand-primary/5 dark:bg-brand-primary/10">
           <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
             Insert link — selected text will become:
-            <code className="ml-1 text-[10px] bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">
+            <code className="ml-1 text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">
               {`<a href="..." style="color: ${accentColour}; text-decoration: underline;">`}
             </code>
           </p>
@@ -321,7 +321,7 @@ export function RichTextarea({
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://..."
-              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') { e.preventDefault(); applyLink(linkUrl) }
                 if (e.key === 'Escape') { setShowLinkDialog(false); setLinkUrl('') }
@@ -331,7 +331,7 @@ export function RichTextarea({
             <button
               type="button"
               onClick={() => applyLink(linkUrl)}
-              className="px-3 py-1.5 bg-[#134848] text-white text-xs font-medium rounded-md hover:bg-[#0d3232] transition-colors"
+              className="px-3 py-1.5 bg-brand-primary text-white text-xs font-medium rounded-md hover:bg-brand-primary-hover transition-colors"
             >
               Insert
             </button>

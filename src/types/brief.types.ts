@@ -43,6 +43,7 @@ export interface AudienceDetails {
 
 export interface ContentDetails {
   headline: string
+  subHeadline?: string
   bodyIntro: string
   sections: ContentSection[]
   modules: string[]

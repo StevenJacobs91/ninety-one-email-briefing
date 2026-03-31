@@ -107,6 +107,56 @@ export interface PardotConfig {
   instanceUrl: string
 }
 
+/** Sender details that auto-populate when this campaign is selected */
+export interface CampaignSenderPreset {
+  fromName: string
+  fromAddress: string
+  replyToEmail: string
+}
+
+export interface CampaignEntry {
+  id: string
+  name: string
+  regions: string[]     // empty = applies to all regions
+  channels: string[]    // empty = applies to all channels
+  clientGroups: string[] // empty = applies to all client groups
+  senderPreset?: CampaignSenderPreset // optional — auto-fills sender fields when selected
+}
+
+// ─── Footer Sign-off Signatures ─────────────────────────────
+
+export interface SignoffEntry {
+  id: string
+  name: string        // Short display name, e.g. "Natalie Phillips – Deputy MD"
+  text: string        // Full multiline sign-off text
+  isDefault: boolean  // Pre-selected in the form
+}
+
+// ─── Custom Lists (extends built-in constants) ───────────────
+
+export interface CustomEmailType {
+  id: string    // machine value used as the form field value
+  label: string // display label shown in the UI
+}
+
+export interface CustomClientGroup {
+  id: string    // must be unique; used as the identifier
+  name: string  // display name, e.g. "Middle East"
+  regions: string[] // regions that belong to this client group
+}
+
+export interface CustomChannel {
+  id: string    // machine value
+  label: string // display label
+}
+
+export interface CustomRegion {
+  name: string        // region name, e.g. "Kenya"
+  clientGroup: string // which client group this region belongs to
+}
+
+// ─── Full AppSettings ────────────────────────────────────────
+
 export interface AppSettings {
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
@@ -119,10 +169,21 @@ export interface AppSettings {
   legalDisclaimers: LegalDisclaimerConfig[]
   n8nWebhookUrl: string
   pardot: PardotConfig
+  campaigns: CampaignEntry[]
+  // Sign-off signatures
+  signoffs: SignoffEntry[]
+  // Custom list extensions
+  customEmailTypes: CustomEmailType[]
+  customClientGroups: CustomClientGroup[]
+  customChannels: CustomChannel[]
+  customRegions: CustomRegion[]
 }
 
 export type SettingsTab =
   | 'general'
+  | 'campaigns'
+  | 'lists'
+  | 'signatures'
   | 'themes'
   | 'templates'
   | 'modules'

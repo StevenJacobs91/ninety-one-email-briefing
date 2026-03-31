@@ -1,24 +1,54 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
-import { EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, CLIENT_GROUPS, CHANNELS, CLIENT_GROUP_REGIONS } from '../../lib/constants'
+import {
+  EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, CLIENT_GROUPS, CHANNELS,
+  CLIENT_GROUP_REGIONS, URGENCY_OPTIONS,
+} from '../../lib/constants'
 import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
-import { FieldSelect } from '../ui/FieldSelect'
+import { FieldTextarea } from '../ui/FieldTextarea'
+import { SubSection } from '../ui/SubSection'
 import { buildEmailName } from '../../lib/emailName'
+import { useSettings } from '../../contexts/SettingsContext'
 
-function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-8">
-      <p className="text-[10px] font-ni-heading text-[#134848] dark:text-[#fbaa96]/70 uppercase tracking-[0.18em] border-b border-[#e5e0d8] dark:border-gray-700 pb-2 mb-5">{title}</p>
-      <div className="space-y-5">{children}</div>
-    </div>
-  )
+// Merge built-in array with custom settings items, deduplicating by value
+function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
+  const seen = new Set(builtIn)
+  const extras = custom.filter((v) => !seen.has(v))
+  return [...builtIn, ...extras]
 }
 
+// ─── Tags builder ──────────────────────────────────────────────────────────────
+function buildTags(data: BriefFormData): string {
+  const now = new Date()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yy = String(now.getFullYear()).slice(-2)
+  const regionPart = (data.audience.region ?? []).length > 0 ? (data.audience.region ?? []).join(' ') : 'tbd'
+  const audiencePart = (data.audience.channel ?? []).length > 0 ? (data.audience.channel ?? []).join(' ') : 'tbd'
+  const namePart = data.campaign.campaignName || 'untitled'
+  const emailName = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
+
+  const themeLabel = BRAND_THEMES.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
+
+  return [
+    `parent - ${emailName}`,
+    'email - primary',
+    `client group - ${(data.audience.clientGroup ?? []).join(' ').toLowerCase()}`,
+    `region - ${(data.audience.region ?? []).join(' ').toLowerCase()}`,
+    `audience - ${(data.audience.channel ?? []).join(' ').toLowerCase()}`,
+    `campaign - ${(data.campaign.campaignName || 'untitled').toLowerCase()}`,
+    `email type - ${(data.campaign.emailType || '').toLowerCase()}`,
+    `colour theme - ${themeLabel.toLowerCase().replace(/\s*\/\s*/g, ' and ')}`,
+  ].join(', ')
+}
+
+// ─── Main StepCampaign ─────────────────────────────────────────────────────────
 export function StepCampaign() {
   const { register, watch, formState: { errors }, setValue } = useFormContext<BriefFormData>()
+  const { settings } = useSettings()
 
+  // ── Campaign fields ──
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
@@ -32,21 +62,57 @@ export function StepCampaign() {
     [campaignName, selectedRegions, selectedChannels]
   )
 
-  // Compute available regions based on selected client groups
+  const allCampaigns = settings.campaigns ?? []
+
+  // Merged dynamic lists
+  const allClientGroups = useMemo(
+    () => mergeUnique(CLIENT_GROUPS, (settings.customClientGroups ?? []).map((cg) => cg.name)),
+    [settings.customClientGroups]
+  )
+
+  const allChannels = useMemo(
+    () => mergeUnique(CHANNELS, (settings.customChannels ?? []).map((ch) => ch.label)),
+    [settings.customChannels]
+  )
+
+  const allEmailTypes = useMemo(() => {
+    const builtIn = EMAIL_TYPES.map((id) => ({ id, label: EMAIL_TYPE_LABELS[id as EmailType] ?? id }))
+    const custom = (settings.customEmailTypes ?? []).map((et) => ({ id: et.id, label: et.label }))
+    const builtInIds = new Set(EMAIL_TYPES as readonly string[])
+    return [...builtIn, ...custom.filter((et) => !builtInIds.has(et.id))]
+  }, [settings.customEmailTypes])
+
+  const availableCampaigns = useMemo(() => {
+    return allCampaigns.filter((c) => {
+      const clientGroupMatch = (c.clientGroups ?? []).length === 0 || selectedClientGroups.some((cg) => (c.clientGroups ?? []).includes(cg))
+      const channelMatch = c.channels.length === 0 || selectedChannels.some((ch) => c.channels.includes(ch))
+      return clientGroupMatch && channelMatch
+    })
+  }, [allCampaigns, selectedClientGroups, selectedChannels])
+
   const availableRegions = useMemo(() => {
+    const builtInRegions: string[] = selectedClientGroups.length === 0
+      ? Object.values(CLIENT_GROUP_REGIONS).flat()
+      : (() => {
+          const regionSet = new Set<string>()
+          for (const group of selectedClientGroups) {
+            const groupRegions = CLIENT_GROUP_REGIONS[group as ClientGroup] ?? []
+            for (const r of groupRegions) regionSet.add(r)
+            // Also include custom regions that belong to this client group
+            for (const cr of settings.customRegions ?? []) {
+              if (cr.clientGroup === group) regionSet.add(cr.name)
+            }
+          }
+          return Array.from(regionSet)
+        })()
+
     if (selectedClientGroups.length === 0) {
-      // Show all regions when no client group is selected
-      return Object.values(CLIENT_GROUP_REGIONS).flat()
+      // Add all custom regions too when no filter
+      const customNames = (settings.customRegions ?? []).map((cr) => cr.name)
+      return mergeUnique(builtInRegions, customNames)
     }
-    const regionSet = new Set<string>()
-    for (const group of selectedClientGroups) {
-      const groupRegions = CLIENT_GROUP_REGIONS[group] ?? []
-      for (const r of groupRegions) {
-        regionSet.add(r)
-      }
-    }
-    return Array.from(regionSet)
-  }, [selectedClientGroups])
+    return builtInRegions
+  }, [selectedClientGroups, settings.customRegions])
 
   function toggleArrayValue(
     field: 'audience.clientGroup' | 'audience.region' | 'audience.channel',
@@ -59,18 +125,25 @@ export function StepCampaign() {
     setValue(field, next as never, { shouldValidate: true })
   }
 
-  // When client groups change, filter out any selected regions that are no longer valid
+  function handleCampaignSelect(campaignName: string) {
+    setValue('campaign.campaignName', campaignName, { shouldValidate: true })
+    const campaign = allCampaigns.find((c) => c.name === campaignName)
+    if (campaign?.senderPreset) {
+      if (campaign.senderPreset.fromName) setValue('campaign.fromName', campaign.senderPreset.fromName, { shouldValidate: false })
+      if (campaign.senderPreset.fromAddress) setValue('campaign.fromAddress', campaign.senderPreset.fromAddress, { shouldValidate: false })
+      if (campaign.senderPreset.replyToEmail !== undefined) setValue('campaign.replyToEmail', campaign.senderPreset.replyToEmail, { shouldValidate: false })
+    }
+  }
+
   function handleClientGroupToggle(group: ClientGroup) {
-    const currentGroups = selectedClientGroups
-    const isRemoving = currentGroups.includes(group)
+    const isRemoving = selectedClientGroups.includes(group)
     const nextGroups = isRemoving
-      ? currentGroups.filter((g) => g !== group)
-      : [...currentGroups, group]
+      ? selectedClientGroups.filter((g) => g !== group)
+      : [...selectedClientGroups, group]
 
     setValue('audience.clientGroup', nextGroups as never, { shouldValidate: true })
 
     if (isRemoving) {
-      // Compute the still-valid regions for the remaining groups
       const validRegionSet = new Set<string>()
       for (const g of nextGroups) {
         const gr = CLIENT_GROUP_REGIONS[g as ClientGroup] ?? []
@@ -83,18 +156,144 @@ export function StepCampaign() {
     }
   }
 
+  // ── Deadlines fields ──
+  const notes = watch('deadlines.notes') ?? ''
+  const contentApprovalDate = watch('deadlines.contentApprovalDate') ?? ''
+  const today = new Date().toISOString().split('T')[0]
+  const data = watch()
+
+  const tags = useMemo(() => buildTags(data as BriefFormData), [data])
+
+  useEffect(() => {
+    setValue('deadlines.tags', tags)
+  }, [tags, setValue])
+
+  const [tagsCopied, setTagsCopied] = useState(false)
+
+  async function copyTags() {
+    try {
+      await navigator.clipboard.writeText(tags)
+      setTagsCopied(true)
+      setTimeout(() => setTagsCopied(false), 2000)
+    } catch {
+      // Clipboard unavailable
+    }
+  }
+
   return (
     <div>
-      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-1">
+      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-1">
         {emailName && emailName !== `${new Date().toLocaleString('en-US', { month: '2-digit' }).padStart(2, '0')}${String(new Date().getFullYear()).slice(-2)} TBD TBD Untitled`
           ? emailName
           : 'New Email Brief'}
       </h2>
       {campaignName ? (
-        <p className="text-sm text-[#6b6660] dark:text-gray-400 mb-8">Campaign Details</p>
+        <p className="text-sm text-brand-text-muted dark:text-gray-400 mb-8">Campaign Details</p>
       ) : (
-        <p className="text-sm text-[#6b6660] dark:text-gray-400 mb-8">Fill in the fields below to begin your email brief.</p>
+        <p className="text-sm text-brand-text-muted dark:text-gray-400 mb-8">Fill in the fields below to begin your email brief.</p>
       )}
+
+      {/* Sub-section: Deadlines */}
+      <SubSection title="Deadlines">
+        <div className="grid grid-cols-2 gap-4">
+          <FieldText
+            label="Content Approval Date"
+            registration={register('deadlines.contentApprovalDate')}
+            error={errors.deadlines?.contentApprovalDate}
+            required
+            type="date"
+            min={today}
+          />
+          <FieldText
+            label="Send Date"
+            registration={register('deadlines.sendDate')}
+            error={errors.deadlines?.sendDate}
+            required
+            type="date"
+            min={contentApprovalDate || today}
+          />
+        </div>
+
+        {/* Urgency */}
+        <div>
+          <p id="urgency-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Urgency<span className="text-red-500 ml-0.5">*</span>
+          </p>
+          <div className="flex gap-3" role="radiogroup" aria-labelledby="urgency-label">
+            {URGENCY_OPTIONS.map((opt) => {
+              const selected = watch('deadlines.urgency') === opt
+              return (
+                <label
+                  key={opt}
+                  className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
+                    selected
+                      ? opt === 'urgent'
+                        ? 'bg-red-600 text-white border-red-600'
+                        : 'bg-[#134848] text-white border-[#134848]'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    {...register('deadlines.urgency')}
+                    value={opt}
+                    className="sr-only"
+                  />
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 1-1 Required */}
+        <div>
+          <p id="one-on-one-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            1-1 Required?
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Does this email require a personalised one-to-one send (e.g. individual adviser targeting)?
+          </p>
+          <div className="flex gap-3" role="radiogroup" aria-labelledby="one-on-one-label">
+            {(['yes', 'no'] as const).map((opt) => {
+              const isYes = opt === 'yes'
+              const selected = isYes
+                ? watch('deadlines.oneOnOneRequired') === true
+                : watch('deadlines.oneOnOneRequired') === false
+              return (
+                <label
+                  key={opt}
+                  className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
+                    selected
+                      ? 'bg-brand-primary text-white border-brand-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    checked={selected}
+                    onChange={() => setValue('deadlines.oneOnOneRequired', isYes, { shouldValidate: true })}
+                    className="sr-only"
+                  />
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+
+        <FieldTextarea
+          label="Notes"
+          registration={register('deadlines.notes')}
+          error={errors.deadlines?.notes}
+          placeholder="Any additional notes (max 300 characters)"
+          maxLength={300}
+          currentLength={notes.length}
+          rows={3}
+        />
+      </SubSection>
+
+      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
       {/* Sub-section: Targeting */}
       <SubSection title="Targeting">
@@ -109,15 +308,15 @@ export function StepCampaign() {
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {CLIENT_GROUPS.map((group) => (
+            {allClientGroups.map((group) => (
               <button
                 key={group}
                 type="button"
-                onClick={() => handleClientGroupToggle(group)}
+                onClick={() => handleClientGroupToggle(group as ClientGroup)}
                 aria-pressed={selectedClientGroups.includes(group)}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                   selectedClientGroups.includes(group)
-                    ? 'bg-[#134848] text-white border-[#134848]'
+                    ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
@@ -158,7 +357,7 @@ export function StepCampaign() {
                   aria-pressed={selectedRegions.includes(region as Region)}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                     selectedRegions.includes(region as Region)
-                      ? 'bg-[#134848] text-white border-[#134848]'
+                      ? 'bg-brand-primary text-white border-brand-primary'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -176,22 +375,22 @@ export function StepCampaign() {
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Channel<span className="text-red-500 ml-0.5">*</span>
+              Channel/Audience<span className="text-red-500 ml-0.5">*</span>
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
-              {selectedChannels.length > 0 ? `${selectedChannels.length} of ${CHANNELS.length} selected` : 'Select all that apply'}
+              {selectedChannels.length > 0 ? `${selectedChannels.length} of ${allChannels.length} selected` : 'Select all that apply'}
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {CHANNELS.map((channel) => (
+            {allChannels.map((channel) => (
               <button
                 key={channel}
                 type="button"
-                onClick={() => toggleArrayValue('audience.channel', channel, selectedChannels)}
+                onClick={() => toggleArrayValue('audience.channel', channel as Channel, selectedChannels)}
                 aria-pressed={selectedChannels.includes(channel)}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                   selectedChannels.includes(channel)
-                    ? 'bg-[#134848] text-white border-[#134848]'
+                    ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
@@ -205,44 +404,97 @@ export function StepCampaign() {
         </div>
       </SubSection>
 
-      {/* Divider */}
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
-      {/* Sub-section 1: Email Identity */}
+      {/* Sub-section: Email Identity */}
       <SubSection title="Email Identity">
-        <FieldSelect
-          label="Email Type"
-          registration={register('campaign.emailType')}
-          options={EMAIL_TYPES.map((t) => ({ value: t, label: EMAIL_TYPE_LABELS[t as EmailType] }))}
-          error={errors.campaign?.emailType}
-          required
-        />
-
-        <FieldText
-          label="Campaign Name"
-          registration={register('campaign.campaignName')}
-          error={errors.campaign?.campaignName}
-          required
-          placeholder="Internal reference name"
-        />
-
-        {/* Auto-generated Email Name */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Email Name
-          </label>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600">
-            <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span className="text-sm text-gray-500 dark:text-gray-400 select-all">{emailName || '—'}</span>
+        {/* Email Type — single-select pills */}
+        <div>
+          <div className="flex items-baseline justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email Type<span className="text-red-500 ml-0.5">*</span>
+            </label>
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Auto-generated: MMYY · REGION · AUDIENCE · CAMPAIGN NAME
-          </p>
+          <div className="flex flex-wrap gap-2">
+            {allEmailTypes.map((et) => (
+              <button
+                key={et.id}
+                type="button"
+                onClick={() => setValue('campaign.emailType', et.id, { shouldValidate: true })}
+                aria-pressed={watch('campaign.emailType') === et.id}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  watch('campaign.emailType') === et.id
+                    ? 'bg-brand-primary text-white border-brand-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                }`}
+              >
+                {et.label}
+              </button>
+            ))}
+          </div>
+          {errors.campaign?.emailType && (
+            <p className="text-xs text-red-600 mt-1">{errors.campaign.emailType.message}</p>
+          )}
         </div>
 
-        {/* Theme selector with colour swatches */}
+        {/* Campaign selector — filtered by region + channel */}
+        <div>
+          <p id="campaign-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Campaign<span className="text-red-500 ml-0.5">*</span>
+          </p>
+          {allCampaigns.length === 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+              No campaigns configured. Add campaigns in <strong>Settings → Campaigns</strong>.
+            </p>
+          ) : availableCampaigns.length === 0 ? (
+            <div className="px-3 py-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 italic">
+              No campaigns match the selected region and audience. Adjust your Targeting selection or add campaigns in Settings.
+            </div>
+          ) : (
+            <div className="relative">
+              <div
+                className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
+                role="radiogroup"
+                aria-labelledby="campaign-label"
+              >
+                {availableCampaigns.map((c) => (
+                  <label
+                    key={c.id}
+                    role="radio"
+                    aria-checked={campaignName === c.name}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${
+                      campaignName === c.name
+                        ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      value={c.name}
+                      checked={campaignName === c.name}
+                      onChange={() => handleCampaignSelect(c.name)}
+                      className="sr-only"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{c.name}</p>
+                      {(c.regions.length > 0 || c.channels.length > 0) && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          {[...c.regions, ...c.channels].join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
+            </div>
+          )}
+          {errors.campaign?.campaignName && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.campaignName.message}</p>
+          )}
+        </div>
+
+        {/* Theme selector */}
         <div className="mb-4">
           <p id="theme-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Brand Theme<span className="text-red-500 ml-0.5">*</span>
@@ -260,31 +512,19 @@ export function StepCampaign() {
                   aria-checked={selectedTheme === theme.id}
                   className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors ${
                     selectedTheme === theme.id
-                      ? 'bg-[#134848]/10 dark:bg-[#134848]/20 ring-1 ring-[#134848] dark:ring-[#fbaa96]'
+                      ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    {...register('campaign.theme')}
-                    value={theme.id}
-                    className="sr-only"
-                  />
+                  <input type="radio" {...register('campaign.theme')} value={theme.id} className="sr-only" />
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span
-                      className="w-5 h-5 rounded-full border border-gray-300"
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                    <span
-                      className="w-3.5 h-3.5 rounded-full border border-gray-300"
-                      style={{ backgroundColor: theme.accent }}
-                    />
+                    <span className="w-5 h-5 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
+                    <span className="w-3.5 h-3.5 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
                   </div>
                   <span className="text-sm text-gray-700 dark:text-gray-300">{theme.label}</span>
                 </label>
               ))}
             </div>
-            {/* Scroll affordance gradient */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
           </div>
           {errors.campaign?.theme && (
@@ -293,10 +533,9 @@ export function StepCampaign() {
         </div>
       </SubSection>
 
-      {/* Divider */}
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
-      {/* Sub-section 2: Message Envelope */}
+      {/* Sub-section: Message Envelope */}
       <SubSection title="Message Envelope">
         <FieldText
           label="Subject Line"
@@ -319,10 +558,9 @@ export function StepCampaign() {
         />
       </SubSection>
 
-      {/* Divider */}
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
-      {/* Sub-section 3: Sender Details */}
+      {/* Sub-section: Sender Details */}
       <SubSection title="Sender Details">
         <FieldText
           label="From Name"
@@ -348,6 +586,45 @@ export function StepCampaign() {
           type="email"
           placeholder="Optional — reply@ninetyone.com"
         />
+      </SubSection>
+
+      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+
+      {/* Auto-generated Tags */}
+      <SubSection title="Tags">
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Auto-generated Tags
+          </label>
+          <button
+            type="button"
+            onClick={copyTags}
+            className="text-xs text-brand-primary dark:text-brand-accent hover:underline font-medium flex items-center gap-1"
+          >
+            {tagsCopied ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy tags
+              </>
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+          Comma-separated tags for use in your email marketing platform.
+        </p>
+        <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
+          {tags || '—'}
+        </div>
       </SubSection>
     </div>
   )

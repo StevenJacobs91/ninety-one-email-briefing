@@ -31,7 +31,7 @@ export function StepAudience() {
 
   return (
     <div className="space-y-8">
-      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-1">Audience</h2>
+      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-1">Audience</h2>
 
       {/* Distribution Lists */}
       <DistributionListsUpload />
@@ -194,7 +194,7 @@ function DistributionListsUpload() {
         {localEntries.length > 0 && (
           <span className="text-xs text-gray-400 dark:text-gray-500">
             {localEntries.length} list{localEntries.length !== 1 ? 's' : ''} ·{' '}
-            <span className="text-[#134848] dark:text-[#fbaa96] font-medium">
+            <span className="text-brand-primary dark:text-brand-accent font-medium">
               {totalClean.toLocaleString()} clean contacts
             </span>
             {totalRaw > 0 && totalRaw !== totalClean && (
@@ -222,10 +222,10 @@ function DistributionListsUpload() {
         onDragLeave={() => setIsDragging(false)}
         className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
           isProcessing
-            ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96]/50'
+            ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent/50'
             : isDragging
-            ? 'border-[#134848] bg-[#134848]/5 dark:border-[#fbaa96] dark:bg-[#fbaa96]/5'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-[#134848] focus-within:border-[#134848]'
+            ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent dark:bg-brand-accent/5'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-brand-primary focus-within:border-brand-primary'
         }`}
       >
         {!isProcessing && (
@@ -243,7 +243,7 @@ function DistributionListsUpload() {
         )}
         {isProcessing ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-5 h-5 border-2 border-[#134848] dark:border-[#fbaa96] border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-brand-primary dark:border-brand-accent border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
               Processing <span className="text-gray-800 dark:text-gray-200">{processingName}</span>…
             </p>
@@ -287,31 +287,36 @@ function ListCard({
   const [expanded, setExpanded] = useState(index === 0)
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="border border-brand-border-field dark:border-gray-700 overflow-hidden transition-colors hover:border-brand-primary dark:hover:border-gray-500">
       {/* Header row */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
+      <div className="flex items-center gap-3 px-4 py-3 bg-brand-bg-panel dark:bg-gray-800/50 border-b border-brand-border-warm dark:border-gray-700">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-sm shrink-0"
+          className="text-[#9ca3af] hover:text-brand-primary dark:hover:text-gray-300 transition-colors text-xs shrink-0"
           title={expanded ? 'Collapse' : 'Expand'}
         >
           {expanded ? '▾' : '▸'}
         </button>
 
-        <span className="text-base shrink-0">📊</span>
+        {/* File icon */}
+        <div className="w-7 h-7 rounded-sm bg-brand-primary dark:bg-brand-primary-hover flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5">
+            <rect x="2" y="1" width="7" height="2" rx="0.5" fill="white" opacity="0.9"/>
+            <rect x="2" y="4.5" width="10" height="1.5" rx="0.5" fill="white" opacity="0.7"/>
+            <rect x="2" y="7" width="10" height="1.5" rx="0.5" fill="white" opacity="0.7"/>
+            <rect x="2" y="9.5" width="7" height="1.5" rx="0.5" fill="white" opacity="0.5"/>
+          </svg>
+        </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+          <p className="text-sm font-ni-medium text-[#1a1a1a] dark:text-gray-200 truncate">
             {entry.stored.name}
           </p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5">
             {formatFileSize(entry.stored.size)}
             {entry.stored.rowCount !== undefined && (
-              <> · <span className="text-[#134848] dark:text-[#fbaa96] font-medium">{entry.stored.rowCount.toLocaleString()} clean contacts</span></>
-            )}
-            {entry.analysis && entry.analysis.duplicateCount > 0 && (
-              <> · <span className="text-amber-600 dark:text-amber-400">{entry.analysis.duplicateCount} duplicates removed</span></>
+              <> · <span className="text-brand-primary dark:text-brand-accent font-ni-medium">{entry.stored.rowCount.toLocaleString()} clean contacts</span></>
             )}
           </p>
         </div>
@@ -321,7 +326,7 @@ function ListCard({
             <button
               type="button"
               onClick={onDownload}
-              className="text-xs px-2.5 py-1 rounded-md border border-[#134848] text-[#134848] dark:border-[#fbaa96] dark:text-[#fbaa96] hover:bg-[#134848]/5 dark:hover:bg-[#fbaa96]/5 transition-colors font-medium"
+              className="text-xs tracking-[0.06em] px-2.5 py-1 border border-brand-primary text-brand-primary dark:border-brand-accent dark:text-brand-accent hover:bg-brand-primary/5 dark:hover:bg-brand-accent/5 transition-colors font-ni-medium"
               title="Download cleaned UTF-8 CSV"
             >
               ↓ CSV
@@ -330,7 +335,7 @@ function ListCard({
           <button
             type="button"
             onClick={onRemove}
-            className="text-gray-400 hover:text-red-500 transition-colors text-sm px-1"
+            className="text-[#9ca3af] hover:text-[#c0392b] transition-colors text-sm px-1"
             title="Remove this list"
           >
             ✕
@@ -349,48 +354,49 @@ function ListCard({
 // ─── List Analysis Panel ──────────────────────────────────────────────────────
 
 function ListAnalysisPanel({ analysis }: { analysis: ListAnalysis }) {
-  const droppedCount =
-    analysis.blankEmailCount +
-    analysis.unknownEmailCount +
-    analysis.duplicateCount +
-    analysis.blankRowCount
-
-  const stats = [
-    { label: 'Total rows in source', value: analysis.rawRowCount.toLocaleString(), icon: '📥', colour: 'text-gray-700 dark:text-gray-300' },
-    { label: 'Clean contacts kept', value: analysis.cleanRowCount.toLocaleString(), icon: '✅', colour: 'text-emerald-700 dark:text-emerald-400' },
-    { label: 'Total removed', value: droppedCount.toLocaleString(), icon: '🗑', colour: droppedCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400' },
-    ...(analysis.duplicateCount > 0 ? [{ label: 'Duplicate emails removed', value: analysis.duplicateCount.toLocaleString(), icon: '♊', colour: 'text-amber-700 dark:text-amber-400' }] : []),
-    ...(analysis.blankEmailCount > 0 ? [{ label: 'Blank email rows removed', value: analysis.blankEmailCount.toLocaleString(), icon: '❌', colour: 'text-red-600 dark:text-red-400' }] : []),
-    ...(analysis.unknownEmailCount > 0 ? [{ label: 'unknown@unknown.com removed', value: analysis.unknownEmailCount.toLocaleString(), icon: '🚫', colour: 'text-red-600 dark:text-red-400' }] : []),
-    ...(analysis.blankRowCount > 0 ? [{ label: 'Blank rows removed', value: analysis.blankRowCount.toLocaleString(), icon: '⬜', colour: 'text-gray-400' }] : []),
-    ...(analysis.discardedColumns.length > 0 ? [{ label: 'Columns removed', value: analysis.discardedColumns.length.toString(), icon: '📦', colour: 'text-gray-500 dark:text-gray-400' }] : []),
+  const removedItems = [
+    ...(analysis.duplicateCount > 0 ? [`${analysis.duplicateCount.toLocaleString()} duplicate${analysis.duplicateCount !== 1 ? 's' : ''}`] : []),
+    ...(analysis.blankEmailCount > 0 ? [`${analysis.blankEmailCount.toLocaleString()} blank email${analysis.blankEmailCount !== 1 ? 's' : ''}`] : []),
+    ...(analysis.unknownEmailCount > 0 ? [`${analysis.unknownEmailCount.toLocaleString()} invalid email${analysis.unknownEmailCount !== 1 ? 's' : ''}`] : []),
+    ...(analysis.blankRowCount > 0 ? [`${analysis.blankRowCount.toLocaleString()} blank row${analysis.blankRowCount !== 1 ? 's' : ''}`] : []),
   ]
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-900">
       {/* Sub-header */}
-      <div className="px-4 py-2 bg-[#134848]/5 dark:bg-[#134848]/20 flex items-center gap-2">
-        <span className="text-xs font-semibold text-[#134848] dark:text-[#fbaa96] uppercase tracking-wider">List Analysis</span>
-        <span className="text-xs text-gray-400">· UTF-8 CSV · 5 columns retained</span>
+      <div className="px-4 py-2 bg-brand-primary/5 dark:bg-brand-primary/20 flex items-center gap-3 border-b border-brand-border-warm dark:border-gray-700">
+        <span className="text-xs font-ni-heading text-brand-primary dark:text-brand-accent uppercase tracking-[0.18em]">List Analysis</span>
+        <span className="text-xs text-[#9ca3af] dark:text-gray-500">UTF-8 · 5 columns retained</span>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-0 divide-x divide-y divide-gray-100 dark:divide-gray-700/50">
-        {stats.map((s) => (
-          <div key={s.label} className="px-4 py-3 flex items-start gap-2">
-            <span className="text-sm mt-0.5">{s.icon}</span>
-            <div>
-              <p className={`text-sm font-bold ${s.colour}`}>{s.value}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
-            </div>
+      {/* Inline stats row — matches mockup .list-stats-row pattern */}
+      <div className="px-4 py-3 flex flex-wrap items-center gap-y-2 text-xs text-brand-text-muted dark:text-gray-400 border-b border-brand-border-warm dark:border-gray-700">
+        <div className="flex items-center gap-1 pr-4 mr-4 border-r border-brand-border-warm dark:border-gray-700">
+          <strong className="font-ni-medium text-[#1a1a1a] dark:text-gray-200">{analysis.rawRowCount.toLocaleString()}</strong>
+          <span>raw contacts</span>
+        </div>
+        <div className="flex items-center gap-1 pr-4 mr-4 border-r border-brand-border-warm dark:border-gray-700">
+          <strong className="font-ni-medium text-brand-primary dark:text-brand-accent">{analysis.cleanRowCount.toLocaleString()}</strong>
+          <span>clean</span>
+        </div>
+        {removedItems.map((item, i) => (
+          <div key={i} className={`flex items-center gap-1 ${i < removedItems.length - 1 ? 'pr-4 mr-4 border-r border-brand-border-warm dark:border-gray-700' : ''}`}>
+            <strong className="font-ni-medium text-[#c0392b] dark:text-red-400">{item.split(' ')[0]}</strong>
+            <span className="text-[#c0392b] dark:text-red-400">{item.split(' ').slice(1).join(' ')} removed</span>
           </div>
         ))}
+        {removedItems.length === 0 && (
+          <div className="flex items-center gap-1 text-[#009d80] dark:text-[#009d80]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#009d80] inline-block" />
+            <span>No rows removed</span>
+          </div>
+        )}
       </div>
 
-      {/* Detected columns */}
+      {/* Columns retained */}
       {analysis.detectedColumns && (
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700/50">
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Columns retained:</p>
+        <div className="px-4 py-3 border-b border-brand-border-warm dark:border-gray-700">
+          <p className="text-xs font-ni-heading text-brand-text-muted dark:text-gray-400 uppercase tracking-[0.14em] mb-2">Columns retained</p>
           <div className="flex flex-wrap gap-1.5">
             {(
               [
@@ -405,10 +411,10 @@ function ListAnalysisPanel({ analysis }: { analysis: ListAnalysis }) {
               return (
                 <span
                   key={key}
-                  className={`text-xs px-2 py-0.5 rounded-md border font-medium ${
+                  className={`text-xs px-2 py-0.5 border font-ni-medium ${
                     detected
-                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 line-through'
+                      ? 'border-brand-primary/30 text-brand-primary bg-brand-primary/5 dark:border-brand-accent/30 dark:text-brand-accent dark:bg-brand-accent/5'
+                      : 'border-brand-border-warm dark:border-gray-700 text-[#9ca3af] line-through'
                   }`}
                   title={detected ? `Mapped from: "${detected}"` : 'Not found in source'}
                 >
@@ -425,12 +431,13 @@ function ListAnalysisPanel({ analysis }: { analysis: ListAnalysis }) {
 
       {/* Warnings */}
       {analysis.warnings.length > 0 && (
-        <div className="px-4 py-3 border-t border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-950/20">
-          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">Notes:</p>
+        <div className="px-4 py-3 bg-[#fffbf0] dark:bg-amber-950/20 border-b border-brand-border-warm dark:border-amber-900/30">
+          <p className="text-xs font-ni-heading text-[#cf6f13] uppercase tracking-[0.14em] mb-2">Notes</p>
           <ul className="space-y-1">
             {analysis.warnings.map((w, i) => (
-              <li key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
-                <span className="shrink-0 mt-0.5">⚠</span>{w}
+              <li key={i} className="text-xs text-brand-text-body dark:text-amber-400 flex items-start gap-2">
+                <span className="w-1 h-1 rounded-full bg-[#cf6f13] mt-1.5 shrink-0" />
+                {w}
               </li>
             ))}
           </ul>
@@ -475,16 +482,12 @@ function PardotAnalysisPanel({
     return () => clearTimeout(timer)
   }, [listIdentifier, config])
 
-  const bouncedRate = data
-    ? Math.round((data.stats.hardBounces / Math.max(data.stats.totalProspects, 1)) * 1000) / 10
-    : 0
-
   return (
-    <div className="border border-[#ddd8cf] dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900">
+    <div className="border border-brand-border-warm dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-900">
       {/* Header row */}
-      <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-[#e5e0d8] dark:border-gray-700">
+      <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-brand-border-warm dark:border-gray-700">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="w-7 h-7 rounded bg-[#134848] dark:bg-[#0d3232] text-white text-[11px] font-bold flex items-center justify-center shrink-0">P</span>
+          <span className="w-7 h-7 rounded bg-brand-primary dark:bg-brand-primary-hover text-white text-xs font-bold flex items-center justify-center shrink-0">P</span>
           <div className="min-w-0">
             {loading && !data ? (
               <p className="text-sm text-gray-400 dark:text-gray-500">Fetching list data…</p>
@@ -497,7 +500,7 @@ function PardotAnalysisPanel({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {loading && <div className="w-3 h-3 border-2 border-[#134848] dark:border-[#fbaa96] border-t-transparent rounded-full animate-spin" />}
+          {loading && <div className="w-3 h-3 border-2 border-brand-primary dark:border-brand-accent border-t-transparent rounded-full animate-spin" />}
           {!loading && data && (
             <span className="text-xs text-[#009d80] dark:text-[#009d80] flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#009d80] inline-block" />
@@ -508,30 +511,100 @@ function PardotAnalysisPanel({
       </div>
 
       {fetchError ? (
-        <div className="px-4 py-4"><p className="text-sm text-red-600 dark:text-red-400">⚠ {fetchError}</p></div>
+        <div className="px-4 py-4"><p className="text-sm text-[#c0392b] dark:text-red-400 flex items-start gap-2"><span className="shrink-0">⚠</span>{fetchError}</p></div>
       ) : data ? (
         <div>
-          {/* Three-column engagement stats */}
-          <div className="grid grid-cols-3 divide-x divide-[#e5e0d8] dark:divide-gray-700">
-            <div className="px-5 py-4 text-center">
-              <p className="text-2xl font-ni-display text-[#134848] dark:text-[#fbaa96] leading-none">{data.stats.openRate}%</p>
-              <p className="text-[10px] font-ni-heading tracking-[0.15em] uppercase text-gray-400 dark:text-gray-500 mt-2">Open Rate</p>
+          {/* Prospect health section */}
+          <div className="border-b border-brand-border-warm dark:border-gray-700">
+            <div className="px-4 py-2 bg-brand-bg-panel dark:bg-gray-800/30">
+              <span className="text-xs font-ni-heading text-brand-primary dark:text-brand-accent uppercase tracking-[0.18em]">Prospect Health</span>
             </div>
-            <div className="px-5 py-4 text-center">
-              <p className="text-2xl font-ni-display text-[#cf6f13] dark:text-[#fcaa28] leading-none">{data.stats.clickRate}%</p>
-              <p className="text-[10px] font-ni-heading tracking-[0.15em] uppercase text-gray-400 dark:text-gray-500 mt-2">Click Rate</p>
-            </div>
-            <div className="px-5 py-4 text-center">
-              <p className="text-2xl font-ni-display text-[#d83949] dark:text-[#d83949] leading-none">{bouncedRate}%</p>
-              <p className="text-[10px] font-ni-heading tracking-[0.15em] uppercase text-gray-400 dark:text-gray-500 mt-2">Bounced</p>
+            <div className="grid grid-cols-3 border-t border-brand-border-warm dark:border-gray-700">
+              {[
+                {
+                  label: 'Total',
+                  value: data.stats.totalProspects.toLocaleString(),
+                  colour: 'text-[#1a1a1a] dark:text-gray-200',
+                },
+                {
+                  label: 'Mailable',
+                  value: `${data.stats.mailableProspects.toLocaleString()}`,
+                  sub: `${data.stats.mailablePercent}%`,
+                  colour: data.stats.mailablePercent >= 85
+                    ? 'text-brand-primary dark:text-brand-accent'
+                    : data.stats.mailablePercent >= 70
+                    ? 'text-[#cf6f13]'
+                    : 'text-[#c0392b]',
+                },
+                {
+                  label: 'Unmailable',
+                  value: data.stats.unmailableProspects.toLocaleString(),
+                  colour: data.stats.unmailableProspects > 0 ? 'text-[#c0392b] dark:text-red-400' : 'text-[#9ca3af]',
+                },
+                {
+                  label: 'Never Active',
+                  value: data.stats.neverActive.toLocaleString(),
+                  colour: data.stats.neverActive > 100 ? 'text-[#cf6f13]' : 'text-[#9ca3af]',
+                },
+                {
+                  label: 'Hard Bounces',
+                  value: data.stats.hardBounces.toLocaleString(),
+                  colour: data.stats.hardBounces > 0 ? 'text-[#c0392b] dark:text-red-400' : 'text-[#9ca3af]',
+                },
+                {
+                  label: 'Opted In',
+                  value: `${data.stats.optedIn.toLocaleString()}`,
+                  sub: `${data.stats.optedInPercent}%`,
+                  colour: data.stats.optedInPercent >= 50 ? 'text-brand-primary dark:text-brand-accent' : 'text-[#cf6f13]',
+                },
+              ].map((s, i) => (
+                <div key={s.label} className={`px-2 py-3 text-center ${i % 3 !== 2 ? 'border-r border-brand-border-warm dark:border-gray-700' : ''} ${i < 3 ? 'border-b border-brand-border-warm dark:border-gray-700' : ''}`}>
+                  <p className={`text-sm font-ni-medium leading-none ${s.colour}`}>
+                    {s.value}
+                    {s.sub && <span className="text-xs opacity-70 ml-0.5">({s.sub})</span>}
+                  </p>
+                  <p className="text-xs font-ni-heading tracking-[0.06em] uppercase text-[#9ca3af] dark:text-gray-500 mt-1.5">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
+          {/* Insights */}
+          {data.insights.length > 0 && (
+            <div className="px-4 py-3 border-b border-brand-border-warm dark:border-gray-700">
+              <p className="text-xs font-ni-heading text-brand-primary dark:text-brand-accent uppercase tracking-[0.18em] mb-2">Insights</p>
+              <ul className="space-y-1.5">
+                {data.insights.map((insight, i) => (
+                  <li key={i} className="text-xs text-brand-text-body dark:text-gray-300 flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-brand-primary dark:bg-brand-accent mt-1.5 shrink-0" />
+                    {insight}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {data.recommendations.length > 0 && (
+            <div className="px-4 py-3 bg-[#fffbf0] dark:bg-amber-950/10 border-b border-brand-border-warm dark:border-gray-700">
+              <p className="text-xs font-ni-heading text-[#cf6f13] uppercase tracking-[0.18em] mb-2">Recommendations</p>
+              <ul className="space-y-1.5">
+                {data.recommendations.map((rec, i) => (
+                  <li key={i} className="text-xs text-brand-text-body dark:text-gray-300 flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-[#cf6f13] mt-1.5 shrink-0" />
+                    {rec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Footer: mock data notice */}
           {data.isMock && (
-            <div className="px-4 py-2 border-t border-[#e5e0d8] dark:border-gray-700 text-center">
-              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+            <div className="px-4 py-2 text-center">
+              <p className="text-xs text-[#9ca3af] dark:text-gray-500">
                 Demo data · Connect your Pardot API in{' '}
-                <span className="text-gray-500 dark:text-gray-400">Settings → Pardot API</span>
+                <span className="text-brand-text-muted dark:text-gray-400">Settings → Pardot API</span>
               </p>
             </div>
           )}

@@ -76,7 +76,7 @@ export function TabTemplates() {
           <button
             type="button"
             onClick={startAdd}
-            className="text-xs font-medium text-[#134848] dark:text-[#fbaa96] border border-[#134848]/30 dark:border-[#fbaa96]/30 px-3 py-1.5 rounded-md hover:bg-[#134848]/5 dark:hover:bg-[#fbaa96]/5 transition-colors"
+            className="text-xs font-medium text-brand-primary dark:text-brand-accent border border-brand-primary/30 dark:border-brand-accent/30 px-3 py-1.5 rounded-md hover:bg-brand-primary/5 dark:hover:bg-brand-accent/5 transition-colors"
           >
             + Add Mapping
           </button>
@@ -99,7 +99,7 @@ export function TabTemplates() {
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">New Template Mapping</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Theme</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Theme</label>
               <select
                 value={draft.themeId}
                 onChange={(e) => setDraft({ ...draft, themeId: e.target.value })}
@@ -111,7 +111,7 @@ export function TabTemplates() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Template Filename</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Template Filename</label>
               <input
                 type="text"
                 value={draft.filename}
@@ -122,7 +122,7 @@ export function TabTemplates() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={saveNew} className="text-xs font-medium bg-[#134848] text-white px-3 py-1.5 rounded-md hover:bg-[#0d3232] transition-colors">Add Mapping</button>
+            <button type="button" onClick={saveNew} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">Add Mapping</button>
             <button type="button" onClick={cancelEdit} className="text-xs font-medium text-gray-500 px-3 py-1.5 hover:text-gray-700 transition-colors">Cancel</button>
           </div>
         </div>
@@ -138,7 +138,7 @@ export function TabTemplates() {
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-1 border border-gray-200 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">Edit Mapping</p>
                   <div className="mb-3">
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                       Template Filename for {getThemeLabel(tpl.themeId)}
                     </label>
                     <input
@@ -149,7 +149,7 @@ export function TabTemplates() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <button type="button" onClick={saveEdit} className="text-xs font-medium bg-[#134848] text-white px-3 py-1.5 rounded-md hover:bg-[#0d3232] transition-colors">Save</button>
+                    <button type="button" onClick={saveEdit} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">Save</button>
                     <button type="button" onClick={cancelEdit} className="text-xs font-medium text-gray-500 px-3 py-1.5 hover:text-gray-700 transition-colors">Cancel</button>
                   </div>
                 </div>
@@ -163,10 +163,10 @@ export function TabTemplates() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{getThemeLabel(tpl.themeId)}</p>
-                    <p className="text-[10px] text-gray-400 font-mono truncate">{tpl.filename}</p>
+                    <p className="text-xs text-gray-400 font-mono truncate">{tpl.filename}</p>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button type="button" onClick={() => startEdit(tpl)} className="p-1 text-gray-400 hover:text-[#134848] dark:hover:text-[#fbaa96]" title="Edit">
+                    <button type="button" onClick={() => startEdit(tpl)} className="p-1 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent" title="Edit">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                     <button type="button" onClick={() => removeTemplate(tpl.themeId)} className="p-1 text-gray-400 hover:text-red-500" title="Remove">

@@ -79,7 +79,7 @@ export function TabThemes() {
         <button
           type="button"
           onClick={startAdd}
-          className="text-xs font-medium text-[#134848] dark:text-[#fbaa96] border border-[#134848]/30 dark:border-[#fbaa96]/30 px-3 py-1.5 rounded-md hover:bg-[#134848]/5 dark:hover:bg-[#fbaa96]/5 transition-colors"
+          className="text-xs font-medium text-brand-primary dark:text-brand-accent border border-brand-primary/30 dark:border-brand-accent/30 px-3 py-1.5 rounded-md hover:bg-brand-primary/5 dark:hover:bg-brand-accent/5 transition-colors"
         >
           + Add Theme
         </button>
@@ -118,11 +118,11 @@ export function TabThemes() {
                 {/* Label */}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{theme.label}</p>
-                  <p className="text-[10px] text-gray-400 font-mono">{theme.id}</p>
+                  <p className="text-xs text-gray-400 font-mono">{theme.id}</p>
                 </div>
 
                 {/* Colour codes */}
-                <div className="hidden sm:flex gap-2 text-[10px] font-mono text-gray-400 shrink-0">
+                <div className="hidden sm:flex gap-2 text-xs font-mono text-gray-400 shrink-0">
                   <span>{theme.primary}</span>
                   <span>{theme.accent}</span>
                 </div>
@@ -135,7 +135,7 @@ export function TabThemes() {
                   <button type="button" onClick={() => moveTheme(index, 1)} disabled={index === themes.length - 1} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30" title="Move down">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
-                  <button type="button" onClick={() => startEdit(theme)} className="p-1 text-gray-400 hover:text-[#134848] dark:hover:text-[#fbaa96]" title="Edit">
+                  <button type="button" onClick={() => startEdit(theme)} className="p-1 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent" title="Edit">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
                   <button type="button" onClick={() => removeTheme(theme.id)} className="p-1 text-gray-400 hover:text-red-500" title="Remove">
@@ -175,18 +175,18 @@ function ThemeEditRow({
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Label</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Label</label>
           <input
             type="text"
             value={draft.label}
             onChange={(e) => onChange({ ...draft, label: e.target.value })}
             placeholder="e.g. Leatherback Green / Cape Coral"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-3 py-1.5 dark:text-gray-100 focus:ring-2 focus:ring-[#134848]/30 focus:border-[#134848]"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-3 py-1.5 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Primary</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Primary</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -203,7 +203,7 @@ function ThemeEditRow({
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Accent</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Accent</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -230,7 +230,7 @@ function ThemeEditRow({
         <span className="text-xs text-gray-500 dark:text-gray-400">{draft.label || 'Preview'}</span>
       </div>
       <div className="flex gap-2">
-        <button type="button" onClick={onSave} className="text-xs font-medium bg-[#134848] text-white px-3 py-1.5 rounded-md hover:bg-[#0d3232] transition-colors">
+        <button type="button" onClick={onSave} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">
           {isNew ? 'Add Theme' : 'Save Changes'}
         </button>
         <button type="button" onClick={onCancel} className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1.5 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">

@@ -61,13 +61,13 @@ export function TabBrandGuardian() {
       </p>
 
       {/* Minimum score — highlighted */}
-      <div className="bg-[#134848]/5 dark:bg-[#fbaa96]/5 border border-[#134848]/20 dark:border-[#fbaa96]/20 rounded-lg p-4 mb-6">
+      <div className="bg-brand-primary/5 dark:bg-brand-accent/5 border border-brand-primary/20 dark:border-brand-accent/20 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-sm font-semibold text-[#134848] dark:text-[#fbaa96]">Minimum Pass Score</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">Briefs scoring below this cannot proceed past Brand Review.</p>
+            <p className="text-sm font-semibold text-brand-primary dark:text-brand-accent">Minimum Pass Score</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Briefs scoring below this cannot proceed past Brand Review.</p>
           </div>
-          <span className="text-2xl font-bold text-[#134848] dark:text-[#fbaa96]">{config.minimumScore}%</span>
+          <span className="text-2xl font-bold text-brand-primary dark:text-brand-accent">{config.minimumScore}%</span>
         </div>
         <input
           type="range"
@@ -76,9 +76,9 @@ export function TabBrandGuardian() {
           step={5}
           value={config.minimumScore}
           onChange={(e) => updateConfig({ minimumScore: Number(e.target.value) })}
-          className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#134848] dark:accent-[#fbaa96]"
+          className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-brand-primary dark:accent-brand-accent"
         />
-        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+        <div className="flex justify-between text-xs text-gray-400 mt-1">
           <span>0% (disabled)</span>
           <span>50%</span>
           <span>100%</span>
@@ -93,11 +93,11 @@ export function TabBrandGuardian() {
             <div key={field.key} className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-3">
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">{field.label}</label>
-                <span className="text-xs font-mono text-[#134848] dark:text-[#fbaa96]">
+                <span className="text-xs font-mono text-brand-primary dark:text-brand-accent">
                   {config[field.key] as number}{field.unit ? ` ${field.unit}` : ''}
                 </span>
               </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">{field.description}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{field.description}</p>
               <input
                 type="range"
                 min={field.min}
@@ -105,9 +105,9 @@ export function TabBrandGuardian() {
                 step={field.step ?? 1}
                 value={config[field.key] as number}
                 onChange={(e) => updateConfig({ [field.key]: Number(e.target.value) })}
-                className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-[#134848] dark:accent-[#fbaa96]"
+                className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-brand-primary dark:accent-brand-accent"
               />
-              <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5">
                 <span>{field.min}</span>
                 <span>{field.max}</span>
               </div>
@@ -119,7 +119,7 @@ export function TabBrandGuardian() {
       {/* Check category toggles */}
       <div className="mb-6">
         <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Review Categories</h4>
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
           Disable specific categories to skip those checks in the Brand Guardian review.
         </p>
         <div className="space-y-1">
@@ -129,7 +129,7 @@ export function TabBrandGuardian() {
                 type="button"
                 onClick={() => updateConfig({ [field.key]: !config[field.key] })}
                 className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${
-                  config[field.key] as boolean ? 'bg-[#134848] dark:bg-[#fbaa96]' : 'bg-gray-300 dark:bg-gray-600'
+                  config[field.key] as boolean ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
                 <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
@@ -138,7 +138,7 @@ export function TabBrandGuardian() {
               </button>
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-700 dark:text-gray-300">{field.label}</p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500">{field.description}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{field.description}</p>
               </div>
             </div>
           ))}
@@ -194,13 +194,13 @@ function WordListEditor({
   return (
     <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-3">
       <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</p>
-      <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">{description}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">{description}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {items.map((word, index) => (
           <span
             key={index}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
           >
             {word}
             <button
@@ -213,7 +213,7 @@ function WordListEditor({
           </span>
         ))}
         {items.length === 0 && (
-          <span className="text-[11px] text-gray-400 italic">No words configured</span>
+          <span className="text-xs text-gray-400 italic">No words configured</span>
         )}
       </div>
 
@@ -229,7 +229,7 @@ function WordListEditor({
         <button
           type="button"
           onClick={addWord}
-          className="text-xs font-medium text-[#134848] dark:text-[#fbaa96] px-2.5 py-1.5 border border-[#134848]/30 dark:border-[#fbaa96]/30 rounded-md hover:bg-[#134848]/5 dark:hover:bg-[#fbaa96]/5 transition-colors"
+          className="text-xs font-medium text-brand-primary dark:text-brand-accent px-2.5 py-1.5 border border-brand-primary/30 dark:border-brand-accent/30 rounded-md hover:bg-brand-primary/5 dark:hover:bg-brand-accent/5 transition-colors"
         >
           Add
         </button>

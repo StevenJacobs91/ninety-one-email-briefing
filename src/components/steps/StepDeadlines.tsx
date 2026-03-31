@@ -69,7 +69,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
 
   return (
     <div>
-      <h2 className="font-ni-display text-[#134848] dark:text-gray-100 text-2xl mb-8">Deadlines</h2>
+      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-8">Deadlines</h2>
 
       <FieldText
         label="Content Approval Date"
@@ -104,7 +104,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
                   selected
                     ? opt === 'urgent'
                       ? 'bg-red-600 text-white border-red-600'
-                      : 'bg-[#134848] text-white border-[#134848]'
+                      : 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
@@ -138,7 +138,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
                 key={opt}
                 className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
                   selected
-                    ? 'bg-[#134848] text-white border-[#134848]'
+                    ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}
               >
@@ -176,7 +176,7 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
           <button
             type="button"
             onClick={copyTags}
-            className="text-xs text-[#134848] dark:text-[#fbaa96] hover:underline font-medium flex items-center gap-1"
+            className="text-xs text-brand-primary dark:text-brand-accent hover:underline font-medium flex items-center gap-1"
           >
             {tagsCopied ? (
               <>

@@ -42,6 +42,61 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Design Token Custom Properties
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Layout offsets — update these if header/hero height changes */
+  --header-h:        3.5rem;   /* 56px sticky nav */
+  --steptab-h:       3rem;     /* 48px step tabs bar */
+  --panel-sticky-top: calc(var(--header-h) + var(--steptab-h) + 1rem);
+
+  /* Brand greens */
+  --color-primary:        #134848;
+  --color-primary-hover:  #0d3232;
+  --color-secondary:      #0a3323;
+
+  /* Brand accent */
+  --color-accent:         #fbaa96;
+  --color-accent-on-dark: #fbaa96;  /* passes 3:1 on #134848 bg (large text) */
+
+  /* Accessible coral for body text — passes 4.5:1 on white */
+  --color-accent-text:    #a0482e;
+
+  /* Surfaces */
+  --color-bg:             #f0ece4;
+  --color-bg-panel:       #f8f5ee;
+  --color-surface:        #ffffff;
+
+  /* Borders */
+  --color-border:         #ddd8cf;
+  --color-border-field:   #d4cfc6;
+
+  /* Text */
+  --color-text-body:      #4a4a4a;
+  --color-text-muted:     #6b6660;
+
+  /* Semantic feedback */
+  --color-success:        #009d80;
+  --color-error:          #c0392b;
+  --color-warning:        #b45309;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(19, 72, 72, 0.35);
+}
+
+html.dark {
+  --color-bg:         #1a1714;
+  --color-bg-panel:   #1c1a17;
+  --color-surface:    #111827;
+  --color-border:     #374151;
+  --color-border-field: #4b5563;
+  --color-text-body:  #d1d5db;
+  --color-text-muted: #9ca3af;
+
+  --focus-ring: 0 0 0 3px rgba(251, 170, 150, 0.35);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    Tailwind layers
    ───────────────────────────────────────────────────────────────────────── */
 @tailwind base;
@@ -58,24 +113,24 @@
     box-sizing: border-box;
   }
 
-  /* Base UI copy — Visuelt Light */
+  /* Base UI copy — Visuelt Light (fallback: system-ui → Arial) */
   html,
   body {
-    font-family: 'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Light', system-ui, arial, helvetica, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
   }
 
-  /* Titles — Visuelt Display */
+  /* Titles — Visuelt Display (fallback: Georgia) */
   h1 {
-    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Display', georgia, 'Times New Roman', serif;
     font-weight: normal;
   }
 
   /* Page-level headings — Visuelt Display */
   h2 {
-    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Display', georgia, 'Times New Roman', serif;
     font-weight: normal;
   }
 
@@ -84,14 +139,14 @@
   h4,
   h5,
   h6 {
-    font-family: 'Ninety One Visuelt', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt', system-ui, arial, helvetica, sans-serif;
     font-weight: 200;
   }
 
   /* Bold / strong — Visuelt Medium */
   strong,
   b {
-    font-family: 'Ninety One Visuelt Medium', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Medium', system-ui, arial, helvetica, sans-serif;
     font-weight: normal;
   }
 
@@ -101,6 +156,22 @@
   select,
   button {
     font-family: inherit;
+  }
+
+  /* Global focus-visible ring — keyboard navigators always see a clear indicator */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  html.dark :focus-visible {
+    outline-color: var(--color-accent);
+  }
+
+  /* Programmatic focus targets (e.g. headings focused for screen reader step announcements)
+     should not show a visual ring — they receive focus() via JS, not keyboard navigation */
+  [tabindex="-1"]:focus {
+    outline: none;
   }
 }
 
@@ -123,14 +194,23 @@ html.dark {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Help panel sticky offset (uses CSS variable so it auto-tracks header size)
+   ───────────────────────────────────────────────────────────────────────── */
+.help-panel-sticky {
+  position: sticky;
+  top: var(--panel-sticky-top);
+  align-self: start;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    Print / PDF export
    ───────────────────────────────────────────────────────────────────────── */
 @media print {
   body {
     background: white !important;
-    color: black !important;
+    color: #1f2937 !important;
     font-size: 11pt;
-    font-family: 'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Light', system-ui, arial, helvetica, sans-serif;
   }
 
   body > * { display: none !important; }
@@ -139,27 +219,28 @@ html.dark {
   #print-brief {
     max-width: 100%;
     padding: 0;
-    color: black;
+    color: #1f2937;
   }
 
   #print-brief h1 {
     font-size: 18pt;
-    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Display', georgia, serif;
     font-weight: normal;
     margin-bottom: 4pt;
     color: #134848;
   }
   #print-brief h2 {
     font-size: 13pt;
-    font-family: 'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt Display', georgia, serif;
     font-weight: normal;
     margin: 14pt 0 4pt;
-    border-bottom: 1px solid #e5e7eb;
+    color: #134848;
+    border-bottom: 1pt solid #ddd8cf;
     padding-bottom: 3pt;
   }
   #print-brief h3 {
     font-size: 10pt;
-    font-family: 'Ninety One Visuelt', arial, helvetica, sans-serif;
+    font-family: 'Ninety One Visuelt', system-ui, arial, sans-serif;
     font-weight: 200;
     color: #374151;
     margin: 8pt 0 2pt;
@@ -176,8 +257,7 @@ html.dark {
   #print-brief .print-badge {
     display: inline-block;
     background: #f3f4f6;
-    border: 1px solid #e5e7eb;
-    border-radius: 3pt;
+    border: 1pt solid #ddd8cf;
     padding: 1pt 5pt;
     font-size: 9pt;
     margin: 1pt 2pt 1pt 0;
@@ -185,12 +265,11 @@ html.dark {
   #print-brief .print-section {
     margin-bottom: 8pt;
     padding: 8pt;
-    border: 1px solid #e5e7eb;
-    border-radius: 4pt;
+    border: 1pt solid #ddd8cf;
   }
   #print-brief .print-footer {
     margin-top: 16pt;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1pt solid #ddd8cf;
     padding-top: 8pt;
     font-size: 8pt;
     color: #9ca3af;
