@@ -132,6 +132,19 @@ export interface SignoffEntry {
   isDefault: boolean  // Pre-selected in the form
 }
 
+// ─── Asset Library ──────────────────────────────────────────
+
+export type AssetCategory = 'header' | 'profile' | 'stripes' | 'logos' | 'graphics'
+
+export interface AssetEntry {
+  id: string
+  name: string
+  url: string
+  category: AssetCategory
+  colourOverlay?: string  // hex — shown as swatch on gallery card
+  altText?: string
+}
+
 // ─── Custom Lists (extends built-in constants) ───────────────
 
 export interface CustomEmailType {
@@ -172,6 +185,8 @@ export interface AppSettings {
   campaigns: CampaignEntry[]
   // Sign-off signatures
   signoffs: SignoffEntry[]
+  // Asset library
+  assets: AssetEntry[]
   // Custom list extensions
   customEmailTypes: CustomEmailType[]
   customClientGroups: CustomClientGroup[]
@@ -186,6 +201,7 @@ export type SettingsTab =
   | 'signatures'
   | 'themes'
   | 'templates'
+  | 'assets'
   | 'modules'
   | 'layout'
   | 'guardian'

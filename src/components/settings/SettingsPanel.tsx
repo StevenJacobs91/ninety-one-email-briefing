@@ -4,6 +4,7 @@ import type { SettingsTab } from '../../types/settings.types'
 import { TabGeneral } from './TabGeneral'
 import { TabThemes } from './TabThemes'
 import { TabTemplates } from './TabTemplates'
+import { TabAssets } from './TabAssets'
 import { TabModules } from './TabModules'
 import { TabFormLayout } from './TabFormLayout'
 import { TabBrandGuardian } from './TabBrandGuardian'
@@ -39,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { id: 'themes',    label: 'Brand Themes',  description: 'Manage colour palettes and brand themes' },
       { id: 'templates', label: 'HTML Templates', description: 'Configure template file mappings' },
+      { id: 'assets',    label: 'Asset Library',  description: 'Manage reusable headers, profiles, stripes, logos, and graphics' },
       { id: 'layout',    label: 'Form Layout',    description: 'Reorder fields and set required/optional' },
     ],
   },
@@ -249,6 +251,7 @@ export function SettingsPanel() {
               {activeTab === 'signatures' && <TabSignatures />}
               {activeTab === 'themes'     && <TabThemes />}
               {activeTab === 'templates'  && <TabTemplates />}
+              {activeTab === 'assets'     && <TabAssets />}
               {activeTab === 'modules'    && <TabModules />}
               {activeTab === 'layout'     && <TabFormLayout />}
               {activeTab === 'guardian'   && <TabBrandGuardian />}

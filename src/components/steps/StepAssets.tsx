@@ -4,6 +4,7 @@ import type { BriefFormData } from '../../lib/schema'
 import { FieldText } from '../ui/FieldText'
 import { LOGO_VARIANTS } from '../../lib/constants'
 import { formatFileSize } from '../../lib/formatFileSize'
+import { useSettings } from '../../contexts/SettingsContext'
 
 // ─── Logo Preview ──────────────────────────────────────────────────────────────
 function LogoPreview({ variant }: { variant: string }) {
@@ -218,6 +219,7 @@ function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
 // ─── Main StepAssets ───────────────────────────────────────────────────────────
 export function StepAssets() {
   const { register, watch, control, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
+  const { settings } = useSettings()
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -354,9 +356,92 @@ export function StepAssets() {
       {/* Hero Image */}
       <div className="mb-6">
         <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hero Image</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-          Recommended: 640 × 270 px. Upload and crop in-browser, or paste a CDN URL.
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+          Recommended: 640 × 270 px. Select from the library, upload and crop in-browser, or paste a CDN URL.
         </p>
+
+        {/* Header Library */}
+        {(() => {
+          const headers = (settings.assets ?? []).filter((a) => a.category === 'header')
+          if (headers.length === 0) return null
+          return (
+            <div className="mb-5">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Header Library
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {headers.map((asset) => {
+                  const isSelected = heroImageUrl === asset.url
+                  return (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => {
+                        setValue('assets.heroImageUrl', asset.url, { shouldValidate: true })
+                        setValue('assets.heroImageAlt', asset.altText || asset.name, { shouldValidate: true })
+                        setHeroImageMode('url')
+                        setHeroImagePreview(null)
+                      }}
+                      className={`relative group rounded-lg overflow-hidden border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                        isSelected
+                          ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary dark:ring-brand-accent'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-brand-primary/50 dark:hover:border-brand-accent/50'
+                      }`}
+                      title={asset.name}
+                    >
+                      <div style={{ aspectRatio: '640/270' }} className="relative">
+                        <img
+                          src={asset.url}
+                          alt={asset.altText || asset.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Colour overlay swatch */}
+                        {asset.colourOverlay && (
+                          <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-1.5 py-0.5">
+                            <span className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0" style={{ backgroundColor: asset.colourOverlay }} />
+                            <span className="text-[9px] text-white font-mono leading-none">{asset.colourOverlay}</span>
+                          </div>
+                        )}
+                        {/* Selected tick */}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-brand-primary/20 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center shadow-lg">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Card label */}
+                      <div className={`px-2 py-1.5 text-left ${isSelected ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : 'bg-white dark:bg-gray-900'}`}>
+                        <p className={`text-xs font-medium truncate ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {asset.name}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              {heroImageUrl && headers.some((h) => h.url === heroImageUrl) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue('assets.heroImageUrl', '', { shouldValidate: true })
+                    setValue('assets.heroImageAlt', '', { shouldValidate: true })
+                  }}
+                  className="mt-2 text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  Clear selection
+                </button>
+              )}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-700" /></div>
+                <div className="relative flex justify-center"><span className="bg-brand-bg-warm dark:bg-[#1a1714] px-3 text-xs text-gray-400 dark:text-gray-500">or</span></div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Mode toggle */}
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-md p-0.5 mb-4 w-fit">

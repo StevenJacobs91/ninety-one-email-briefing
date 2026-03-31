@@ -13,6 +13,7 @@ import type {
   PardotConfig,
   CampaignEntry,
   SignoffEntry,
+  AssetEntry,
 } from '../types/settings.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
@@ -271,6 +272,35 @@ export const DEFAULT_SIGNOFFS: SignoffEntry[] = [
   },
 ]
 
+// ─── Default Asset Library ──────────────────────────────────
+
+export const DEFAULT_ASSETS: AssetEntry[] = [
+  {
+    id: 'header-706930897',
+    name: '706930897',
+    url: 'https://weare.ninetyone.com/l/28902/2026-03-26/9rcd7f/28902/1774526442D8Sbd9kn/header_706930897_v2_600x270.jpg',
+    category: 'header',
+    colourOverlay: '#221b3b',
+    altText: 'Ninety One header 706930897',
+  },
+  {
+    id: 'header-865361620',
+    name: '865361620',
+    url: 'https://weare.ninetyone.com/l/28902/2026-03-23/9rc1bb/28902/1774251573kfgNwj5t/header_865361620_0a3323_overlay_v1_640x270.jpg',
+    category: 'header',
+    colourOverlay: '#0a3323',
+    altText: 'Ninety One header 865361620',
+  },
+  {
+    id: 'header-1044498000',
+    name: '1044498000',
+    url: 'https://weare.ninetyone.com/l/28902/2026-01-23/9r7qcx/28902/1769168599dmgitMJj/header_1044498000_v5_640x250.jpg',
+    category: 'header',
+    colourOverlay: '#221b3b',
+    altText: 'Ninety One header 1044498000',
+  },
+]
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -288,6 +318,7 @@ export function createDefaultSettings(): AppSettings {
     pardot: DEFAULT_PARDOT_CONFIG,
     campaigns: DEFAULT_CAMPAIGNS,
     signoffs: DEFAULT_SIGNOFFS,
+    assets: DEFAULT_ASSETS,
     customEmailTypes: [],
     customClientGroups: [],
     customChannels: [],
