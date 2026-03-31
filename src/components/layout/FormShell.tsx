@@ -5,6 +5,7 @@ import { useBriefForm } from '../../hooks/useBriefForm'
 import { useDraftPersistence } from '../../hooks/useDraftPersistence'
 import { useDarkMode } from '../../hooks/useDarkMode'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useKanban } from '../../contexts/KanbanContext'
 import { StepIndicator } from '../ui/StepIndicator'
 import { DarkModeToggle } from '../ui/DarkModeToggle'
 import { TemplatePicker } from '../ui/TemplatePicker'
@@ -16,6 +17,7 @@ import { StepContent } from '../steps/StepContent'
 import { StepReview } from '../steps/StepReview'
 import { StepBrandReview } from '../steps/StepBrandReview'
 import { StepHtmlReview } from '../steps/StepHtmlReview'
+import { KanbanBoard } from '../kanban/KanbanBoard'
 import type { BriefTemplate } from '../../lib/constants'
 import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
@@ -154,6 +156,7 @@ const STEP_LABELS = ['Campaign', 'Audience', 'Content', 'Review your Brief']
 export function FormShell() {
   const { openSettings, settings } = useSettings()
   const { senderDefaults, formDefaults } = settings
+  const { addCard, cards } = useKanban()
 
   const {
     form,
@@ -182,6 +185,7 @@ export function FormShell() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
   )
+  const [showBoard, setShowBoard] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
@@ -244,8 +248,14 @@ export function FormShell() {
       }
       return
     }
+    const values = form.getValues()
+    const briefId = values.meta?.briefId
+    const alreadyOnBoard = briefId ? cards.some((c) => c.briefId === briefId) : false
+    if (!alreadyOnBoard) {
+      addCard(values)
+    }
     setPipelineStep(4)
-  }, [form, goToStep])
+  }, [form, goToStep, addCard, cards])
 
   const handleBrandAccept = useCallback(() => {
     setPipelineStep(5)
@@ -330,9 +340,29 @@ export function FormShell() {
           <div className="flex items-center gap-1">
             {/* Desktop nav items */}
             <nav className="hidden md:flex items-center mr-3" aria-label="Platform navigation">
-              <span className="relative text-[#e8e5ce] text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
-                Email Briefing
-              </span>
+              {showBoard ? (
+                <button
+                  type="button"
+                  onClick={() => setShowBoard(false)}
+                  className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
+                >
+                  Email Briefing
+                  <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
+                </button>
+              ) : (
+                <span className="relative text-[#e8e5ce] text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
+                  Email Briefing
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowBoard(true)}
+                className={`group relative text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary ${showBoard ? 'text-[#e8e5ce] after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-[\'\'] relative' : 'text-white/70 hover:text-white'}`}
+              >
+                Board
+                {cards.length > 0 && <span className="ml-1 text-brand-accent">({cards.length})</span>}
+                {!showBoard && <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />}
+              </button>
               <button
                 type="button"
                 onClick={openDrafts}
@@ -373,6 +403,23 @@ export function FormShell() {
             <div className="flex items-center gap-0.5 md:hidden ml-1">
               <button
                 type="button"
+                onClick={() => setShowBoard(!showBoard)}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Campaign board"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="18" rx="1" />
+                  <rect x="14" y="3" width="7" height="10" rx="1" />
+                  <rect x="14" y="17" width="7" height="4" rx="1" />
+                </svg>
+                {cards.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-brand-accent text-brand-primary text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
+                    {cards.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={openDrafts}
                 className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                 aria-label="Saved drafts"
@@ -405,8 +452,13 @@ export function FormShell() {
         <div className="h-[2px] bg-brand-accent/50" aria-hidden="true" />
       </header>
 
+      {/* ── Board view — replaces all form content when active ── */}
+      {showBoard && (
+        <KanbanBoard onClose={() => setShowBoard(false)} />
+      )}
+
       {/* ── Hero band — compact on interior steps ── */}
-      <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
+      {!showBoard && <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
         <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
           <div>
             <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
@@ -442,10 +494,10 @@ export function FormShell() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* ── Step tabs (sticky below nav) ── */}
-      <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
+      {!showBoard && <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-6">
           <StepIndicator
             currentStep={effectiveStep}
@@ -453,10 +505,10 @@ export function FormShell() {
             onStepClick={handlePipelineStepClick}
           />
         </div>
-      </div>
+      </div>}
 
       {/* ── Main content ── */}
-      <div ref={cardRef} className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
+      {!showBoard && <div ref={cardRef} className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
         <FormProvider {...form}>
           <form onSubmit={(e) => e.preventDefault()}>
             {showTemplatePicker && !isPipelineStep ? (
@@ -509,10 +561,10 @@ export function FormShell() {
             )}
           </form>
         </FormProvider>
-      </div>
+      </div>}
 
       {/* ── Sticky footer navigation — brief steps only ── */}
-      {!isPipelineStep && !showTemplatePicker && (
+      {!showBoard && !isPipelineStep && !showTemplatePicker && (
         <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
             {!isFirstStep ? (
@@ -560,7 +612,7 @@ export function FormShell() {
       )}
 
       {/* Pipeline step 5 footer */}
-      {pipelineStep === 5 && (
+      {!showBoard && pipelineStep === 5 && (
         <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
             <button
