@@ -5,6 +5,9 @@ export interface BrandThemeConfig {
   label: string
   primary: string
   accent: string
+  logoUrl?: string        // Header logo image URL (120×60 px)
+  stripeUrl?: string      // Decorative stripe image URL (200×234 px)
+  footerLogoUrl?: string  // Footer logo image URL (120×130 px)
 }
 
 export interface HtmlTemplateConfig {

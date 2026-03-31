@@ -20,7 +20,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   const { settings } = useSettings()
   const data = getValues() as BriefPayload
 
-  const html = useMemo(() => generateEmailHtml(data), [data])
+  const html = useMemo(() => generateEmailHtml(data, settings), [data, settings])
   const textEmail = useMemo(() => generateTextEmail(data), [data])
   const emailName = useMemo(
     () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel),

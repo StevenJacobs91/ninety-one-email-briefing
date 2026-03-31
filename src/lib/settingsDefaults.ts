@@ -19,22 +19,28 @@ import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
 // ─── Default Brand Themes ───────────────────────────────────
 
+// Shared asset URLs
+const LOGO_CAPE_CORAL    = 'https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png'
+const LOGO_WARM_YELLOW   = 'https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png'
+const STRIPE_WARM_YELLOW = 'https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png'
+const FOOTER_WARM_YELLOW = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nrc/28902/1625131521ZUcVLEZg/Footer_logo_Warm_Yellowwood_IFAWOC_HEXlogo_91_300x324px.png'
+
 export const DEFAULT_BRAND_THEMES: BrandThemeConfig[] = [
-  { id: 'leatherback-coral', label: 'Leatherback Green / Cape Coral', primary: '#134848', accent: '#fbaa96' },
-  { id: 'leatherback-yellowood', label: 'Leatherback Green / Warm Yellowwood', primary: '#134848', accent: '#fcaa28' },
-  { id: 'marula-gold', label: 'Marula Green / Gazania Gold', primary: '#0a3323', accent: '#cf6f13' },
-  { id: 'marula-coral', label: 'Marula Green / Cape Coral', primary: '#0a3323', accent: '#fbaa96' },
-  { id: 'pinotage-coral', label: 'Pinotage Burgundy / Cape Coral', primary: '#591739', accent: '#fbaa96' },
-  { id: 'springbok-red', label: 'Springbok Cream / Protea Red', primary: '#e8e5ce', accent: '#d83949' },
-  { id: 'springbok-teal', label: 'Springbok Cream / Ocean Teal', primary: '#e8e5ce', accent: '#009d80' },
-  { id: 'springbok-burgundy', label: 'Springbok Cream / Pinotage Burgundy', primary: '#e8e5ce', accent: '#591739' },
-  { id: 'agulhas-gold', label: 'Agulhas Indigo / Gazania Gold', primary: '#221b3b', accent: '#cf6f13' },
-  { id: 'agulhas-teal', label: 'Agulhas Indigo / Ocean Teal', primary: '#221b3b', accent: '#009d80' },
-  { id: 'agulhas-red', label: 'Agulhas Indigo / Protea Red', primary: '#221b3b', accent: '#d83949' },
-  { id: 'agulhas-coral', label: 'Agulhas Indigo / Cape Coral', primary: '#221b3b', accent: '#fbaa96' },
-  { id: 'agulhas-yellowwood', label: 'Agulhas Indigo / Warm Yellowwood', primary: '#221b3b', accent: '#fcaa28' },
-  { id: 'galjoen-coral', label: 'Galjoen Gray / Cape Coral', primary: '#74908d', accent: '#fbaa96' },
-  { id: 'galjoen-green', label: 'Galjoen Gray / Leatherback Green', primary: '#74908d', accent: '#134848' },
+  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
+  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW, stripeUrl: STRIPE_WARM_YELLOW, footerLogoUrl: FOOTER_WARM_YELLOW },
+  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', accent: '#cf6f13' },
+  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
+  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
+  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', accent: '#d83949' },
+  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', accent: '#009d80' },
+  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', accent: '#591739' },
+  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', accent: '#cf6f13' },
+  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', accent: '#009d80' },
+  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', accent: '#d83949' },
+  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
+  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW, stripeUrl: STRIPE_WARM_YELLOW, footerLogoUrl: FOOTER_WARM_YELLOW },
+  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
+  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', accent: '#134848' },
 ]
 
 // ─── Default HTML Templates ─────────────────────────────────

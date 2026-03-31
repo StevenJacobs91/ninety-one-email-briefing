@@ -1,7 +1,12 @@
 import type { BriefPayload } from '../types/brief.types'
+import type { AppSettings } from '../types/settings.types'
 import { BRAND_THEMES } from './constants'
 import { generateModuleHtml } from './moduleHtml'
 import { appendUtm, applyUtmToHtml } from './utm'
+
+const FALLBACK_LOGO        = 'https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png'
+const FALLBACK_STRIPE      = 'https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png'
+const FALLBACK_FOOTER_LOGO = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nrc/28902/1625131521ZUcVLEZg/Footer_logo_Warm_Yellowwood_IFAWOC_HEXlogo_91_300x324px.png'
 
 /** Map brief theme IDs to the HTML template filenames in "Themes and Modules/" */
 const THEME_TO_FILE: Record<string, string> = {
@@ -30,10 +35,16 @@ function getThemeColors(themeId: string) {
  * Generates a production-ready HTML email from a brief payload.
  * Uses the Ninety One template structure with proper Pardot regions.
  */
-export function generateEmailHtml(brief: BriefPayload): string {
+export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): string {
   const theme = getThemeColors(brief.campaign.theme)
   const primary = theme.primary
   const accent = theme.accent
+
+  // Resolve theme-specific asset URLs from settings (fall back to defaults)
+  const settingsTheme = settings?.brandThemes?.find((t) => t.id === brief.campaign.theme)
+  const logoUrl        = settingsTheme?.logoUrl        || FALLBACK_LOGO
+  const stripeUrl      = settingsTheme?.stripeUrl      || FALLBACK_STRIPE
+  const footerLogoUrl  = settingsTheme?.footerLogoUrl  || FALLBACK_FOOTER_LOGO
 
   // Derive tint colours from primary
   const tint01 = adjustBrightness(primary, 10)
@@ -109,7 +120,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                                     <tr>
                                       <td class="stack-column-button" style="padding: 30px 0 30px;" width="69%">
                                         <a alt="Ninety One" href="https://www.ninetyone.com/?utm_source=pardot&utm_medium=email&utm_content=logo_header" target="_blank" title="Ninety One">
-                                          <img alt="Ninety One - Logo" border="0" height="60" src="https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png" title="Ninety One - Logo" width="120">
+                                          <img alt="Ninety One - Logo" border="0" height="60" src="${logoUrl}" title="Ninety One - Logo" width="120">
                                         </a>
                                       </td>
                                     </tr>
@@ -139,7 +150,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                           <tbody>
                             <tr>
                               <td style="text-align: right; padding: 0px 0 0; vertical-align: top;">
-                                <img alt="Ninety One - Stripe" border="0" height="234" src="https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png" title="Ninety One - Stripe" width="200">
+                                <img alt="Ninety One - Stripe" border="0" height="234" src="${stripeUrl}" title="Ninety One - Stripe" width="200">
                               </td>
                             </tr>
                           </tbody>
@@ -172,7 +183,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                           <tr>
                             <td style="text-align: left; padding: 30px 0 30px;" width="80%">
                               <a alt="Ninety One" href="https://www.ninetyone.com/?utm_source=pardot&utm_medium=email&utm_content=logo_header" target="_blank" title="Ninety One">
-                                <img alt="Ninety One - Logo" border="0" height="60" src="https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png" title="Ninety One - Logo" width="120">
+                                <img alt="Ninety One - Logo" border="0" height="60" src="${logoUrl}" title="Ninety One - Logo" width="120">
                               </a>
                             </td>
                           </tr>
@@ -190,7 +201,7 @@ export function generateEmailHtml(brief: BriefPayload): string {
                         <tbody>
                           <tr>
                             <td style="text-align: right; padding: 0px; vertical-align: top;">
-                              <img alt="Ninety One - Stripe" border="0" height="234" src="https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png" title="Ninety One - Stripe" width="200">
+                              <img alt="Ninety One - Stripe" border="0" height="234" src="${stripeUrl}" title="Ninety One - Stripe" width="200">
                             </td>
                           </tr>
                         </tbody>
@@ -361,7 +372,7 @@ ${ctaBlock}
                                       <tr>
                                         <td class="stack-column" style="padding:30px 0 0 0;">
                                           <a alt="Ninety One" href="https://www.ninetyone.com/?utm_source=pardot&amp;utm_medium=email&amp;utm_content=logo_footer" target="_blank" title="Ninety One">
-                                            <img alt="Ninety One" height="130" src="https://weare.ninetyone.com/l/28902/2021-07-01/978nrc/28902/1625131521ZUcVLEZg/Footer_logo_Warm_Yellowwood_IFAWOC_HEXlogo_91_300x324px.png" width="120">
+                                            <img alt="Ninety One" height="130" src="${footerLogoUrl}" width="120">
                                           </a>
                                         </td>
                                       </tr>

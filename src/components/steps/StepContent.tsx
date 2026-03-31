@@ -397,6 +397,7 @@ export function StepContent() {
   const [heroImageMode, setHeroImageMode] = useState<'url' | 'upload'>('url')
   const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [headerSearch, setHeaderSearch] = useState('')
   const heroFileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = useCallback((fileList: FileList) => {
@@ -519,65 +520,116 @@ export function StepContent() {
 
           {/* Header Library */}
           {(() => {
-            const headers = (settings.assets ?? []).filter((a) => a.category === 'header')
-            if (headers.length === 0) return null
+            const allHeaders = (settings.assets ?? []).filter((a) => a.category === 'header')
+            if (allHeaders.length === 0) return null
+
+            // Theme-colour filter: match colourOverlay to selected theme's primary
+            const selectedThemeId = watch('campaign.theme') as string
+            const selectedTheme = (settings.brandThemes ?? []).find((t) => t.id === selectedThemeId)
+              ?? BRAND_THEMES.find((t) => t.id === selectedThemeId)
+            const themePrimary = selectedTheme?.primary?.toLowerCase() ?? ''
+
+            const themeHeaders = themePrimary
+              ? allHeaders.filter((a) => !a.colourOverlay || a.colourOverlay.toLowerCase() === themePrimary)
+              : allHeaders
+            const showingAll = themeHeaders.length === 0
+            const baseHeaders = showingAll ? allHeaders : themeHeaders
+
+            // Search filter
+            const searchQ = headerSearch.trim().toLowerCase()
+            const headers = searchQ
+              ? baseHeaders.filter((a) => a.name.toLowerCase().includes(searchQ) || (a.altText ?? '').toLowerCase().includes(searchQ))
+              : baseHeaders
+
             return (
               <div className="mb-5">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                  Header Library
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {headers.map((asset) => {
-                    const isSelected = heroImageUrl === asset.url
-                    return (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={() => {
-                          setValue('assets.heroImageUrl', asset.url, { shouldValidate: true })
-                          setValue('assets.heroImageAlt', asset.altText || asset.name, { shouldValidate: true })
-                          setHeroImageMode('url')
-                          setHeroImagePreview(null)
-                        }}
-                        className={`relative group rounded-lg overflow-hidden border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
-                          isSelected
-                            ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary dark:ring-brand-accent'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-brand-primary/50 dark:hover:border-brand-accent/50'
-                        }`}
-                        title={asset.name}
-                      >
-                        <div style={{ aspectRatio: '640/270' }} className="relative">
-                          <img
-                            src={asset.url}
-                            alt={asset.altText || asset.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {asset.colourOverlay && (
-                            <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-1.5 py-0.5">
-                              <span className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0" style={{ backgroundColor: asset.colourOverlay }} />
-                              <span className="text-[9px] text-white font-mono leading-none">{asset.colourOverlay}</span>
-                            </div>
-                          )}
-                          {isSelected && (
-                            <div className="absolute inset-0 bg-brand-primary/20 flex items-center justify-center">
-                              <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center shadow-lg">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className={`px-2 py-1.5 ${isSelected ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : 'bg-white dark:bg-gray-900'}`}>
-                          <p className={`text-xs font-medium truncate ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-700 dark:text-gray-300'}`}>
-                            {asset.name}
-                          </p>
-                        </div>
-                      </button>
-                    )
-                  })}
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Header Library
+                  </p>
+                  {showingAll && themePrimary && (
+                    <span className="text-[10px] text-amber-500 dark:text-amber-400">
+                      No headers for this theme — showing all
+                    </span>
+                  )}
                 </div>
-                {heroImageUrl && headers.some((h) => h.url === heroImageUrl) && (
+
+                {/* Search */}
+                <div className="relative mb-3">
+                  <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input
+                    type="text"
+                    value={headerSearch}
+                    onChange={(e) => setHeaderSearch(e.target.value)}
+                    placeholder="Search headers…"
+                    className="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+                  />
+                  {headerSearch && (
+                    <button type="button" onClick={() => setHeaderSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  )}
+                </div>
+
+                {headers.length === 0 ? (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No headers match your search.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {headers.map((asset) => {
+                      const isSelected = heroImageUrl === asset.url
+                      return (
+                        <button
+                          key={asset.id}
+                          type="button"
+                          onClick={() => {
+                            setValue('assets.heroImageUrl', asset.url, { shouldValidate: true })
+                            setValue('assets.heroImageAlt', asset.altText || asset.name, { shouldValidate: true })
+                            setHeroImageMode('url')
+                            setHeroImagePreview(null)
+                          }}
+                          className={`relative group rounded-lg overflow-hidden border-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                            isSelected
+                              ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary dark:ring-brand-accent'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-brand-primary/50 dark:hover:border-brand-accent/50'
+                          }`}
+                          title={asset.name}
+                        >
+                          <div style={{ aspectRatio: '640/270' }} className="relative">
+                            <img
+                              src={asset.url}
+                              alt={asset.altText || asset.name}
+                              className="w-full h-full object-cover"
+                            />
+                            {asset.colourOverlay && (
+                              <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-1.5 py-0.5">
+                                <span className="w-2.5 h-2.5 rounded-full border border-white/30 shrink-0" style={{ backgroundColor: asset.colourOverlay }} />
+                                <span className="text-[9px] text-white font-mono leading-none">{asset.colourOverlay}</span>
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-brand-primary/20 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center shadow-lg">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className={`px-2 py-1.5 ${isSelected ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : 'bg-white dark:bg-gray-900'}`}>
+                            <p className={`text-xs font-medium truncate ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {asset.name}
+                            </p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {heroImageUrl && allHeaders.some((h) => h.url === heroImageUrl) && (
                   <button
                     type="button"
                     onClick={() => {
