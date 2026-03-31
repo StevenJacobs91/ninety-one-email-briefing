@@ -22,14 +22,6 @@ import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
 import type { SavedDraft } from '../../hooks/useDrafts'
 
-function NinetyOneLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 98 48" aria-label="Ninety One" className={className}>
-      <path fill="white" d="M19 0v48h-9V0h9zm10 0v48h-9V0h9zm40.559 24.004c.37 0 .624.023.994.138l3.859 2.815c.37.807.578 1.776.578 2.907v.784h-9.014c.07 2.214 1.526 3.506 3.606 3.506 1.803 0 2.981-.945 3.397-2.33l1.756.577C73.973 34.616 72.193 36 69.56 36c-3.513 0-5.64-2.4-5.64-5.998 0-3.599 2.612-5.998 5.64-5.998zm-28.517-4.707c.555 0 1.11.047 1.641.162l5.385 3.899c.647 1.2 1.017 2.652 1.017 4.244 0 4.96-3.56 8.305-8.043 8.305-4.483 0-8.042-3.345-8.042-8.305 0-4.96 3.559-8.305 8.042-8.305zm16.454 4.707c.139 0 .3 0 .439.023l3.305 2.4c.139.414.208.876.208 1.383v7.96h-2.034v-7.59c0-1.523-.832-2.377-2.357-2.377-1.41 0-2.612.97-3.467 2.215v7.751h-2.033V24.235h2.033v1.5c.81-.854 2.335-1.731 3.906-1.731zm-16.454-2.677c-3.536 0-5.777 2.584-5.777 6.275 0 3.691 2.241 6.275 5.777 6.275s5.778-2.584 5.778-6.275c0-3.69-2.242-6.275-5.778-6.275zM69.56 25.85c-1.803 0-3.236 1.108-3.56 3.046h7.072c-.161-2.03-1.71-3.046-3.512-3.046zM9 0v24H0V0h9zm80.172 4.615l3.097 7.359.3 1.407 3.374-8.766H98l-6.517 16.379-1.78-.577 1.919-4.775-4.576-11.027h2.126zm-8.618-3.462l2.034.67v2.791h2.773l-.6 1.845h-2.173v6.875c0 .761.439 1.246 1.317 1.246.393 0 .763-.093 1.271-.346l.532 1.615c-.855.392-1.526.53-2.311.53-1.757 0-2.843-.992-2.843-2.907V6.46h-2.288l.601-1.845h1.687v-3.46zm-8.9 3.23c.37 0 .625.023.994.139l3.86 2.814c.37.807.578 1.776.578 2.907v.784h-9.014c.07 2.215 1.526 3.507 3.606 3.507 1.803 0 2.981-.946 3.397-2.33l1.756.576c-.762 2.215-2.542 3.6-5.176 3.6-3.513 0-5.64-2.4-5.64-5.999 0-3.599 2.612-5.998 5.64-5.998zm-11.836 0c.139 0 .3 0 .44.023l3.304 2.4c.139.415.208.876.208 1.384v7.958h-2.034v-7.59c0-1.522-.832-2.375-2.357-2.375-1.41 0-2.611.968-3.466 2.214v7.751h-2.034V4.614h2.034v1.5c.809-.854 2.334-1.73 3.905-1.73zm-8.831.231v11.535h-2.034V4.614h2.034zM36.4 0l7.441 12.665V0h2.22v16.148h-2.497L36.124 3.483v12.665h-2.219V0h2.496zm35.254 6.229c-1.803 0-3.236 1.107-3.56 3.045h7.072c-.161-2.03-1.71-3.045-3.512-3.045zM49.97.118a1.37 1.37 0 0 1 0 2.74 1.37 1.37 0 1 1 0-2.74z" />
-      <path fill="#fbaa96" d="M19 24v24h-9V24h9zm10 0v24h-9V24h9z" />
-    </svg>
-  )
-}
 
 const STEP_HELP = [
   {
@@ -328,7 +320,7 @@ export function FormShell() {
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo + platform label */}
           <div className="flex items-center gap-0 shrink-0">
-            <NinetyOneLogo className="h-5 w-auto" />
+            <img src="https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png" alt="Ninety One" className="h-5 w-auto" />
             <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block">
               <span className="text-white/70 text-xs tracking-[0.2em] uppercase font-ni-heading">Email Briefing Platform</span>
             </div>
@@ -338,7 +330,7 @@ export function FormShell() {
           <div className="flex items-center gap-1">
             {/* Desktop nav items */}
             <nav className="hidden md:flex items-center mr-3" aria-label="Platform navigation">
-              <span className="relative text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
+              <span className="relative text-[#e8e5ce] text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
                 Email Briefing
               </span>
               <button
@@ -418,11 +410,11 @@ export function FormShell() {
         <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
           <div>
             <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
-            <h1 className={`font-ni-display text-white leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
+            <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
               Email Briefing
             </h1>
             {showTemplatePicker && (
-              <p className="text-white/60 text-sm mt-2">
+              <p className="text-[#e8e5ce]/60 text-sm mt-2">
                 Create brand-compliant HTML emails for Ninety One marketing campaigns.
               </p>
             )}
@@ -442,7 +434,7 @@ export function FormShell() {
               ) : (
                 <>
                   <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
-                  <p className="font-ni-display text-white text-xl leading-none">
+                  <p className="font-ni-display text-[#e8e5ce] text-xl leading-none">
                     {pipelineStep === 4 ? 'Brand Review' : 'HTML Email'}
                   </p>
                 </>
