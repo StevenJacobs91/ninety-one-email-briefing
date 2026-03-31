@@ -3,6 +3,7 @@ import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { getThemeColours } from '../../lib/themeColours'
 import { KanbanCardDetail } from './KanbanCardDetail'
+import { KanbanListView } from './KanbanListView'
 
 type SortOption = 'send-asc' | 'send-desc' | 'submitted-asc' | 'submitted-desc' | 'urgency-first'
 
@@ -299,6 +300,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onClose }: KanbanBoardProps) {
   const { cards, moveCard } = useKanban()
+  const [view, setView] = useState<'board' | 'list'>('board')
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('send-asc')
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
@@ -368,16 +370,52 @@ export function KanbanBoard({ onClose }: KanbanBoardProps) {
               Track email briefs from briefing through to distribution.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 flex items-center gap-2 text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent px-3 py-2 border border-white/20 hover:border-white/40 rounded"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Back to Briefing
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            {/* View toggle */}
+            <div className="flex items-center rounded-lg border border-white/20 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setView('board')}
+                title="Board view"
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-ni-heading tracking-[0.1em] uppercase transition-colors ${
+                  view === 'board'
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/50 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Board
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('list')}
+                title="List view"
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-ni-heading tracking-[0.1em] uppercase transition-colors border-l border-white/20 ${
+                  view === 'list'
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/50 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+                List
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-2 text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent px-3 py-2 border border-white/20 hover:border-white/40 rounded"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back to Briefing
+            </button>
+          </div>
         </div>
       </div>
 
@@ -406,77 +444,72 @@ export function KanbanBoard({ onClose }: KanbanBoardProps) {
         </div>
       </div>
 
-      {/* Search + sort controls */}
-      <div className="px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, region, or tag..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent focus:border-transparent"
-            />
+      {view === 'list' ? (
+        <KanbanListView />
+      ) : (
+        <>
+          {/* Search + sort controls */}
+          <div className="px-6 py-4">
+            <div className="max-w-7xl mx-auto flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[200px] max-w-xs">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name, region, or tag..."
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent focus:border-transparent"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="kanban-sort" className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                  Sort
+                </label>
+                <select
+                  id="kanban-sort"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortOption)}
+                  className="text-sm bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent"
+                >
+                  <option value="send-asc">Send Date (earliest first)</option>
+                  <option value="send-desc">Send Date (latest first)</option>
+                  <option value="submitted-asc">Submitted (oldest first)</option>
+                  <option value="submitted-desc">Submitted (newest first)</option>
+                  <option value="urgency-first">Urgency first</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="kanban-sort" className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-              Sort
-            </label>
-            <select
-              id="kanban-sort"
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortOption)}
-              className="text-sm bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-lg px-3 py-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent"
-            >
-              <option value="send-asc">Send Date (earliest first)</option>
-              <option value="send-desc">Send Date (latest first)</option>
-              <option value="submitted-asc">Submitted (oldest first)</option>
-              <option value="submitted-desc">Submitted (newest first)</option>
-              <option value="urgency-first">Urgency first</option>
-            </select>
-          </div>
-        </div>
-      </div>
 
-      {/* Board columns */}
-      <div className="flex-1 px-6 pb-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex gap-4 items-start overflow-x-auto pb-4">
-            {COLUMN_ORDER.map((column) => (
-              <KanbanColumnPanel
-                key={column}
-                column={column}
-                cards={getColumnCards(column)}
-                onViewCard={setSelectedCard}
-                onDragStart={handleDragStart}
-                onDrop={handleDrop}
-              />
-            ))}
+          {/* Board columns */}
+          <div className="flex-1 px-6 pb-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex gap-4 items-start overflow-x-auto pb-4">
+                {COLUMN_ORDER.map((column) => (
+                  <KanbanColumnPanel
+                    key={column}
+                    column={column}
+                    cards={getColumnCards(column)}
+                    onViewCard={setSelectedCard}
+                    onDragStart={handleDragStart}
+                    onDrop={handleDrop}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Card detail drawer */}
-      {selectedCard && (
-        <KanbanCardDetail
-          card={selectedCard}
-          onClose={() => setSelectedCard(null)}
-        />
+          {/* Card detail drawer */}
+          {selectedCard && (
+            <KanbanCardDetail card={selectedCard} onClose={() => setSelectedCard(null)} />
+          )}
+        </>
       )}
     </div>
   )
