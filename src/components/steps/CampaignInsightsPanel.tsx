@@ -7,21 +7,35 @@ import type {
   SendTimePattern,
   ClickTimePattern,
 } from '../../lib/campaignInsights'
+import type { CampaignInsightsConfig } from '../../types/settings.types'
 
 interface CampaignInsightsPanelProps {
   data: CampaignInsightsData
+  config?: CampaignInsightsConfig
 }
 
 type InsightTab = 'overview' | 'prospects' | 'timing'
 
-export function CampaignInsightsPanel({ data }: CampaignInsightsPanelProps) {
-  const [tab, setTab] = useState<InsightTab>('overview')
+const DEFAULT_CONFIG: CampaignInsightsConfig = {
+  enabled: true,
+  tabs: { performance: true, prospects: true, timing: true },
+  showTrendCards: true,
+  showKeyInsights: true,
+  showRecommendations: true,
+}
 
-  const tabs: Array<{ id: InsightTab; label: string }> = [
-    { id: 'overview', label: 'Performance' },
-    { id: 'prospects', label: 'Top Prospects' },
-    { id: 'timing', label: 'Timing & Patterns' },
+export function CampaignInsightsPanel({ data, config: configProp }: CampaignInsightsPanelProps) {
+  const config = configProp ?? DEFAULT_CONFIG
+
+  const allTabs: Array<{ id: InsightTab; label: string; configKey: keyof CampaignInsightsConfig['tabs'] }> = [
+    { id: 'overview', label: 'Performance', configKey: 'performance' },
+    { id: 'prospects', label: 'Top Prospects', configKey: 'prospects' },
+    { id: 'timing', label: 'Timing & Patterns', configKey: 'timing' },
   ]
+  const tabs = allTabs.filter((t) => config.tabs[t.configKey] !== false)
+
+  const firstVisibleTab = tabs[0]?.id ?? 'overview'
+  const [tab, setTab] = useState<InsightTab>(firstVisibleTab)
 
   return (
     <div>
@@ -51,7 +65,7 @@ export function CampaignInsightsPanel({ data }: CampaignInsightsPanelProps) {
       </div>
 
       {/* Trends */}
-      {data.trends.length > 0 && (
+      {config.showTrendCards !== false && data.trends.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-5">
           {data.trends.map((trend) => (
             <TrendCard key={trend.metric} trend={trend} />
@@ -78,14 +92,30 @@ export function CampaignInsightsPanel({ data }: CampaignInsightsPanelProps) {
       </div>
 
       {/* Tab content */}
-      {tab === 'overview' && (
-        <OverviewTab emails={data.emails} insights={data.insights} recommendations={data.recommendations} openRateCaveat={data.openRateCaveat} />
+      {tab === 'overview' && config.tabs.performance !== false && (
+        <OverviewTab
+          emails={data.emails}
+          insights={data.insights}
+          recommendations={data.recommendations}
+          openRateCaveat={data.openRateCaveat}
+          showInsights={config.showKeyInsights !== false}
+          showRecommendations={config.showRecommendations !== false}
+        />
       )}
-      {tab === 'prospects' && (
-        <ProspectsTab prospects={data.topProspects} recommendations={data.recommendations} />
+      {tab === 'prospects' && config.tabs.prospects !== false && (
+        <ProspectsTab
+          prospects={data.topProspects}
+          recommendations={data.recommendations}
+          showRecommendations={config.showRecommendations !== false}
+        />
       )}
-      {tab === 'timing' && (
-        <TimingTab sendPatterns={data.sendTimePatterns} clickPatterns={data.clickTimePatterns} insights={data.insights} />
+      {tab === 'timing' && config.tabs.timing !== false && (
+        <TimingTab
+          sendPatterns={data.sendTimePatterns}
+          clickPatterns={data.clickTimePatterns}
+          insights={data.insights}
+          showInsights={config.showKeyInsights !== false}
+        />
       )}
     </div>
   )
@@ -165,11 +195,15 @@ function OverviewTab({
   insights,
   recommendations,
   openRateCaveat,
+  showInsights,
+  showRecommendations,
 }: {
   emails: CampaignEmailRecord[]
   insights: string[]
   recommendations: string[]
   openRateCaveat: string
+  showInsights: boolean
+  showRecommendations: boolean
 }) {
   return (
     <div className="space-y-5">
@@ -213,7 +247,7 @@ function OverviewTab({
       </div>
 
       {/* Insights */}
-      {insights.length > 0 && (
+      {showInsights && insights.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
             Key Insights
@@ -232,7 +266,7 @@ function OverviewTab({
       )}
 
       {/* Recommendations */}
-      {recommendations.length > 0 && (
+      {showRecommendations && recommendations.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
             Recommendations
@@ -288,9 +322,11 @@ function EmailRow({ email }: { email: CampaignEmailRecord }) {
 function ProspectsTab({
   prospects,
   recommendations,
+  showRecommendations,
 }: {
   prospects: EngagedProspect[]
   recommendations: string[]
+  showRecommendations: boolean
 }) {
   if (prospects.length === 0) {
     return (
@@ -367,7 +403,7 @@ function ProspectsTab({
       </div>
 
       {/* Prospect-specific recommendations */}
-      {prospectRecs.length > 0 && (
+      {showRecommendations && prospectRecs.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
             Prospect Recommendations
@@ -467,10 +503,12 @@ function TimingTab({
   sendPatterns,
   clickPatterns,
   insights,
+  showInsights,
 }: {
   sendPatterns: SendTimePattern[]
   clickPatterns: ClickTimePattern[]
   insights: string[]
+  showInsights: boolean
 }) {
   // Filter timing-relevant insights
   const timingInsights = insights.filter(
@@ -566,7 +604,7 @@ function TimingTab({
       </div>
 
       {/* Timing insights */}
-      {timingInsights.length > 0 && (
+      {showInsights && timingInsights.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
             Timing Insights

@@ -16,6 +16,7 @@ import { TabLists } from './TabLists'
 import { TabSignatures } from './TabSignatures'
 import { TabUsers } from './TabUsers'
 import { TabAuditLog } from './TabAuditLog'
+import { TabCampaignInsights } from './TabCampaignInsights'
 
 interface TabConfig {
   id: SettingsTab
@@ -61,6 +62,12 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'guardian',    label: 'Brand Guardian', description: 'Tune review thresholds and checks' },
       { id: 'disclaimers', label: 'Disclaimers',    description: 'Configure legal disclaimer text per region' },
       { id: 'pardot',      label: 'Pardot API',     description: 'Configure Salesforce Account Engagement integration' },
+    ],
+  },
+  {
+    label: 'Analytics',
+    tabs: [
+      { id: 'insights', label: 'Campaign Insights', description: 'Enable or disable insights and configure which panels are shown' },
     ],
   },
 ]
@@ -214,6 +221,7 @@ export function SettingsPanel() {
               {activeTab === 'guardian'   && <TabBrandGuardian />}
               {activeTab === 'disclaimers' && <TabDisclaimers />}
               {activeTab === 'pardot'     && <TabPardot />}
+              {activeTab === 'insights'   && <TabCampaignInsights />}
             </div>
           </div>
         </div>

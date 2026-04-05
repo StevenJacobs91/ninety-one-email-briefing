@@ -82,6 +82,7 @@ interface HelpPanelProps {
 }
 
 function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights }: HelpPanelProps) {
+  const { settings } = useSettings()
   const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
   const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
   const isPipeline = stepId === 'brand-review' || stepId === 'html-email'
@@ -137,8 +138,8 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
         </div>
       )}
 
-      {/* Campaign Insights summary — shown on Campaign step when a campaign is selected */}
-      {stepId === 'campaign' && campaignName && (
+      {/* Campaign Insights summary — shown on Campaign step when a campaign is selected and insights enabled */}
+      {stepId === 'campaign' && campaignName && settings.campaignInsights?.enabled !== false && (
         <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
           <div className="flex items-center gap-2.5 mb-3">
             <span className="shrink-0 w-6 h-6 rounded-md bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">

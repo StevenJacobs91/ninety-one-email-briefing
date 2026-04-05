@@ -14,6 +14,7 @@ import type {
   CampaignEntry,
   SignoffEntry,
   AssetEntry,
+  CampaignInsightsConfig,
 } from '../types/settings.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
@@ -333,6 +334,20 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
   },
 ]
 
+// ─── Campaign Insights Defaults ─────────────────────────────
+
+const DEFAULT_CAMPAIGN_INSIGHTS: CampaignInsightsConfig = {
+  enabled: true,
+  tabs: {
+    performance: true,
+    prospects: true,
+    timing: true,
+  },
+  showTrendCards: true,
+  showKeyInsights: true,
+  showRecommendations: true,
+}
+
 // ─── Full Default Settings ──────────────────────────────────
 
 export function createDefaultSettings(): AppSettings {
@@ -368,5 +383,6 @@ export function createDefaultSettings(): AppSettings {
         export: true,
       },
     },
+    campaignInsights: DEFAULT_CAMPAIGN_INSIGHTS,
   }
 }

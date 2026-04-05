@@ -218,6 +218,25 @@ export interface AuditConfig {
   categories: Record<AuditCategory, boolean>  // Toggle individual categories
 }
 
+// ─── Campaign Insights ───────────────────────────────────────
+
+export interface CampaignInsightsConfig {
+  /** Show/hide the Campaign Insights module across the app */
+  enabled: boolean
+  /** Which tabs are visible in the expanded slide-over */
+  tabs: {
+    performance: boolean
+    prospects: boolean
+    timing: boolean
+  }
+  /** Show trend cards (CTR, Clicks, List Size) at the top of the panel */
+  showTrendCards: boolean
+  /** Show Key Insights section in the Performance tab */
+  showKeyInsights: boolean
+  /** Show Recommendations section */
+  showRecommendations: boolean
+}
+
 // ─── Full AppSettings ────────────────────────────────────────
 
 export interface AppSettings {
@@ -244,6 +263,8 @@ export interface AppSettings {
   customRegions: CustomRegion[]
   // Audit trail
   audit: AuditConfig
+  // Campaign Insights
+  campaignInsights: CampaignInsightsConfig
 }
 
 export type SettingsTab =
@@ -261,3 +282,4 @@ export type SettingsTab =
   | 'disclaimers'
   | 'pardot'
   | 'audit'
+  | 'insights'

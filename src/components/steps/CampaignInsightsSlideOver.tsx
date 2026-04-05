@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useCampaignInsights } from '../../hooks/useCampaignInsights'
 import { CampaignInsightsPanel } from './CampaignInsightsPanel'
+import { useSettings } from '../../contexts/SettingsContext'
 
 interface CampaignInsightsSlideOverProps {
   isOpen: boolean
@@ -9,6 +10,8 @@ interface CampaignInsightsSlideOverProps {
 }
 
 export function CampaignInsightsSlideOver({ isOpen, onClose, campaignName }: CampaignInsightsSlideOverProps) {
+  const { settings } = useSettings()
+  const insightsConfig = settings.campaignInsights
   const campaignInsights = useCampaignInsights()
 
   // Auto-load when opened with a campaign name
@@ -130,7 +133,7 @@ export function CampaignInsightsSlideOver({ isOpen, onClose, campaignName }: Cam
           )}
 
           {campaignInsights.status === 'success' && campaignInsights.data && (
-            <CampaignInsightsPanel data={campaignInsights.data} />
+            <CampaignInsightsPanel data={campaignInsights.data} config={insightsConfig} />
           )}
         </div>
       </div>
