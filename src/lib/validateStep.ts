@@ -1,9 +1,8 @@
 import type { FieldPath } from 'react-hook-form'
 import type { BriefFormData } from './schema'
 
-const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
-  // Step 0 — Campaign (includes Targeting, Audience, Assets, and Deadlines fields)
-  [
+const STEP_FIELDS_BY_ID: Record<string, FieldPath<BriefFormData>[]> = {
+  campaign: [
     'audience.clientGroup',
     'audience.region',
     'audience.channel',
@@ -22,8 +21,7 @@ const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
     'deadlines.sendDate',
     'deadlines.urgency',
   ],
-  // Step 1 — Content
-  [
+  content: [
     'content.headline',
     'content.bodyIntro',
     'content.sections',
@@ -31,10 +29,17 @@ const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
     'content.cta.label',
     'content.cta.url',
   ],
-  // Step 2 — Review (no required fields to validate before proceeding)
-  [],
-]
+  review: [],
+}
 
-export function getStepFields(step: number): FieldPath<BriefFormData>[] {
-  return STEP_FIELDS[step] ?? []
+const ID_BY_INDEX = ['campaign', 'content', 'review']
+
+/**
+ * Returns the RHF field paths to validate for a given step.
+ * Accepts either a step id string ('campaign' | 'content' | 'review')
+ * or a legacy numeric index (0 | 1 | 2).
+ */
+export function getStepFields(stepIdOrIndex: string | number): FieldPath<BriefFormData>[] {
+  const id = typeof stepIdOrIndex === 'number' ? ID_BY_INDEX[stepIdOrIndex] : stepIdOrIndex
+  return STEP_FIELDS_BY_ID[id] ?? []
 }

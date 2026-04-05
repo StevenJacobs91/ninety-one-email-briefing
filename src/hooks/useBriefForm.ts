@@ -8,7 +8,7 @@ import { downloadBriefJson, copyBriefToClipboard } from '../lib/exportBrief'
 import { insertBrief } from '../lib/supabaseQueries'
 import type { BriefPayload } from '../types/brief.types'
 
-const TOTAL_STEPS = 4
+const DEFAULT_TOTAL_STEPS = 3
 
 interface BriefFormDefaults {
   fromName?: string
@@ -94,7 +94,11 @@ interface SupabaseContext {
   userId?: string
 }
 
-export function useBriefForm(defaults?: BriefFormDefaults, supabaseCtx?: SupabaseContext) {
+export function useBriefForm(
+  defaults?: BriefFormDefaults,
+  supabaseCtx?: SupabaseContext,
+  totalBriefSteps = DEFAULT_TOTAL_STEPS,
+) {
   const [currentStep, setCurrentStep] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
@@ -105,18 +109,18 @@ export function useBriefForm(defaults?: BriefFormDefaults, supabaseCtx?: Supabas
   })
 
   const goToStep = useCallback((step: number) => {
-    if (step >= 0 && step < TOTAL_STEPS) {
+    if (step >= 0 && step < totalBriefSteps) {
       setCurrentStep(step)
     }
-  }, [])
+  }, [totalBriefSteps])
 
-  const handleNext = useCallback(async () => {
-    const fields = getStepFields(currentStep)
+  const handleNext = useCallback(async (stepId?: string) => {
+    const fields = getStepFields(stepId ?? currentStep)
     const valid = await form.trigger(fields)
     if (valid) {
-      setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS - 1))
+      setCurrentStep((s) => Math.min(s + 1, totalBriefSteps - 1))
     }
-  }, [currentStep, form])
+  }, [currentStep, form, totalBriefSteps])
 
   const handleBack = useCallback(() => {
     setCurrentStep((s) => Math.max(s - 1, 0))
@@ -160,7 +164,7 @@ export function useBriefForm(defaults?: BriefFormDefaults, supabaseCtx?: Supabas
   return {
     form,
     currentStep,
-    totalSteps: TOTAL_STEPS,
+    totalSteps: totalBriefSteps,
     goToStep,
     handleNext,
     handleBack,

@@ -3,15 +3,27 @@ import { useSettings } from '../../contexts/SettingsContext'
 
 export function TabFormLayout() {
   const { settings, updateSettings } = useSettings()
-  const [activeStep, setActiveStep] = useState(0)
 
   const steps = settings.formSteps
   const fields = settings.formFields
 
+  const sortedSteps = useMemo(() => [...steps].sort((a, b) => a.order - b.order), [steps])
+
+  // Track active step by id so reordering doesn't break the selection
+  const [activeStepId, setActiveStepId] = useState<string>(
+    () => sortedSteps[0]?.id ?? steps[0]?.id ?? ''
+  )
+
+  // Resolve the order value for the active step
+  const activeStepOrder = useMemo(
+    () => steps.find((s) => s.id === activeStepId)?.order ?? 0,
+    [steps, activeStepId]
+  )
+
   // Fields for the currently selected step, sorted by order
   const stepFields = useMemo(
-    () => fields.filter((f) => f.stepIndex === activeStep).sort((a, b) => a.order - b.order),
-    [fields, activeStep]
+    () => fields.filter((f) => f.stepIndex === activeStepOrder).sort((a, b) => a.order - b.order),
+    [fields, activeStepOrder]
   )
 
   const moveField = (fieldId: string, direction: -1 | 1) => {
@@ -77,8 +89,6 @@ export function TabFormLayout() {
     })
   }
 
-  const sortedSteps = useMemo(() => [...steps].sort((a, b) => a.order - b.order), [steps])
-
   return (
     <div>
       {/* Step reordering */}
@@ -92,7 +102,7 @@ export function TabFormLayout() {
             <div
               key={step.id}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
-                activeStep === step.order
+                activeStepId === step.id
                   ? 'bg-brand-primary/10 dark:bg-brand-accent/10 ring-1 ring-brand-primary/30 dark:ring-brand-accent/30'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
               } ${!step.visible ? 'opacity-50' : ''}`}
@@ -115,7 +125,7 @@ export function TabFormLayout() {
               {/* Step name — clickable to show fields */}
               <button
                 type="button"
-                onClick={() => setActiveStep(step.order)}
+                onClick={() => setActiveStepId(step.id)}
                 className="flex-1 text-left"
               >
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{step.label}</p>
@@ -145,7 +155,7 @@ export function TabFormLayout() {
       {/* Field configuration for selected step */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          Fields — {sortedSteps.find((s) => s.order === activeStep)?.label ?? 'Step'}
+          Fields — {sortedSteps.find((s) => s.id === activeStepId)?.label ?? 'Step'}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
           Reorder fields within this step, toggle visibility, and set required/optional status.

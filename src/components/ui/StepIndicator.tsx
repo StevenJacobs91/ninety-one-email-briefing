@@ -1,29 +1,39 @@
-const PIPELINE_LABELS = [
-  'Campaign',
-  'Content',
-  'Review your Brief',
-  'Brand Review',
-  'HTML Email',
-] as const
+const PIPELINE_LABELS = ['Brand Review', 'HTML Email'] as const
+
+interface BriefStepConfig {
+  id: string
+  label: string
+}
 
 interface StepIndicatorProps {
   currentStep: number
   highestStepReached: number
   onStepClick: (step: number) => void
+  briefSteps: BriefStepConfig[]
 }
 
-export function StepIndicator({ currentStep, highestStepReached, onStepClick }: StepIndicatorProps) {
+export function StepIndicator({
+  currentStep,
+  highestStepReached,
+  onStepClick,
+  briefSteps,
+}: StepIndicatorProps) {
+  const allSteps: string[] = [
+    ...briefSteps.map((s) => s.label),
+    ...PIPELINE_LABELS,
+  ]
+
   return (
     <nav className="flex" aria-label="Form progress">
-      {PIPELINE_LABELS.map((label, index) => {
+      {allSteps.map((label, index) => {
         const isCompleted = index < currentStep
         const isCurrent = index === currentStep
         const isReachable = index <= highestStepReached
-        const isPipeline = index > 2
+        const isPipeline = index >= briefSteps.length
 
         return (
           <button
-            key={label}
+            key={`${label}-${index}`}
             type="button"
             onClick={() => {
               if (isReachable && !isCurrent) onStepClick(index)
@@ -33,9 +43,7 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
             aria-label={`Step ${index + 1}: ${label}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
             className={`relative flex items-center gap-2 px-4 py-4 text-xs font-ni-heading tracking-[0.12em] uppercase whitespace-nowrap transition-colors border-b-[3px] min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent ${
               isCurrent
-                ? isPipeline
-                  ? 'text-brand-primary dark:text-brand-accent border-brand-primary dark:border-brand-accent'
-                  : 'text-brand-primary dark:text-brand-accent border-brand-primary dark:border-brand-accent'
+                ? 'text-brand-primary dark:text-brand-accent border-brand-primary dark:border-brand-accent'
                 : isCompleted
                   ? 'text-brand-primary/60 dark:text-brand-accent/60 border-transparent cursor-pointer hover:text-brand-primary dark:hover:text-brand-accent'
                   : isReachable
@@ -59,8 +67,8 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
                 {index + 1}
               </span>
             )}
-            {/* Label — hide pipeline labels on small screens */}
-            <span className={index >= 3 ? 'hidden sm:inline' : index >= 2 ? 'hidden sm:inline' : ''}>
+            {/* Label — hide pipeline labels on small screens, hide brief labels after 2nd on very small */}
+            <span className={isPipeline ? 'hidden sm:inline' : index >= 2 ? 'hidden sm:inline' : ''}>
               {label}
             </span>
           </button>
