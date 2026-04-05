@@ -2,7 +2,7 @@ import type { FieldPath } from 'react-hook-form'
 import type { BriefFormData } from './schema'
 
 const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
-  // Step 0 — Campaign (includes Targeting, Assets, and Deadlines fields)
+  // Step 0 — Campaign (includes Targeting, Audience, Assets, and Deadlines fields)
   [
     'audience.clientGroup',
     'audience.region',
@@ -22,9 +22,7 @@ const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
     'deadlines.sendDate',
     'deadlines.urgency',
   ],
-  // Step 1 — Audience (distribution list / pardot only)
-  [],
-  // Step 2 — Content
+  // Step 1 — Content
   [
     'content.headline',
     'content.bodyIntro',
@@ -33,7 +31,7 @@ const STEP_FIELDS: FieldPath<BriefFormData>[][] = [
     'content.cta.label',
     'content.cta.url',
   ],
-  // Step 3 — Review (no required fields to validate before proceeding)
+  // Step 2 — Review (no required fields to validate before proceeding)
   [],
 ]
 

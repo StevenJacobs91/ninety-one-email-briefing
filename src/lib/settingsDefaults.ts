@@ -19,28 +19,62 @@ import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
 // ─── Default Brand Themes ───────────────────────────────────
 
-// Shared asset URLs
+// ─── Shared asset URLs ───────────────────────────────────────
+
+// Header logos (accent-colour variant — shown on primary-coloured header)
 const LOGO_CAPE_CORAL    = 'https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png'
 const LOGO_WARM_YELLOW   = 'https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png'
+const LOGO_GAZANIA_GOLD  = 'https://weare.ninetyone.com/l/28902/2020-05-08/8vsb6s/28902/242653/91_Logo_Digital_gazania_gold_header_logo_300x150.png'
+const LOGO_PROTEA_RED    = 'https://weare.ninetyone.com/l/28902/2020-05-25/8w44wl/28902/244211/protea_red_header_logo_300x150.png'
+const LOGO_OCEAN_TEAL    = 'https://weare.ninetyone.com/l/28902/2020-05-26/8w5gz6/28902/244259/91_logo_digital_ocean_teal_header_300x150.png'
+const LOGO_PINOTAGE      = 'https://weare.ninetyone.com/l/28902/2020-05-07/8vr21n/28902/242409/91_logo_digital_pinotage_burgandy_header_300x150.png'
+const LOGO_LEATHERBACK   = 'https://weare.ninetyone.com/l/28902/2020-05-20/8w12cq/28902/243761/91_Logo_Digital_Leatherback_Green_Footer_300x150.png'
+
+// Stripes (accent-colour variant)
+const STRIPE_CAPE_CORAL  = 'https://weare.ninetyone.com/l/28902/2020-02-28/8t5jbh/28902/235072/banner_stripes_cape_coral_200x234.png'
 const STRIPE_WARM_YELLOW = 'https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png'
+const STRIPE_GAZANIA_GOLD= 'https://weare.ninetyone.com/l/28902/2020-03-24/8tsmll/28902/237441/Gazania_Gold_Stripes_200x234.png'
+const STRIPE_PROTEA_RED  = 'https://weare.ninetyone.com/l/28902/2020-03-18/8tp99r/28902/236986/protea_red_header_stripes_top_right_200x234.png'
+const STRIPE_OCEAN_TEAL  = 'https://weare.ninetyone.com/l/28902/2020-03-10/8thy2m/28902/236108/stripes_ocean_teal_200x234.png'
+const STRIPE_PINOTAGE    = 'https://weare.ninetyone.com/l/28902/2020-05-08/8vrxhs/28902/242607/banner_stripes_pinotage_burgandy_267x312.png'
+const STRIPE_LEATHERBACK = 'https://weare.ninetyone.com/l/28902/2020-02-27/8t4hkk/28902/234894/banner_stripes_leatherback_green_200x234.png'
+
+// Footer logos (accent-colour variant)
+const FOOTER_CAPE_CORAL  = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nr7/28902/16251315203TFUilGT/Footer_logo_Cape_Coral_IFAWOC_HEXlogo_91_300x324px.png'
 const FOOTER_WARM_YELLOW = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nrc/28902/1625131521ZUcVLEZg/Footer_logo_Warm_Yellowwood_IFAWOC_HEXlogo_91_300x324px.png'
+const FOOTER_GAZANIA_GOLD= 'https://weare.ninetyone.com/l/28902/2021-07-01/978nrf/28902/16251315213K8Jjyrr/Footer_logo_Gazania_Gold_IFAWOC_HEXlogo_91_300x324px.png'
+const FOOTER_PROTEA_RED  = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nr1/28902/1625131519rZuPhU68/Footer_logo_Protea_Red_IFAWOC_HEXlogo_91_300x324px.png'
+const FOOTER_OCEAN_TEAL  = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nqk/28902/1625131519GGrTdgnT/Footer_logo_Ocean_Teal_IFAWOC_HEXlogo_91_300x324px.png'
+const FOOTER_PINOTAGE    = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nqw/28902/16251315196vK7Ae81/Footer_logo_Pinotage_Burgundy_IFAWOC_HEXlogo_91_300x324px.png'
+const FOOTER_LEATHERBACK = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nqy/28902/1625131519rCwRRl65/Footer_logo_Leatherback_Green_IFAWOC_HEXlogo_91_300x324px.png'
+
+function tints(hex: string): { tint01: string; tint02: string; tint03: string } {
+  const adj = (h: string, pct: number) => {
+    const n = parseInt(h.replace('#', ''), 16)
+    const r = Math.min(255, Math.max(0, ((n >> 16) & 0xff) + Math.round(2.55 * pct)))
+    const g = Math.min(255, Math.max(0, ((n >> 8)  & 0xff) + Math.round(2.55 * pct)))
+    const b = Math.min(255, Math.max(0, ( n        & 0xff) + Math.round(2.55 * pct)))
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+  }
+  return { tint01: adj(hex, 10), tint02: adj(hex, -5), tint03: adj(hex, -20) }
+}
 
 export const DEFAULT_BRAND_THEMES: BrandThemeConfig[] = [
-  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
-  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW, stripeUrl: STRIPE_WARM_YELLOW, footerLogoUrl: FOOTER_WARM_YELLOW },
-  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', accent: '#cf6f13' },
-  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
-  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
-  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', accent: '#d83949' },
-  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', accent: '#009d80' },
-  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', accent: '#591739' },
-  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', accent: '#cf6f13' },
-  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', accent: '#009d80' },
-  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', accent: '#d83949' },
-  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
-  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW, stripeUrl: STRIPE_WARM_YELLOW, footerLogoUrl: FOOTER_WARM_YELLOW },
-  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL },
-  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', accent: '#134848' },
+  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', ...tints('#134848'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', ...tints('#134848'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', ...tints('#0a3323'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', ...tints('#0a3323'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', ...tints('#591739'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#591739', logoUrl: LOGO_PINOTAGE,     stripeUrl: STRIPE_PINOTAGE,     footerLogoUrl: FOOTER_PINOTAGE     },
+  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', ...tints('#221b3b'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', ...tints('#221b3b'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', ...tints('#221b3b'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', ...tints('#221b3b'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', ...tints('#221b3b'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', ...tints('#74908d'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', ...tints('#74908d'), accent: '#134848', logoUrl: LOGO_LEATHERBACK,  stripeUrl: STRIPE_LEATHERBACK,  footerLogoUrl: FOOTER_LEATHERBACK  },
 ]
 
 // ─── Default HTML Templates ─────────────────────────────────
@@ -135,55 +169,45 @@ export const DEFAULT_HTML_MODULES: HtmlModuleConfig[] = [
 
 export const DEFAULT_FORM_STEPS: FormStepConfig[] = [
   { id: 'campaign', label: 'Campaign', order: 0, visible: true },
-  { id: 'audience', label: 'Audience', order: 1, visible: true },
-  { id: 'content', label: 'Content', order: 2, visible: true },
-  { id: 'assets', label: 'Assets', order: 3, visible: true },
-  { id: 'deadlines', label: 'Deadlines', order: 4, visible: true },
+  { id: 'content', label: 'Content', order: 1, visible: true },
+  { id: 'review', label: 'Review', order: 2, visible: true },
 ]
 
 // ─── Default Form Fields ────────────────────────────────────
 
 export const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
-  // Step 0 — Campaign
-  { id: 'campaign.emailType', label: 'Email Type', stepIndex: 0, required: true, visible: true, order: 0 },
-  { id: 'campaign.campaignName', label: 'Campaign Name', stepIndex: 0, required: true, visible: true, order: 1 },
-  { id: 'campaign.theme', label: 'Brand Theme', stepIndex: 0, required: true, visible: true, order: 2 },
-  { id: 'campaign.subjectLine', label: 'Subject Line', stepIndex: 0, required: true, visible: true, order: 3 },
-  { id: 'campaign.previewText', label: 'Preview Text', stepIndex: 0, required: true, visible: true, order: 4 },
-  { id: 'campaign.fromName', label: 'From Name', stepIndex: 0, required: true, visible: true, order: 5 },
-  { id: 'campaign.fromAddress', label: 'From Address', stepIndex: 0, required: true, visible: true, order: 6 },
-  { id: 'campaign.replyToEmail', label: 'Reply-To Email', stepIndex: 0, required: false, visible: true, order: 7 },
+  // Step 0 — Campaign (Deadlines, Targeting, Email Identity, Message Envelope, Sender, Audience)
+  { id: 'campaign.emailDescription', label: 'Email Description', stepIndex: 0, required: false, visible: true, order: 0 },
+  { id: 'deadlines.contentApprovalDate', label: 'Content Approval Date', stepIndex: 0, required: true, visible: true, order: 1 },
+  { id: 'deadlines.sendDate', label: 'Send Date', stepIndex: 0, required: true, visible: true, order: 2 },
+  { id: 'deadlines.urgency', label: 'Urgency', stepIndex: 0, required: true, visible: true, order: 3 },
+  { id: 'deadlines.oneOnOneRequired', label: '1-1 Required', stepIndex: 0, required: false, visible: true, order: 4 },
+  { id: 'deadlines.notes', label: 'Notes', stepIndex: 0, required: false, visible: true, order: 5 },
+  { id: 'audience.clientGroup', label: 'Client Group', stepIndex: 0, required: true, visible: true, order: 6 },
+  { id: 'audience.region', label: 'Region', stepIndex: 0, required: true, visible: true, order: 7 },
+  { id: 'audience.channel', label: 'Channel', stepIndex: 0, required: true, visible: true, order: 8 },
+  { id: 'campaign.emailType', label: 'Email Type', stepIndex: 0, required: true, visible: true, order: 9 },
+  { id: 'campaign.campaignName', label: 'Campaign Name', stepIndex: 0, required: true, visible: true, order: 10 },
+  { id: 'campaign.theme', label: 'Brand Theme', stepIndex: 0, required: true, visible: true, order: 11 },
+  { id: 'campaign.subjectLine', label: 'Subject Line', stepIndex: 0, required: true, visible: true, order: 12 },
+  { id: 'campaign.previewText', label: 'Preview Text', stepIndex: 0, required: true, visible: true, order: 13 },
+  { id: 'campaign.fromName', label: 'From Name', stepIndex: 0, required: true, visible: true, order: 14 },
+  { id: 'campaign.fromAddress', label: 'From Address', stepIndex: 0, required: true, visible: true, order: 15 },
+  { id: 'campaign.replyToEmail', label: 'Reply-To Email', stepIndex: 0, required: false, visible: true, order: 16 },
+  { id: 'assets.logoVariant', label: 'Logo Variant', stepIndex: 0, required: true, visible: true, order: 17 },
+  { id: 'assets.heroImageUrl', label: 'Hero Image URL', stepIndex: 0, required: false, visible: true, order: 18 },
+  { id: 'assets.heroImageAlt', label: 'Hero Image Alt Text', stepIndex: 0, required: false, visible: true, order: 19 },
+  { id: 'audience.distributionLists', label: 'Distribution Lists', stepIndex: 0, required: false, visible: true, order: 20 },
+  { id: 'audience.pardotListId', label: 'Pardot List ID', stepIndex: 0, required: false, visible: true, order: 21 },
 
-  // Step 1 — Audience
-  { id: 'audience.clientGroup', label: 'Client Group', stepIndex: 1, required: true, visible: true, order: 0 },
-  { id: 'audience.region', label: 'Region', stepIndex: 1, required: true, visible: true, order: 1 },
-  { id: 'audience.channel', label: 'Channel', stepIndex: 1, required: true, visible: true, order: 2 },
-  { id: 'audience.distributionLists', label: 'Distribution Lists', stepIndex: 1, required: false, visible: true, order: 3 },
-  { id: 'audience.pardotListId', label: 'Pardot List ID', stepIndex: 1, required: false, visible: true, order: 4 },
-
-  // Step 2 — Content
-  { id: 'content.headline', label: 'Headline', stepIndex: 2, required: true, visible: true, order: 0 },
-  { id: 'content.bodyIntro', label: 'Body Intro', stepIndex: 2, required: true, visible: true, order: 1 },
-  { id: 'content.sections', label: 'Content Sections', stepIndex: 2, required: true, visible: true, order: 2 },
-  { id: 'content.modules', label: 'Email Modules', stepIndex: 2, required: false, visible: true, order: 3 },
-  { id: 'content.cta', label: 'Call to Action', stepIndex: 2, required: true, visible: true, order: 4 },
-  { id: 'content.legalDisclaimer', label: 'Legal Disclaimer', stepIndex: 2, required: false, visible: true, order: 5 },
-  { id: 'content.includeUnsubscribe', label: 'Include Unsubscribe', stepIndex: 2, required: false, visible: true, order: 6 },
-
-  // Step 3 — Assets
-  { id: 'assets.logoVariant', label: 'Logo Variant', stepIndex: 3, required: true, visible: true, order: 0 },
-  { id: 'assets.stripeColour', label: 'Stripe Colour', stepIndex: 3, required: false, visible: true, order: 1 },
-  { id: 'assets.heroImageUrl', label: 'Hero Image URL', stepIndex: 3, required: false, visible: true, order: 2 },
-  { id: 'assets.heroImageAlt', label: 'Hero Image Alt Text', stepIndex: 3, required: false, visible: true, order: 3 },
-  { id: 'assets.additionalAssetUrls', label: 'Additional Asset URLs', stepIndex: 3, required: false, visible: true, order: 4 },
-  { id: 'assets.attachments', label: 'Attachments', stepIndex: 3, required: false, visible: true, order: 5 },
-
-  // Step 4 — Deadlines
-  { id: 'deadlines.contentApprovalDate', label: 'Content Approval Date', stepIndex: 4, required: true, visible: true, order: 0 },
-  { id: 'deadlines.sendDate', label: 'Send Date', stepIndex: 4, required: true, visible: true, order: 1 },
-  { id: 'deadlines.urgency', label: 'Urgency', stepIndex: 4, required: true, visible: true, order: 2 },
-  { id: 'deadlines.oneOnOneRequired', label: '1-1 Required', stepIndex: 4, required: false, visible: true, order: 3 },
-  { id: 'deadlines.notes', label: 'Notes', stepIndex: 4, required: false, visible: true, order: 4 },
+  // Step 1 — Content
+  { id: 'content.headline', label: 'Headline', stepIndex: 1, required: true, visible: true, order: 0 },
+  { id: 'content.bodyIntro', label: 'Body Intro', stepIndex: 1, required: true, visible: true, order: 1 },
+  { id: 'content.sections', label: 'Content Sections', stepIndex: 1, required: true, visible: true, order: 2 },
+  { id: 'content.modules', label: 'Email Modules', stepIndex: 1, required: false, visible: true, order: 3 },
+  { id: 'content.cta', label: 'Call to Action', stepIndex: 1, required: true, visible: true, order: 4 },
+  { id: 'content.legalDisclaimer', label: 'Legal Disclaimer', stepIndex: 1, required: false, visible: true, order: 5 },
+  { id: 'content.includeUnsubscribe', label: 'Include Unsubscribe', stepIndex: 1, required: false, visible: true, order: 6 },
 ]
 
 // ─── Default Brand Guardian Config ──────────────────────────
@@ -208,6 +232,13 @@ export const DEFAULT_BRAND_GUARDIAN: BrandGuardianConfig = {
   enableContentStructureChecks: true,
   enableAudienceAlignmentChecks: true,
   enableBrandProtectionChecks: true,
+  aiGuardian: {
+    mode: 'optional',
+    model: 'claude-sonnet-4-20250514',
+    supabaseUrl: '',
+    supabaseAnonKey: '',
+    customSystemPrompt: '',
+  },
 }
 
 // ─── Default Sender Defaults ────────────────────────────────
@@ -329,5 +360,18 @@ export function createDefaultSettings(): AppSettings {
     customClientGroups: [],
     customChannels: [],
     customRegions: [],
+    audit: {
+      enabled: false,
+      retentionDays: 90,
+      categories: {
+        auth: true,
+        brief: true,
+        kanban: true,
+        draft: true,
+        settings: true,
+        user: true,
+        export: true,
+      },
+    },
   }
 }

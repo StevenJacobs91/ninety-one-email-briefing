@@ -26,7 +26,7 @@ export function generateBriefHtml(brief: BriefPayload): string {
   const theme = BRAND_THEMES.find((t) => t.id === brief.campaign.theme)
   const primary = theme?.primary ?? '#134848'
   const accent = theme?.accent ?? '#fbaa96'
-  const emailName = buildEmailName(brief.campaign.campaignName, brief.audience?.region ?? [], brief.audience?.channel ?? [])
+  const emailName = buildEmailName(brief.campaign.campaignName, brief.audience?.region ?? [], brief.audience?.channel ?? [], brief.campaign?.emailDescription)
 
   const selectedModuleLabels = (brief.content?.modules ?? [])
     .map((id) => EMAIL_MODULES.find((m) => m.id === id)?.label ?? id)

@@ -50,7 +50,7 @@ export function generateTextEmail(brief: BriefPayload): string {
 
   const lines: string[] = [
     `NINETY ONE — EMAIL BRIEF`,
-    `${buildEmailName(campaignName, brief.audience?.region ?? [], brief.audience?.channel ?? [])}`,
+    `${buildEmailName(campaignName, brief.audience?.region ?? [], brief.audience?.channel ?? [], brief.campaign?.emailDescription)}`,
     `Generated: ${new Date().toLocaleString('en-GB')}`,
     divider,
     '',

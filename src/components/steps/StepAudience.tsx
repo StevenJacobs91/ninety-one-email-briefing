@@ -31,8 +31,6 @@ export function StepAudience() {
 
   return (
     <div className="space-y-8">
-      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-1">Audience</h2>
-
       {/* Distribution Lists */}
       <DistributionListsUpload />
 

@@ -1,6 +1,5 @@
 const PIPELINE_LABELS = [
   'Campaign',
-  'Audience',
   'Content',
   'Review your Brief',
   'Brand Review',
@@ -20,7 +19,7 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
         const isCompleted = index < currentStep
         const isCurrent = index === currentStep
         const isReachable = index <= highestStepReached
-        const isPipeline = index > 3
+        const isPipeline = index > 2
 
         return (
           <button
@@ -60,8 +59,8 @@ export function StepIndicator({ currentStep, highestStepReached, onStepClick }: 
                 {index + 1}
               </span>
             )}
-            {/* Label — hide "Brand Review" and "HTML Email" on small screens only */}
-            <span className={index >= 4 ? 'hidden sm:inline' : index >= 3 ? 'hidden sm:inline' : ''}>
+            {/* Label — hide pipeline labels on small screens */}
+            <span className={index >= 3 ? 'hidden sm:inline' : index >= 2 ? 'hidden sm:inline' : ''}>
               {label}
             </span>
           </button>

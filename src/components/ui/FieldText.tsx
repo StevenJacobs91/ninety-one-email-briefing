@@ -12,6 +12,7 @@ interface FieldTextProps {
   type?: 'text' | 'email' | 'number' | 'date'
   min?: string
   validateUrl?: boolean
+  hint?: string
 }
 
 function isValidUrl(value: string): boolean {
@@ -34,6 +35,7 @@ export function FieldText({
   type = 'text',
   min,
   validateUrl = false,
+  hint,
 }: FieldTextProps) {
   const inputId = registration.name.replace(/\./g, '-')
   const [urlValid, setUrlValid] = useState<boolean | null>(null)
@@ -55,6 +57,9 @@ export function FieldText({
         {required && <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>}
         {required && <span className="sr-only"> (required)</span>}
       </label>
+      {hint && (
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">{hint}</p>
+      )}
       <div className="relative">
         <input
           {...registration}

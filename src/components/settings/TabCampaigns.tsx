@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
-import type { CampaignEntry, CampaignSenderPreset } from '../../types/settings.types'
-import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
+import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
+import { CLIENT_GROUPS, CHANNELS, BRAND_THEMES } from '../../lib/constants'
 
 const CHANNEL_LABELS: Record<string, string> = {
   Advisor: 'Advisor',
@@ -64,15 +64,31 @@ interface CampaignFormState {
   channels: string[]
   hasSenderPreset: boolean
   preset: CampaignSenderPreset
+  hasContentPreset: boolean
+  contentPreset: CampaignContentPreset
 }
 
 const EMPTY_PRESET: CampaignSenderPreset = { fromName: '', fromAddress: '', replyToEmail: '' }
+const EMPTY_CONTENT_PRESET: CampaignContentPreset = {
+  theme: '',
+  subjectLine: '',
+  previewText: '',
+  heroImageUrl: '',
+  headline: '',
+  subHeadline: '',
+  signatureId: '',
+  disclaimerId: '',
+  distributionList: '',
+  pardotListId: '',
+}
 const EMPTY_FORM: CampaignFormState = {
   name: '',
   clientGroups: [],
   channels: [],
   hasSenderPreset: false,
   preset: EMPTY_PRESET,
+  hasContentPreset: false,
+  contentPreset: EMPTY_CONTENT_PRESET,
 }
 
 function formFromEntry(c: CampaignEntry): CampaignFormState {
@@ -82,10 +98,20 @@ function formFromEntry(c: CampaignEntry): CampaignFormState {
     channels: [...c.channels],
     hasSenderPreset: !!c.senderPreset,
     preset: c.senderPreset ? { ...c.senderPreset } : { ...EMPTY_PRESET },
+    hasContentPreset: !!c.contentPreset,
+    contentPreset: c.contentPreset ? { ...c.contentPreset } : { ...EMPTY_CONTENT_PRESET },
   }
 }
 
+function hasAnyContentPresetValue(cp: CampaignContentPreset): boolean {
+  return Object.values(cp).some((v) => typeof v === 'string' && v.trim() !== '')
+}
+
 function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
+  const contentPreset = form.hasContentPreset && hasAnyContentPresetValue(form.contentPreset)
+    ? { ...form.contentPreset }
+    : undefined
+
   return {
     id,
     name: form.name.trim(),
@@ -95,6 +121,7 @@ function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
     senderPreset: form.hasSenderPreset && form.preset.fromName.trim()
       ? { fromName: form.preset.fromName.trim(), fromAddress: form.preset.fromAddress.trim(), replyToEmail: form.preset.replyToEmail.trim() }
       : undefined,
+    contentPreset,
   }
 }
 
@@ -141,18 +168,186 @@ function SenderPresetFields({
   )
 }
 
+function ContentPresetFields({
+  contentPreset,
+  onChange,
+  signoffs,
+  disclaimers,
+}: {
+  contentPreset: CampaignContentPreset
+  onChange: (patch: Partial<CampaignContentPreset>) => void
+  signoffs: { id: string; name: string }[]
+  disclaimers: { id: string; label: string }[]
+}) {
+  return (
+    <div className="space-y-3 pt-1">
+      {/* Brand Theme */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Brand Theme</label>
+        <select
+          value={contentPreset.theme}
+          onChange={(e) => onChange({ theme: e.target.value })}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        >
+          <option value="">— None —</option>
+          {BRAND_THEMES.map((t) => (
+            <option key={t.id} value={t.id}>{t.label}</option>
+          ))}
+        </select>
+        {contentPreset.theme && (() => {
+          const t = BRAND_THEMES.find((bt) => bt.id === contentPreset.theme)
+          return t ? (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: t.primary }} />
+              <span className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: t.accent }} />
+              <span className="text-[10px] text-gray-400">{t.primary} / {t.accent}</span>
+            </div>
+          ) : null
+        })()}
+      </div>
+
+      {/* Subject Line */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Subject Line</label>
+        <input
+          type="text"
+          value={contentPreset.subjectLine}
+          onChange={(e) => onChange({ subjectLine: e.target.value })}
+          placeholder="e.g. Taking Stock — March 2026"
+          maxLength={60}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+        {contentPreset.subjectLine && (
+          <p className="text-[10px] text-gray-400 mt-0.5 text-right">{contentPreset.subjectLine.length}/60</p>
+        )}
+      </div>
+
+      {/* Preview Text */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Preview Text</label>
+        <input
+          type="text"
+          value={contentPreset.previewText}
+          onChange={(e) => onChange({ previewText: e.target.value })}
+          placeholder="e.g. Your monthly investment insights"
+          maxLength={90}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+        {contentPreset.previewText && (
+          <p className="text-[10px] text-gray-400 mt-0.5 text-right">{contentPreset.previewText.length}/90</p>
+        )}
+      </div>
+
+      {/* Hero Image URL */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Hero Image URL</label>
+        <input
+          type="url"
+          value={contentPreset.heroImageUrl}
+          onChange={(e) => onChange({ heroImageUrl: e.target.value })}
+          placeholder="https://..."
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+      </div>
+
+      {/* Headline */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Headline</label>
+        <input
+          type="text"
+          value={contentPreset.headline}
+          onChange={(e) => onChange({ headline: e.target.value })}
+          placeholder="e.g. Monthly Investment Update"
+          maxLength={80}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+      </div>
+
+      {/* Sub-Headline */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Sub-Headline</label>
+        <input
+          type="text"
+          value={contentPreset.subHeadline}
+          onChange={(e) => onChange({ subHeadline: e.target.value })}
+          placeholder="e.g. Insights from our investment team"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+      </div>
+
+      {/* Two-column: Signature + Disclaimer */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Signature</label>
+          <select
+            value={contentPreset.signatureId}
+            onChange={(e) => onChange({ signatureId: e.target.value })}
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          >
+            <option value="">— None —</option>
+            {signoffs.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Disclaimer</label>
+          <select
+            value={contentPreset.disclaimerId}
+            onChange={(e) => onChange({ disclaimerId: e.target.value })}
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          >
+            <option value="">— None —</option>
+            {disclaimers.map((d) => (
+              <option key={d.id} value={d.id}>{d.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Two-column: Distribution List + Pardot List */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Distribution List</label>
+          <input
+            type="text"
+            value={contentPreset.distributionList}
+            onChange={(e) => onChange({ distributionList: e.target.value })}
+            placeholder="e.g. SA Advisors"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Pardot List ID</label>
+          <input
+            type="text"
+            value={contentPreset.pardotListId}
+            onChange={(e) => onChange({ pardotListId: e.target.value })}
+            placeholder="e.g. 12345"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CampaignForm({
   form,
   onChange,
   onSave,
   onCancel,
   saveLabel,
+  signoffs,
+  disclaimers,
 }: {
   form: CampaignFormState
   onChange: (patch: Partial<CampaignFormState>) => void
   onSave: () => void
   onCancel: () => void
   saveLabel: string
+  signoffs: { id: string; name: string }[]
+  disclaimers: { id: string; label: string }[]
 }) {
   return (
     <div className="space-y-4">
@@ -210,6 +405,33 @@ function CampaignForm({
         )}
       </div>
 
+      {/* Content & Design Preset */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => onChange({ hasContentPreset: !form.hasContentPreset })}
+          className="w-full flex items-center justify-between px-4 py-3 text-left bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
+        >
+          <div>
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Content &amp; Design Preset</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Auto-fill theme, subject, headline, hero image, signature, disclaimer, and distribution details</p>
+          </div>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded ${form.hasContentPreset ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-400'}`}>
+            {form.hasContentPreset ? 'Enabled ▲' : 'Add ▼'}
+          </span>
+        </button>
+        {form.hasContentPreset && (
+          <div className="px-4 pb-4">
+            <ContentPresetFields
+              contentPreset={form.contentPreset}
+              onChange={(patch) => onChange({ contentPreset: { ...form.contentPreset, ...patch } })}
+              signoffs={signoffs}
+              disclaimers={disclaimers}
+            />
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2 pt-1">
         <button
           type="button"
@@ -234,6 +456,8 @@ function CampaignForm({
 export function TabCampaigns() {
   const { settings, updateSettings } = useSettings()
   const campaigns = settings.campaigns ?? []
+  const signoffs = (settings.signoffs ?? []).map((s) => ({ id: s.id, name: s.name }))
+  const disclaimers = (settings.legalDisclaimers ?? []).map((d) => ({ id: d.id, label: d.label }))
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
@@ -295,6 +519,8 @@ export function TabCampaigns() {
             onSave={handleAdd}
             onCancel={() => setAddingNew(false)}
             saveLabel="Save Campaign"
+            signoffs={signoffs}
+            disclaimers={disclaimers}
           />
         </div>
       )}
@@ -319,6 +545,8 @@ export function TabCampaigns() {
                   onSave={handleEditSave}
                   onCancel={() => setEditingId(null)}
                   saveLabel="Save Changes"
+                  signoffs={signoffs}
+                  disclaimers={disclaimers}
                 />
               </div>
             ) : deleteConfirmId === c.id ? (
@@ -335,7 +563,10 @@ export function TabCampaigns() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
                     {c.senderPreset && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#cf6f13]/10 dark:bg-[#cf6f13]/20 text-[#cf6f13] dark:text-[#fcaa28] font-medium shrink-0">Sender preset</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#cf6f13]/10 dark:bg-[#cf6f13]/20 text-[#cf6f13] dark:text-[#fcaa28] font-medium shrink-0">Sender</span>
+                    )}
+                    {c.contentPreset && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-accent font-medium shrink-0">Content</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -352,6 +583,15 @@ export function TabCampaigns() {
                   {c.senderPreset && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                       From: {c.senderPreset.fromName} &lt;{c.senderPreset.fromAddress}&gt;
+                    </p>
+                  )}
+                  {c.contentPreset && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      {[
+                        c.contentPreset.theme && BRAND_THEMES.find((t) => t.id === c.contentPreset!.theme)?.label,
+                        c.contentPreset.subjectLine && `"${c.contentPreset.subjectLine}"`,
+                        c.contentPreset.headline,
+                      ].filter(Boolean).join(' · ') || 'Content preset configured'}
                     </p>
                   )}
                 </div>

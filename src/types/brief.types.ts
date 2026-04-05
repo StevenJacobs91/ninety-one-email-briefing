@@ -16,6 +16,7 @@ export interface BriefMeta {
 }
 
 export interface CampaignDetails {
+  emailDescription: string
   emailType: string
   campaignName: string
   theme: string

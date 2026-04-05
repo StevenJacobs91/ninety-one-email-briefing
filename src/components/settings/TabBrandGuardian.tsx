@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
-import type { BrandGuardianConfig } from '../../types/settings.types'
+import type { BrandGuardianConfig, AIGuardianConfig, AIGuardianMode, AIGuardianModel } from '../../types/settings.types'
 
 type ConfigKey = keyof BrandGuardianConfig
 
@@ -59,6 +59,9 @@ export function TabBrandGuardian() {
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
         Fine-tune the automated brand review thresholds, toggle check categories, and manage word lists.
       </p>
+
+      {/* AI Brand Guardian */}
+      <AIGuardianSettings config={config} onUpdate={updateConfig} />
 
       {/* Minimum score — highlighted */}
       <div className="bg-brand-primary/5 dark:bg-brand-accent/5 border border-brand-primary/20 dark:border-brand-accent/20 rounded-lg p-4 mb-6">
@@ -162,6 +165,155 @@ export function TabBrandGuardian() {
           items={config.brandNameVariants}
           onChange={(words) => updateConfig({ brandNameVariants: words })}
         />
+      </div>
+    </div>
+  )
+}
+
+const AI_MODES: { value: AIGuardianMode; label: string; description: string }[] = [
+  { value: 'off', label: 'Off', description: 'AI review is disabled' },
+  { value: 'optional', label: 'Optional', description: 'User can manually trigger AI review on the Brand Review step' },
+  { value: 'pre-submission', label: 'Pre-submission Gate', description: 'AI review runs automatically and must pass before the brief can be exported' },
+  { value: 'post-submission', label: 'Post-submission', description: 'AI review runs automatically after submission and provides feedback' },
+]
+
+const AI_MODELS: { value: AIGuardianModel; label: string; description: string }[] = [
+  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', description: 'Fastest, lowest cost' },
+  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', description: 'Balanced speed and depth' },
+  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4', description: 'Most thorough analysis' },
+]
+
+function AIGuardianSettings({ config, onUpdate }: { config: BrandGuardianConfig; onUpdate: (patch: Partial<BrandGuardianConfig>) => void }) {
+  const ai = config.aiGuardian
+  const [showKeys, setShowKeys] = useState(false)
+
+  const updateAI = (patch: Partial<AIGuardianConfig>) => {
+    onUpdate({ aiGuardian: { ...ai, ...patch } })
+  }
+
+  const isConfigured = ai.mode !== 'off' && !!ai.supabaseUrl && !!ai.supabaseAnonKey
+
+  return (
+    <div className="mb-6 border border-purple-200 dark:border-purple-800/50 rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-purple-50 dark:bg-purple-950/30 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 text-sm font-bold">AI</span>
+          <div>
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">AI Brand Guardian</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              {ai.mode === 'off' ? 'Disabled' : isConfigured ? `${AI_MODES.find(m => m.value === ai.mode)?.label} — ${AI_MODELS.find(m => m.value === ai.model)?.label}` : 'Not configured'}
+            </p>
+          </div>
+        </div>
+        <span className={`w-2.5 h-2.5 rounded-full ${ai.mode === 'off' ? 'bg-gray-400' : isConfigured ? 'bg-green-500' : 'bg-amber-500'}`} />
+      </div>
+
+      <div className="px-4 py-4 space-y-4">
+        {/* Mode selector */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Review Mode</label>
+          <div className="grid grid-cols-2 gap-2">
+            {AI_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                onClick={() => updateAI({ mode: mode.value })}
+                className={`text-left px-3 py-2.5 rounded-md border text-xs transition-colors ${
+                  ai.mode === mode.value
+                    ? 'border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                }`}
+              >
+                <p className="font-semibold">{mode.label}</p>
+                <p className="mt-0.5 text-gray-500 dark:text-gray-400">{mode.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {ai.mode !== 'off' && (
+          <>
+            {/* Model selector */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Claude Model</label>
+              <div className="flex gap-2">
+                {AI_MODELS.map((model) => (
+                  <button
+                    key={model.value}
+                    type="button"
+                    onClick={() => updateAI({ model: model.value })}
+                    className={`flex-1 px-3 py-2 rounded-md border text-xs text-center transition-colors ${
+                      ai.model === model.value
+                        ? 'border-purple-400 dark:border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <p className="font-semibold">{model.label}</p>
+                    <p className="mt-0.5 text-gray-500 dark:text-gray-400">{model.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Supabase connection */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Supabase Connection</label>
+                <button
+                  type="button"
+                  onClick={() => setShowKeys(!showKeys)}
+                  className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  {showKeys ? 'Hide keys' : 'Show keys'}
+                </button>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Project URL</label>
+                  <input
+                    type={showKeys ? 'text' : 'password'}
+                    value={ai.supabaseUrl}
+                    onChange={(e) => updateAI({ supabaseUrl: e.target.value })}
+                    placeholder="https://your-project.supabase.co"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs px-3 py-2 font-mono dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Anon Key</label>
+                  <input
+                    type={showKeys ? 'text' : 'password'}
+                    value={ai.supabaseAnonKey}
+                    onChange={(e) => updateAI({ supabaseAnonKey: e.target.value })}
+                    placeholder="eyJhbGci..."
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs px-3 py-2 font-mono dark:text-gray-100"
+                  />
+                </div>
+              </div>
+              {ai.supabaseUrl && ai.supabaseAnonKey && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1.5 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                  Connection configured — edge function will be called at {ai.supabaseUrl.replace(/\/$/, '')}/functions/v1/brand-guardian-ai
+                </p>
+              )}
+            </div>
+
+            {/* Custom system prompt */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Custom Instructions</label>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                Additional brand-specific guidance appended to the base AI prompt. Leave empty to use defaults.
+              </p>
+              <textarea
+                value={ai.customSystemPrompt}
+                onChange={(e) => updateAI({ customSystemPrompt: e.target.value })}
+                rows={3}
+                placeholder="e.g. Always flag emails targeting EU audiences that mention specific fund performance without a disclaimer..."
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs px-3 py-2 dark:text-gray-100 resize-y"
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

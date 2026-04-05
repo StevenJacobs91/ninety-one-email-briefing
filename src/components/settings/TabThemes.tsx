@@ -6,24 +6,46 @@ function generateId(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
 
+function adjustBrightness(hex: string, pct: number): string {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const r = Math.min(255, Math.max(0, ((n >> 16) & 0xff) + Math.round(2.55 * pct)))
+  const g = Math.min(255, Math.max(0, ((n >> 8)  & 0xff) + Math.round(2.55 * pct)))
+  const b = Math.min(255, Math.max(0, ( n        & 0xff) + Math.round(2.55 * pct)))
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+}
+
+function deriveTints(primary: string) {
+  return {
+    tint01: adjustBrightness(primary, 10),
+    tint02: adjustBrightness(primary, -5),
+    tint03: adjustBrightness(primary, -20),
+  }
+}
+
 export function TabThemes() {
   const { settings, updateSettings } = useSettings()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<BrandThemeConfig>({ id: '', label: '', primary: '#134848', accent: '#fbaa96' })
+  const [draft, setDraft] = useState<BrandThemeConfig>({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96' })
   const [isAdding, setIsAdding] = useState(false)
 
   const themes = settings.brandThemes
 
   const startEdit = (theme: BrandThemeConfig) => {
     setEditingId(theme.id)
-    setDraft({ ...theme })
+    // Ensure tints are populated — fill from primary if not stored
+    setDraft({
+      ...theme,
+      tint01: theme.tint01 ?? adjustBrightness(theme.primary, 10),
+      tint02: theme.tint02 ?? adjustBrightness(theme.primary, -5),
+      tint03: theme.tint03 ?? adjustBrightness(theme.primary, -20),
+    })
     setIsAdding(false)
   }
 
   const startAdd = () => {
     setIsAdding(true)
     setEditingId(null)
-    setDraft({ id: '', label: '', primary: '#134848', accent: '#fbaa96', logoUrl: '', stripeUrl: '', footerLogoUrl: '' })
+    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96', logoUrl: '', stripeUrl: '', footerLogoUrl: '' })
   }
 
   const cancelEdit = () => {
@@ -49,7 +71,7 @@ export function TabThemes() {
       brandThemes: [...themes, { ...draft, id }],
     })
     setIsAdding(false)
-    setDraft({ id: '', label: '', primary: '#134848', accent: '#fbaa96' })
+    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96' })
   }
 
   const removeTheme = (id: string) => {
@@ -109,10 +131,22 @@ export function TabThemes() {
               />
             ) : (
               <div className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 group transition-colors">
-                {/* Colour swatches */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="w-5 h-5 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: theme.primary }} />
-                  <span className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600" style={{ backgroundColor: theme.accent }} />
+                {/* Colour swatches — Primary → Tint-01 → Tint-02 → Tint-03 → Accent */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  {[
+                    { colour: theme.primary, title: 'Primary' },
+                    { colour: theme.tint01 ?? adjustBrightness(theme.primary, 10),  title: 'Tint-01' },
+                    { colour: theme.tint02 ?? adjustBrightness(theme.primary, -5),  title: 'Tint-02' },
+                    { colour: theme.tint03 ?? adjustBrightness(theme.primary, -20), title: 'Tint-03' },
+                    { colour: theme.accent, title: 'Accent' },
+                  ].map(({ colour, title }, i) => (
+                    <span
+                      key={title}
+                      title={`${title}: ${colour}`}
+                      className="rounded-sm border border-black/10 dark:border-white/10"
+                      style={{ backgroundColor: colour, width: i === 0 || i === 4 ? 18 : 14, height: i === 0 || i === 4 ? 18 : 14 }}
+                    />
+                  ))}
                 </div>
 
                 {/* Label */}
@@ -123,8 +157,8 @@ export function TabThemes() {
 
                 {/* Colour codes */}
                 <div className="hidden sm:flex gap-2 text-xs font-mono text-gray-400 shrink-0">
-                  <span>{theme.primary}</span>
-                  <span>{theme.accent}</span>
+                  <span title="Primary">{theme.primary}</span>
+                  <span title="Accent">{theme.accent}</span>
                 </div>
 
                 {/* Actions */}
@@ -173,53 +207,46 @@ function ThemeEditRow({
       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
         {isNew ? 'New Theme' : 'Edit Theme'}
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Label</label>
-          <input
-            type="text"
-            value={draft.label}
-            onChange={(e) => onChange({ ...draft, label: e.target.value })}
-            placeholder="e.g. Leatherback Green / Cape Coral"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-3 py-1.5 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Primary</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={draft.primary}
-                onChange={(e) => onChange({ ...draft, primary: e.target.value })}
-                className="w-8 h-8 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={draft.primary}
-                onChange={(e) => onChange({ ...draft, primary: e.target.value })}
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-mono px-2 py-1.5 dark:text-gray-100"
-              />
-            </div>
+      {/* Label — full width */}
+      <div className="mb-3">
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Label</label>
+        <input
+          type="text"
+          value={draft.label}
+          onChange={(e) => onChange({ ...draft, label: e.target.value })}
+          placeholder="e.g. Leatherback Green / Cape Coral"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-3 py-1.5 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        />
+      </div>
+
+      {/* Colour inputs — Primary → Tint-01 → Tint-02 → Tint-03 → Accent */}
+      <div className="grid grid-cols-5 gap-2 mb-3">
+        {([
+          { key: 'primary' as const, label: 'Primary' },
+          { key: 'tint01'  as const, label: 'Tint-01' },
+          { key: 'tint02'  as const, label: 'Tint-02' },
+          { key: 'tint03'  as const, label: 'Tint-03' },
+          { key: 'accent'  as const, label: 'Accent'  },
+        ] as const).map(({ key, label }) => (
+          <div key={key}>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">{label}</label>
+            <input
+              type="color"
+              value={draft[key] ?? '#000000'}
+              onChange={(e) => onChange({ ...draft, [key]: e.target.value })}
+              className="w-full h-8 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+              title={label}
+            />
+            <input
+              type="text"
+              value={draft[key] ?? ''}
+              onChange={(e) => onChange({ ...draft, [key]: e.target.value })}
+              className="mt-1 w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-[10px] font-mono px-1.5 py-1 dark:text-gray-100 focus:ring-1 focus:ring-brand-primary/30"
+              placeholder="#000000"
+              maxLength={7}
+            />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Accent</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={draft.accent}
-                onChange={(e) => onChange({ ...draft, accent: e.target.value })}
-                className="w-8 h-8 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={draft.accent}
-                onChange={(e) => onChange({ ...draft, accent: e.target.value })}
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-mono px-2 py-1.5 dark:text-gray-100"
-              />
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
       {/* Asset URLs */}
       <div className="space-y-2 mb-3">

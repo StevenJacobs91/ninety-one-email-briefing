@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import type { SettingsTab } from '../../types/settings.types'
 import { TabGeneral } from './TabGeneral'
 import { TabThemes } from './TabThemes'
@@ -13,6 +14,8 @@ import { TabPardot } from './TabPardot'
 import { TabCampaigns } from './TabCampaigns'
 import { TabLists } from './TabLists'
 import { TabSignatures } from './TabSignatures'
+import { TabUsers } from './TabUsers'
+import { TabAuditLog } from './TabAuditLog'
 
 interface TabConfig {
   id: SettingsTab
@@ -33,6 +36,8 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'campaigns',  label: 'Campaigns',  description: 'Manage campaigns, audience filters, and sender presets' },
       { id: 'lists',      label: 'Lists',      description: 'Add custom client groups, regions, channels, and email types' },
       { id: 'signatures', label: 'Signatures', description: 'Manage footer sign-off signatures for the Content step' },
+      { id: 'users',      label: 'Users',      description: 'Manage team members, roles, and access' },
+      { id: 'audit',      label: 'Audit Trail', description: 'Track user activity and manage audit logging' },
     ],
   },
   {
@@ -62,18 +67,13 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ALL_TABS: TabConfig[] = NAV_GROUPS.flatMap((g) => g.tabs)
 
-const SESSION_KEY = 'ni-settings-auth'
-const VALID_USERNAME = '91email'
-const VALID_PASSWORD = 'rW1ad85ZqQi9Bs'
-
 export function SettingsPanel() {
   const { isOpen, closeSettings, resetSettings } = useSettings()
+  const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [authenticated, setAuthenticated] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1')
-  const [loginUsername, setLoginUsername] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
+
+  const canAccessSettings = profile?.role === 'admin' || profile?.role === 'producer'
 
   useEffect(() => {
     if (!isOpen) return
@@ -93,75 +93,30 @@ export function SettingsPanel() {
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    if (loginUsername === VALID_USERNAME && loginPassword === VALID_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, '1')
-      setAuthenticated(true)
-      setLoginError('')
-    } else {
-      setLoginError('Incorrect username or password.')
-    }
-  }
-
   if (!isOpen) return null
 
-  if (!authenticated) {
+  if (!canAccessSettings) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeSettings} />
-        <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-8 w-full max-w-sm mx-4">
-          <div className="mb-6 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-primary/10 mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#134848" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-ni-display text-gray-900 dark:text-gray-100">Settings</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter your credentials to access settings.</p>
+        <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-8 w-full max-w-sm mx-4 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-              <input
-                type="text"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                autoComplete="username"
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                placeholder="Username"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                autoComplete="current-password"
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                placeholder="Password"
-              />
-            </div>
-            {loginError && (
-              <p className="text-xs text-red-600 dark:text-red-400">{loginError}</p>
-            )}
-            <button
-              type="submit"
-              className="w-full bg-brand-primary text-white py-2 rounded-md text-sm font-medium hover:bg-[#0d3232] transition-colors"
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={closeSettings}
-              className="w-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-          </form>
+          <h2 className="text-lg font-ni-display text-gray-900 dark:text-gray-100 mb-2">Access Restricted</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+            Settings are available to Admins and Producers only. Contact your team admin to request access.
+          </p>
+          <button
+            type="button"
+            onClick={closeSettings}
+            className="w-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     )
@@ -249,6 +204,8 @@ export function SettingsPanel() {
               {activeTab === 'campaigns'  && <TabCampaigns />}
               {activeTab === 'lists'      && <TabLists />}
               {activeTab === 'signatures' && <TabSignatures />}
+              {activeTab === 'users'      && <TabUsers />}
+              {activeTab === 'audit'      && <TabAuditLog />}
               {activeTab === 'themes'     && <TabThemes />}
               {activeTab === 'templates'  && <TabTemplates />}
               {activeTab === 'assets'     && <TabAssets />}

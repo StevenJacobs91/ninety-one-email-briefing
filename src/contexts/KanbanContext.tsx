@@ -2,11 +2,19 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { v4 as uuidv4 } from 'uuid'
 import type { KanbanCard, KanbanColumn } from '../types/kanban.types'
 import type { BriefFormData } from '../lib/schema'
-
-const STORAGE_KEY = 'ni-kanban-cards'
+import { useAuth } from './AuthContext'
+import { useSettings } from './SettingsContext'
+import { writeAuditLog } from '../lib/auditLog'
+import {
+  fetchKanbanCards,
+  insertKanbanCard,
+  updateKanbanCard,
+  deleteKanbanCard,
+} from '../lib/supabaseQueries'
 
 interface KanbanContextValue {
   cards: KanbanCard[]
+  loading: boolean
   addCard: (brief: BriefFormData) => void
   moveCard: (id: string, column: KanbanColumn) => void
   updateCardNotes: (id: string, notes: string) => void
@@ -16,35 +24,47 @@ interface KanbanContextValue {
 
 const KanbanContext = createContext<KanbanContextValue | null>(null)
 
-function loadCards(): KanbanCard[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as KanbanCard[]
-  } catch {
-    return []
-  }
-}
-
-function saveCards(cards: KanbanCard[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards))
-  } catch {
-    // Storage may be unavailable
-  }
-}
-
 export function KanbanProvider({ children }: { children: ReactNode }) {
-  const [cards, setCards] = useState<KanbanCard[]>(loadCards)
+  const { profile, user } = useAuth()
+  const { settings } = useSettings()
+  const teamId = profile?.teamId
+  const [cards, setCards] = useState<KanbanCard[]>([])
+  const [loading, setLoading] = useState(true)
 
+  const auditCtx = teamId && user && profile ? {
+    teamId,
+    userId: user.id,
+    userEmail: user.email ?? '',
+    userName: profile.displayName,
+  } : null
+
+  // Fetch cards from Supabase on mount / team change
   useEffect(() => {
-    saveCards(cards)
-  }, [cards])
+    if (!teamId) {
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+
+    fetchKanbanCards(teamId).then((remote) => {
+      if (!cancelled) {
+        setCards(remote)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (!cancelled) setLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [teamId])
 
   const addCard = useCallback((brief: BriefFormData) => {
+    if (!teamId) return
     const briefId = brief.meta?.briefId ?? uuidv4()
+
     setCards((prev) => {
-      // Avoid duplicates
       if (prev.some((c) => c.briefId === briefId)) return prev
       const now = new Date().toISOString()
       const newCard: KanbanCard = {
@@ -66,28 +86,68 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         notes: '',
         tags: brief.deadlines.tags ?? '',
       }
+
+      // Optimistic update
+      insertKanbanCard(teamId, newCard).catch((err) =>
+        console.error('Failed to insert kanban card:', err)
+      )
+
       return [newCard, ...prev]
     })
-  }, [])
+  }, [teamId])
 
   const moveCard = useCallback((id: string, column: KanbanColumn) => {
     const now = new Date().toISOString()
     setCards((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? { ...c, column, columnHistory: [...c.columnHistory, { column, at: now }] }
-          : c
-      )
+      prev.map((c) => {
+        if (c.id !== id) return c
+        const fromCol = c.column
+        const updated = { ...c, column, columnHistory: [...c.columnHistory, { column, at: now }] }
+
+        // Async persist
+        updateKanbanCard(id, { column: updated.column, columnHistory: updated.columnHistory }).catch(
+          (err) => console.error('Failed to move kanban card:', err)
+        )
+
+        // Audit
+        if (auditCtx) {
+          writeAuditLog(auditCtx, settings.audit, {
+            action: `Moved card from ${fromCol} to ${column}`,
+            category: 'kanban',
+            entityType: 'kanban_card',
+            entityId: id,
+            details: { emailName: c.emailName, from: fromCol, to: column },
+          })
+        }
+
+        return updated
+      })
     )
-  }, [])
+  }, [auditCtx, settings.audit])
 
   const updateCardNotes = useCallback((id: string, notes: string) => {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, notes } : c)))
+    updateKanbanCard(id, { notes }).catch((err) =>
+      console.error('Failed to update kanban notes:', err)
+    )
   }, [])
 
   const removeCard = useCallback((id: string) => {
+    const card = cards.find((c) => c.id === id)
     setCards((prev) => prev.filter((c) => c.id !== id))
-  }, [])
+    deleteKanbanCard(id).catch((err) =>
+      console.error('Failed to delete kanban card:', err)
+    )
+    if (auditCtx && card) {
+      writeAuditLog(auditCtx, settings.audit, {
+        action: 'Removed card from board',
+        category: 'kanban',
+        entityType: 'kanban_card',
+        entityId: id,
+        details: { emailName: card.emailName },
+      })
+    }
+  }, [cards, auditCtx, settings.audit])
 
   const getColumnCards = useCallback(
     (column: KanbanColumn) => cards.filter((c) => c.column === column),
@@ -95,7 +155,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <KanbanContext.Provider value={{ cards, addCard, moveCard, updateCardNotes, removeCard, getColumnCards }}>
+    <KanbanContext.Provider value={{ cards, loading, addCard, moveCard, updateCardNotes, removeCard, getColumnCards }}>
       {children}
     </KanbanContext.Provider>
   )

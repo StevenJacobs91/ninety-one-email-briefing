@@ -6,6 +6,8 @@ interface RichTextareaProps {
   value: string
   onChange: (html: string) => void
   maxLength?: number
+  /** Show character count without enforcing a limit */
+  showCount?: boolean
   placeholder?: string
   required?: boolean
   error?: FieldError
@@ -19,12 +21,14 @@ export function RichTextarea({
   value,
   onChange,
   maxLength,
+  showCount,
   placeholder,
   required,
   error,
   rows = 6,
   accentColour = '#fbaa96',
 }: RichTextareaProps) {
+  const id = `rta-${label.toLowerCase().replace(/\s+/g, '-')}`
   const editorRef = useRef<HTMLDivElement>(null)
   const isInternalChange = useRef(false)
   const savedRange = useRef<Range | null>(null)
@@ -226,6 +230,8 @@ export function RichTextarea({
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Bold (Ctrl+B) — wraps selected text in brand span"
+          aria-label="Bold (Ctrl+B)"
+          aria-pressed={activeFormats.bold}
         >
           B
         </button>
@@ -239,6 +245,8 @@ export function RichTextarea({
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Italic (Ctrl+I)"
+          aria-label="Italic (Ctrl+I)"
+          aria-pressed={activeFormats.italic}
         >
           I
         </button>
@@ -252,6 +260,8 @@ export function RichTextarea({
               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
           title="Underline (Ctrl+U)"
+          aria-label="Underline (Ctrl+U)"
+          aria-pressed={activeFormats.underline}
         >
           U
         </button>
@@ -297,13 +307,16 @@ export function RichTextarea({
         onMouseUp={updateActiveFormats}
         onKeyUp={updateActiveFormats}
         data-placeholder={placeholder}
-        className={`w-full rounded-b-md border px-3 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary overflow-y-auto leading-relaxed ${
+        className={`w-full rounded-b-md border px-3 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus-visible:border-brand-primary overflow-y-auto leading-relaxed ${
           error ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
         } [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 dark:[&:empty]:before:text-gray-500 [&:empty]:before:pointer-events-none`}
         style={{ minHeight }}
         role="textbox"
         aria-multiline="true"
         aria-label={label}
+        aria-required={required || undefined}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
 
       {/* Link dialog */}
@@ -349,10 +362,10 @@ export function RichTextarea({
       {/* Character count & error */}
       <div className="flex justify-between mt-1">
         {error
-          ? <p className="text-xs text-red-600 dark:text-red-400">{error.message}</p>
+          ? <p id={`${id}-error`} className="text-xs text-red-600 dark:text-red-400">{error.message}</p>
           : <span />
         }
-        {maxLength != null && (
+        {maxLength != null ? (
           <p className={`text-xs ${
             textLength > maxLength
               ? 'text-red-600 dark:text-red-400'
@@ -362,7 +375,9 @@ export function RichTextarea({
           }`}>
             {textLength}/{maxLength}
           </p>
-        )}
+        ) : showCount ? (
+          <p className="text-xs text-gray-400 dark:text-gray-500">{textLength} chars</p>
+        ) : null}
       </div>
     </div>
   )

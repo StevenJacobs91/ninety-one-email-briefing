@@ -22,7 +22,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
   const theme = BRAND_THEMES.find((t) => t.id === data.campaign.theme)
   const selectedModuleLabels = (data.content.modules ?? [])
     .map((id) => EMAIL_MODULES.find((m) => m.id === id)?.label ?? id)
-  const emailName = buildEmailName(data.campaign.campaignName, data.audience?.region ?? [], data.audience?.channel ?? [])
+  const emailName = buildEmailName(data.campaign.campaignName, data.audience?.region ?? [], data.audience?.channel ?? [], data.campaign?.emailDescription)
 
   return (
     <div className="space-y-6 text-sm">

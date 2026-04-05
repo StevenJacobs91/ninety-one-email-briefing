@@ -23,8 +23,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   const html = useMemo(() => generateEmailHtml(data, settings), [data, settings])
   const textEmail = useMemo(() => generateTextEmail(data), [data])
   const emailName = useMemo(
-    () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel),
-    [data.campaign.campaignName, data.audience.region, data.audience.channel]
+    () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel, data.campaign.emailDescription),
+    [data.campaign.campaignName, data.audience.region, data.audience.channel, data.campaign.emailDescription]
   )
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -251,7 +251,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">HTML Email Preview</h2>
+      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-1">HTML Email Preview</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Review the generated email template below. Download, copy, or submit the HTML when ready.
       </p>

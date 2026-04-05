@@ -4,6 +4,9 @@ export interface BrandThemeConfig {
   id: string
   label: string
   primary: string
+  tint01?: string         // primary + 10% brightness
+  tint02?: string         // primary − 5% brightness
+  tint03?: string         // primary − 20% brightness
   accent: string
   logoUrl?: string        // Header logo image URL (120×60 px)
   stripeUrl?: string      // Decorative stripe image URL (200×234 px)
@@ -50,6 +53,17 @@ export interface FormStepConfig {
   visible: boolean
 }
 
+export type AIGuardianMode = 'off' | 'optional' | 'pre-submission' | 'post-submission'
+export type AIGuardianModel = 'claude-sonnet-4-20250514' | 'claude-haiku-4-5-20251001' | 'claude-opus-4-20250514'
+
+export interface AIGuardianConfig {
+  mode: AIGuardianMode
+  model: AIGuardianModel
+  supabaseUrl: string        // Supabase project URL (e.g. https://xxx.supabase.co)
+  supabaseAnonKey: string    // Supabase anon/public key
+  customSystemPrompt: string // Additional brand-specific instructions appended to the base prompt
+}
+
 export interface BrandGuardianConfig {
   minimumScore: number
   subjectLineMaxLength: number
@@ -70,6 +84,7 @@ export interface BrandGuardianConfig {
   enableContentStructureChecks: boolean
   enableAudienceAlignmentChecks: boolean
   enableBrandProtectionChecks: boolean
+  aiGuardian: AIGuardianConfig
 }
 
 export interface SenderDefaults {
@@ -117,6 +132,20 @@ export interface CampaignSenderPreset {
   replyToEmail: string
 }
 
+/** Content and design defaults that auto-populate when this campaign is selected */
+export interface CampaignContentPreset {
+  theme: string              // Brand theme id
+  subjectLine: string
+  previewText: string
+  heroImageUrl: string       // Hero image URL
+  headline: string
+  subHeadline: string
+  signatureId: string        // References SignoffEntry.id
+  disclaimerId: string       // References LegalDisclaimerConfig.id
+  distributionList: string   // Distribution list name/identifier
+  pardotListId: string       // Pardot list ID
+}
+
 export interface CampaignEntry {
   id: string
   name: string
@@ -124,6 +153,7 @@ export interface CampaignEntry {
   channels: string[]    // empty = applies to all channels
   clientGroups: string[] // empty = applies to all client groups
   senderPreset?: CampaignSenderPreset // optional — auto-fills sender fields when selected
+  contentPreset?: CampaignContentPreset // optional — auto-fills content/design fields when selected
 }
 
 // ─── Footer Sign-off Signatures ─────────────────────────────
@@ -171,6 +201,23 @@ export interface CustomRegion {
   clientGroup: string // which client group this region belongs to
 }
 
+// ─── Audit Trail ─────────────────────────────────────────────
+
+export type AuditCategory =
+  | 'auth'
+  | 'brief'
+  | 'kanban'
+  | 'draft'
+  | 'settings'
+  | 'user'
+  | 'export'
+
+export interface AuditConfig {
+  enabled: boolean
+  retentionDays: number           // Auto-purge entries older than this (0 = keep forever)
+  categories: Record<AuditCategory, boolean>  // Toggle individual categories
+}
+
 // ─── Full AppSettings ────────────────────────────────────────
 
 export interface AppSettings {
@@ -195,6 +242,8 @@ export interface AppSettings {
   customClientGroups: CustomClientGroup[]
   customChannels: CustomChannel[]
   customRegions: CustomRegion[]
+  // Audit trail
+  audit: AuditConfig
 }
 
 export type SettingsTab =
@@ -202,6 +251,7 @@ export type SettingsTab =
   | 'campaigns'
   | 'lists'
   | 'signatures'
+  | 'users'
   | 'themes'
   | 'templates'
   | 'assets'
@@ -210,3 +260,4 @@ export type SettingsTab =
   | 'guardian'
   | 'disclaimers'
   | 'pardot'
+  | 'audit'

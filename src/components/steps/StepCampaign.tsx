@@ -11,6 +11,7 @@ import { FieldTextarea } from '../ui/FieldTextarea'
 import { SubSection } from '../ui/SubSection'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
+import { StepAudience } from './StepAudience'
 
 // Merge built-in array with custom settings items, deduplicating by value
 function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
@@ -49,6 +50,7 @@ export function StepCampaign() {
   const { settings } = useSettings()
 
   // ── Campaign fields ──
+  const emailDescription = watch('campaign.emailDescription') ?? ''
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
@@ -58,8 +60,8 @@ export function StepCampaign() {
   const selectedChannels = watch('audience.channel') ?? []
 
   const emailName = useMemo(
-    () => buildEmailName(campaignName, selectedRegions, selectedChannels),
-    [campaignName, selectedRegions, selectedChannels]
+    () => buildEmailName(campaignName, selectedRegions, selectedChannels, emailDescription),
+    [campaignName, selectedRegions, selectedChannels, emailDescription]
   )
 
   const allCampaigns = settings.campaigns ?? []
@@ -195,7 +197,7 @@ export function StepCampaign() {
 
       {/* Sub-section: Deadlines */}
       <SubSection title="Deadlines">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldText
             label="Content Approval Date"
             registration={register('deadlines.contentApprovalDate')}
@@ -217,7 +219,7 @@ export function StepCampaign() {
         {/* Urgency */}
         <div>
           <p id="urgency-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Urgency<span className="text-red-500 ml-0.5">*</span>
+            Urgency<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
           </p>
           <div className="flex gap-3" role="radiogroup" aria-labelledby="urgency-label">
             {URGENCY_OPTIONS.map((opt) => {
@@ -229,7 +231,7 @@ export function StepCampaign() {
                     selected
                       ? opt === 'urgent'
                         ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-[#134848] text-white border-[#134848]'
+                        : 'bg-brand-primary text-white border-brand-primary'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -301,7 +303,7 @@ export function StepCampaign() {
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Client Group<span className="text-red-500 ml-0.5">*</span>
+              Client Group<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedClientGroups.length > 0 ? `${selectedClientGroups.length} selected` : 'Select all that apply'}
@@ -314,7 +316,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => handleClientGroupToggle(group as ClientGroup)}
                 aria-pressed={selectedClientGroups.includes(group)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:outline-none ${
                   selectedClientGroups.includes(group)
                     ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -325,7 +327,7 @@ export function StepCampaign() {
             ))}
           </div>
           {errors.audience?.clientGroup && (
-            <p className="text-xs text-red-600 mt-1">{errors.audience.clientGroup.message}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.clientGroup.message}</p>
           )}
         </div>
 
@@ -333,7 +335,7 @@ export function StepCampaign() {
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Region<span className="text-red-500 ml-0.5">*</span>
+              Region<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedClientGroups.length === 0
@@ -355,7 +357,7 @@ export function StepCampaign() {
                   type="button"
                   onClick={() => toggleArrayValue('audience.region', region as Region, selectedRegions)}
                   aria-pressed={selectedRegions.includes(region as Region)}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:outline-none ${
                     selectedRegions.includes(region as Region)
                       ? 'bg-brand-primary text-white border-brand-primary'
                       : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -367,7 +369,7 @@ export function StepCampaign() {
             </div>
           )}
           {errors.audience?.region && (
-            <p className="text-xs text-red-600 mt-1">{errors.audience.region.message}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.region.message}</p>
           )}
         </div>
 
@@ -375,7 +377,7 @@ export function StepCampaign() {
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Channel/Audience<span className="text-red-500 ml-0.5">*</span>
+              Channel/Audience<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedChannels.length > 0 ? `${selectedChannels.length} of ${allChannels.length} selected` : 'Select all that apply'}
@@ -388,7 +390,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => toggleArrayValue('audience.channel', channel as Channel, selectedChannels)}
                 aria-pressed={selectedChannels.includes(channel)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:outline-none ${
                   selectedChannels.includes(channel)
                     ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -399,7 +401,7 @@ export function StepCampaign() {
             ))}
           </div>
           {errors.audience?.channel && (
-            <p className="text-xs text-red-600 mt-1">{errors.audience.channel.message}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.channel.message}</p>
           )}
         </div>
       </SubSection>
@@ -408,11 +410,22 @@ export function StepCampaign() {
 
       {/* Sub-section: Email Identity */}
       <SubSection title="Email Identity">
+        {/* Email Description */}
+        <FieldText
+          label="Email Description"
+          registration={register('campaign.emailDescription')}
+          error={errors.campaign?.emailDescription}
+          placeholder="Short description (e.g. Q2 Market Update) — max 80 characters"
+          maxLength={80}
+          currentLength={emailDescription.length}
+          hint="Appears in the email name: MMYY Region Audience Campaign - Description"
+        />
+
         {/* Email Type — single-select pills */}
         <div>
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email Type<span className="text-red-500 ml-0.5">*</span>
+              Email Type<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -422,7 +435,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => setValue('campaign.emailType', et.id, { shouldValidate: true })}
                 aria-pressed={watch('campaign.emailType') === et.id}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium border transition-colors focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:outline-none ${
                   watch('campaign.emailType') === et.id
                     ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
@@ -433,14 +446,14 @@ export function StepCampaign() {
             ))}
           </div>
           {errors.campaign?.emailType && (
-            <p className="text-xs text-red-600 mt-1">{errors.campaign.emailType.message}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.emailType.message}</p>
           )}
         </div>
 
         {/* Campaign selector — filtered by region + channel */}
         <div>
           <p id="campaign-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Campaign<span className="text-red-500 ml-0.5">*</span>
+            Campaign<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
           </p>
           {allCampaigns.length === 0 ? (
             <p className="text-xs text-gray-400 dark:text-gray-500 italic">
@@ -497,7 +510,7 @@ export function StepCampaign() {
         {/* Theme selector */}
         <div className="mb-4">
           <p id="theme-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Brand Theme<span className="text-red-500 ml-0.5">*</span>
+            Brand Theme<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
           </p>
           <div className="relative">
             <div
@@ -625,6 +638,13 @@ export function StepCampaign() {
         <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
           {tags || '—'}
         </div>
+      </SubSection>
+
+      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+
+      {/* Sub-section: Audience (distribution lists + Pardot) */}
+      <SubSection title="Audience">
+        <StepAudience />
       </SubSection>
     </div>
   )

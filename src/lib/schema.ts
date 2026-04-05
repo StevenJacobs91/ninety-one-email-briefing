@@ -23,6 +23,7 @@ const metaSchema = z.object({
 })
 
 const campaignSchema = z.object({
+  emailDescription: z.string().max(80, 'Max 80 characters').optional().default(''),
   emailType: z.string().min(1, 'Email type is required'),
   campaignName: z.string().min(1, 'Campaign name is required'),
   theme: z.string().min(1, 'Theme is required'),
@@ -66,7 +67,7 @@ const audienceSchema = z.object({
 const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
-  bodyIntro: z.string().min(1, 'Body intro is required').max(1000, 'Max 1000 characters'),
+  bodyIntro: z.string().min(1, 'Body intro is required'),
   sections: z.array(contentSectionSchema).min(1, 'At least one section required').max(4, 'Max 4 sections'),
   modules: z.array(z.string()),
   moduleNotes: z.record(z.string()).optional(),

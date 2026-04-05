@@ -46,10 +46,10 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): 
   const stripeUrl      = settingsTheme?.stripeUrl      || FALLBACK_STRIPE
   const footerLogoUrl  = settingsTheme?.footerLogoUrl  || FALLBACK_FOOTER_LOGO
 
-  // Derive tint colours from primary
-  const tint01 = adjustBrightness(primary, 10)
-  const tint02 = adjustBrightness(primary, -5)
-  const tint03 = adjustBrightness(primary, -20)
+  // Use stored tint values if available, otherwise derive from primary
+  const tint01 = settingsTheme?.tint01 ?? adjustBrightness(primary, 10)
+  const tint02 = settingsTheme?.tint02 ?? adjustBrightness(primary, -5)
+  const tint03 = settingsTheme?.tint03 ?? adjustBrightness(primary, -20)
   const darkPrimary = adjustBrightness(primary, -15)
 
   const sections = brief.content.sections

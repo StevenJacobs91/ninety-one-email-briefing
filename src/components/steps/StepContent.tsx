@@ -49,9 +49,17 @@ interface ImageCropperProps {
   src: string
   onCrop: (dataUrl: string) => void
   onCancel: () => void
+  /** Theme overlay data — shows logo, stripes, headline, sub-headline over the crop canvas */
+  overlay?: {
+    logoUrl?: string
+    stripeUrl?: string
+    accent: string
+    headline: string
+    subHeadline: string
+  }
 }
 
-function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
+function ImageCropper({ src, onCrop, onCancel, overlay }: ImageCropperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -146,9 +154,9 @@ function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
         </button>
       </div>
       <div className="p-4">
-        <div className="w-full overflow-hidden rounded border border-gray-300 dark:border-gray-600 mb-4" style={{ aspectRatio: `${CROP_W}/${CROP_H}` }}>
+        <div className="relative w-full overflow-hidden rounded border border-gray-300 dark:border-gray-600 mb-4" style={{ aspectRatio: `${CROP_W}/${CROP_H}` }}>
           {!loaded && (
-            <div className="flex items-center justify-center h-full text-sm text-gray-400">Loading…</div>
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400 bg-gray-100 dark:bg-gray-800 z-10">Loading…</div>
           )}
           <canvas
             ref={canvasRef}
@@ -160,6 +168,67 @@ function ImageCropper({ src, onCrop, onCancel }: ImageCropperProps) {
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           />
+          {/* Template overlay — mirrors email header layout at 640×270 */}
+          {overlay && loaded && (
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.72 }}>
+              {/* Left column: 64% width — logo + text */}
+              <div className="absolute" style={{ left: '6.25%', top: 0, width: '62%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '11.1% 0' }}>
+                {/* Logo */}
+                {overlay.logoUrl && (
+                  <img
+                    src={overlay.logoUrl}
+                    alt="Logo"
+                    style={{ width: '18.75%', maxWidth: 120, height: 'auto', display: 'block', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.5))' }}
+                  />
+                )}
+                {/* Headline + sub-headline */}
+                <div style={{ marginTop: 'auto' }}>
+                  {overlay.headline && (
+                    <p style={{
+                      fontFamily: 'arial, helvetica, sans-serif',
+                      fontSize: 'clamp(14px, 3.5vw, 28px)',
+                      lineHeight: 1.1,
+                      fontWeight: 'normal',
+                      color: overlay.accent,
+                      margin: '0 0 4px',
+                      textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {overlay.headline}
+                    </p>
+                  )}
+                  {overlay.subHeadline && (
+                    <p style={{
+                      fontFamily: 'arial, helvetica, sans-serif',
+                      fontSize: 'clamp(10px, 1.8vw, 14px)',
+                      lineHeight: 1.3,
+                      fontWeight: 'normal',
+                      color: '#e8e5ce',
+                      margin: 0,
+                      textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {overlay.subHeadline}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Right column: stripe — 36% width, flush right, top-aligned */}
+              {overlay.stripeUrl && (
+                <div className="absolute" style={{ right: 0, top: 0, width: '31.25%', height: '86.7%', overflow: 'hidden' }}>
+                  <img
+                    src={overlay.stripeUrl}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left top', display: 'block' }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
@@ -324,10 +393,15 @@ export function StepContent() {
   const legalDisclaimer = watch('content.legalDisclaimer') ?? ''
   const footerSignoffId = watch('content.footerSignoffId') ?? ''
   const selectedTheme = watch('campaign.theme')
+  const campaignSubjectLine = watch('campaign.subjectLine') ?? ''
   const accentColour = useMemo(() => {
     const theme = BRAND_THEMES.find((t) => t.id === selectedTheme)
     return theme?.accent ?? '#fbaa96'
   }, [selectedTheme])
+  const themeAssets = useMemo(() => {
+    const t = (settings.brandThemes ?? []).find((t) => t.id === selectedTheme)
+    return { logoUrl: t?.logoUrl, stripeUrl: t?.stripeUrl }
+  }, [selectedTheme, settings.brandThemes])
 
   // Derive region default disclaimer for helper text
   const regionDefaultDisclaimer = useMemo(() => {
@@ -398,6 +472,7 @@ export function StepContent() {
   const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
   const [headerSearch, setHeaderSearch] = useState('')
+  const [heroIsDragging, setHeroIsDragging] = useState(false)
   const heroFileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = useCallback((fileList: FileList) => {
@@ -447,11 +522,11 @@ export function StepContent() {
 
       <SubSection title="Assets">
         {/* Logo variant + Stripe colour — two column */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Logo Variant */}
           <div>
             <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Logo Variant<span className="text-red-500 ml-0.5">*</span>
+              Logo Variant<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </p>
             <div className="flex flex-col gap-2" role="radiogroup" aria-labelledby="logo-variant-label">
               {LOGO_VARIANTS.map((variant) => {
@@ -682,6 +757,13 @@ export function StepContent() {
                   src={cropSrc}
                   onCrop={handleCropComplete}
                   onCancel={handleCropCancel}
+                  overlay={{
+                    logoUrl: themeAssets.logoUrl,
+                    stripeUrl: themeAssets.stripeUrl,
+                    accent: accentColour,
+                    headline,
+                    subHeadline: campaignSubjectLine || subHeadline,
+                  }}
                 />
               )}
 
@@ -720,7 +802,22 @@ export function StepContent() {
               )}
 
               {!cropSrc && !heroImagePreview && (
-                <label className="relative flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center cursor-pointer border-gray-300 dark:border-gray-600 hover:border-brand-primary dark:hover:border-brand-accent transition-colors bg-gray-50 dark:bg-gray-800/50">
+                <div
+                  className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    heroIsDragging
+                      ? 'border-brand-primary dark:border-brand-accent bg-brand-primary/5 dark:bg-brand-accent/5'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-brand-primary dark:hover:border-brand-accent bg-gray-50 dark:bg-gray-800/50'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setHeroIsDragging(true) }}
+                  onDragEnter={(e) => { e.preventDefault(); setHeroIsDragging(true) }}
+                  onDragLeave={() => setHeroIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setHeroIsDragging(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file && file.type.startsWith('image/')) handleHeroFileSelected(file)
+                  }}
+                >
                   <input
                     ref={heroFileInputRef}
                     type="file"
@@ -730,13 +827,30 @@ export function StepContent() {
                       if (file) handleHeroFileSelected(file)
                     }}
                     className="sr-only"
+                    id="hero-file-input"
                   />
-                  <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Click to upload hero image</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WebP — will be cropped to 640 × 270 px</p>
-                </label>
+                  {heroIsDragging ? (
+                    <>
+                      <svg className="w-10 h-10 text-brand-primary dark:text-brand-accent mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      <p className="text-sm font-semibold text-brand-primary dark:text-brand-accent">Drop to upload</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Drag & drop or{' '}
+                        <label htmlFor="hero-file-input" className="text-brand-primary dark:text-brand-accent cursor-pointer hover:underline">
+                          browse
+                        </label>
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WebP — will be cropped to 640 × 270 px</p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -777,10 +891,10 @@ export function StepContent() {
         label="Body Intro"
         value={bodyIntro}
         onChange={(html) => setValue('content.bodyIntro', html, { shouldValidate: true })}
-        maxLength={1000}
+        showCount
         required
         error={errors.content?.bodyIntro}
-        placeholder="Max 1000 characters — use the toolbar to bold, italicise, underline, or add links"
+        placeholder="Use the toolbar to bold, italicise, underline, or add links"
         rows={6}
         accentColour={accentColour}
       />
@@ -953,7 +1067,7 @@ export function StepContent() {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Sections<span className="text-red-500 ml-0.5">*</span>
+            Sections<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
           </label>
           {fields.length < 4 && (
             <button

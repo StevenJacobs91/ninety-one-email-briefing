@@ -5,6 +5,7 @@ import { useBriefForm } from '../../hooks/useBriefForm'
 import { useDraftPersistence } from '../../hooks/useDraftPersistence'
 import { useDarkMode } from '../../hooks/useDarkMode'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useKanban } from '../../contexts/KanbanContext'
 import { StepIndicator } from '../ui/StepIndicator'
 import { DarkModeToggle } from '../ui/DarkModeToggle'
@@ -12,36 +13,31 @@ import { TemplatePicker } from '../ui/TemplatePicker'
 import { DraftsDrawer } from '../ui/DraftsDrawer'
 import { SettingsPanel } from '../settings/SettingsPanel'
 import { StepCampaign } from '../steps/StepCampaign'
-import { StepAudience } from '../steps/StepAudience'
+// StepAudience merged into StepCampaign — audience section is now part of Campaign step
 import { StepContent } from '../steps/StepContent'
 import { StepReview } from '../steps/StepReview'
 import { StepBrandReview } from '../steps/StepBrandReview'
 import { StepHtmlReview } from '../steps/StepHtmlReview'
+import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { KanbanBoard } from '../kanban/KanbanBoard'
 import type { BriefTemplate } from '../../lib/constants'
 import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
 import type { SavedDraft } from '../../hooks/useDrafts'
+import { useAuditLog } from '../../hooks/useAuditLog'
+import { buildEmailName } from '../../lib/emailName'
 
 
 const STEP_HELP = [
   {
     title: 'Setting up your campaign',
-    body: 'Define the email type, subject line, and brand theme. These fields control how your email is categorised and how recipients experience it in their inbox.',
+    body: 'Define the campaign details, target audience, email type, subject line, and brand theme. These fields control how your email is categorised, who receives it, and how recipients experience it in their inbox.',
     tips: [
       'Subject lines under 50 characters perform best across email clients',
       'Preview text should complement the subject — not repeat it',
+      'Select all regions and channels that apply — legal disclaimers are applied per-region automatically',
       'Your brand theme controls the full colour palette of the generated email',
-    ],
-  },
-  {
-    title: 'Building your audience',
-    body: 'Upload a distribution list, select target regions and channels, and optionally link a Pardot list for automated send workflows.',
-    tips: [
-      'Upload a CSV with at minimum an email column — first and last name improve personalisation',
-      'Select all regions that apply — legal disclaimers are applied per-region automatically',
-      'A Pardot List ID is only required for automated sends via the n8n workflow integration',
     ],
   },
   {
@@ -78,13 +74,15 @@ interface HelpPanelProps {
   step: number
   currentTheme: string
   onChangeTemplate?: () => void
+  campaignName?: string
+  onOpenInsights?: () => void
 }
 
-function HelpPanel({ step, currentTheme, onChangeTemplate }: HelpPanelProps) {
+function HelpPanel({ step, currentTheme, onChangeTemplate, campaignName, onOpenInsights }: HelpPanelProps) {
   const help = STEP_HELP[Math.min(step, STEP_HELP.length - 1)]
   const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
-  const stepLabels = ['Campaign', 'Audience', 'Content', 'Review your Brief']
-  const eyebrow = step < 4 ? `Step ${step + 1} of 4 · ${stepLabels[step]}` : step === 4 ? 'Pipeline · Brand Review' : 'Pipeline · HTML Email'
+  const stepLabels = ['Campaign', 'Content', 'Review your Brief']
+  const eyebrow = step < 3 ? `Step ${step + 1} of 3 · ${stepLabels[step]}` : step === 3 ? 'Pipeline · Brand Review' : 'Pipeline · HTML Email'
 
   return (
     <aside className="help-panel-sticky w-full space-y-4">
@@ -113,7 +111,7 @@ function HelpPanel({ step, currentTheme, onChangeTemplate }: HelpPanelProps) {
       </div>
 
       {/* Active brand theme swatch */}
-      {theme && step < 4 && (
+      {theme && step < 3 && (
         <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
           <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-4">Active Brand Theme</p>
           <div className="flex items-start gap-3">
@@ -134,6 +132,60 @@ function HelpPanel({ step, currentTheme, onChangeTemplate }: HelpPanelProps) {
         </div>
       )}
 
+      {/* Campaign Insights summary — shown on step 0 when a campaign is selected */}
+      {step === 0 && campaignName && (
+        <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span className="shrink-0 w-6 h-6 rounded-md bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </span>
+            <p className="text-xs tracking-[0.15em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400">Campaign Insights</p>
+          </div>
+          <p className="text-sm font-ni-heading text-brand-primary dark:text-gray-200 leading-tight mb-2 truncate" title={campaignName}>
+            {campaignName}
+          </p>
+
+          {/* Key metrics — dummy data */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
+              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">5.2%</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">Avg Unique CTR</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
+              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">3,240</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">Avg Delivered</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
+              <p className="text-xs font-semibold text-green-600 dark:text-green-400">+12%</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">CTR Trend</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
+              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">5</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">Recent Sends</p>
+            </div>
+          </div>
+
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3 leading-relaxed">
+            Simulated data. Connect the Pardot API in Settings for live metrics.
+          </p>
+
+          {onOpenInsights && (
+            <button
+              type="button"
+              onClick={onOpenInsights}
+              className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white text-xs font-medium py-2 rounded-md hover:bg-teal-700 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              View Campaign Insights & Recommendations
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Change template — only on step 0 */}
       {step === 0 && onChangeTemplate && (
         <button
@@ -148,15 +200,16 @@ function HelpPanel({ step, currentTheme, onChangeTemplate }: HelpPanelProps) {
   )
 }
 
-const TOTAL_PIPELINE_STEPS = 6
-const LAST_BRIEF_STEP = 3
+const TOTAL_PIPELINE_STEPS = 5
+const LAST_BRIEF_STEP = 2
 
-const STEP_LABELS = ['Campaign', 'Audience', 'Content', 'Review your Brief']
+const STEP_LABELS = ['Campaign', 'Content', 'Review your Brief']
 
 export function FormShell() {
-  const { openSettings, settings } = useSettings()
+  const { openSettings, settings, loading: settingsLoading } = useSettings()
   const { senderDefaults, formDefaults } = settings
-  const { addCard, cards } = useKanban()
+  const { profile, user, signOut } = useAuth()
+  const { addCard, cards, loading: kanbanLoading } = useKanban()
 
   const {
     form,
@@ -174,11 +227,15 @@ export function FormShell() {
     urgency: formDefaults.urgency,
     emailType: formDefaults.emailType,
     includeUnsubscribe: formDefaults.includeUnsubscribe,
+  }, {
+    teamId: profile?.teamId,
+    userId: user?.id,
   })
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
+  const { log: audit } = useAuditLog()
 
   const [pipelineStep, setPipelineStep] = useState<number | null>(null)
   const [highestStep, setHighestStep] = useState(0)
@@ -186,10 +243,16 @@ export function FormShell() {
     () => !localStorage.getItem('ni-email-brief-draft')
   )
   const [showBoard, setShowBoard] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
   const effectiveStep = pipelineStep ?? currentStep
+
+  const handleSignOut = useCallback(() => {
+    audit({ action: 'Signed out', category: 'auth' })
+    signOut()
+  }, [signOut, audit])
 
   useEffect(() => {
     setHighestStep((prev) => Math.max(prev, effectiveStep))
@@ -222,7 +285,6 @@ export function FormShell() {
     if (!valid) {
       const stepFields = [
         ['audience.clientGroup', 'audience.region', 'audience.channel', 'campaign.emailType', 'campaign.campaignName', 'campaign.theme', 'campaign.subjectLine', 'campaign.previewText', 'campaign.fromName', 'campaign.fromAddress', 'campaign.replyToEmail', 'assets.logoVariant', 'assets.heroImageUrl', 'assets.heroImageAlt', 'deadlines.contentApprovalDate', 'deadlines.sendDate', 'deadlines.urgency'],
-        [],
         ['content.headline', 'content.bodyIntro', 'content.sections', 'content.cta', 'content.cta.label', 'content.cta.url'],
         [],
       ]
@@ -253,12 +315,19 @@ export function FormShell() {
     const alreadyOnBoard = briefId ? cards.some((c) => c.briefId === briefId) : false
     if (!alreadyOnBoard) {
       addCard(values)
+      audit({
+        action: 'Submitted brief to board',
+        category: 'brief',
+        entityType: 'brief',
+        entityId: briefId,
+        details: { campaignName: values.campaign.campaignName, emailType: values.campaign.emailType },
+      })
     }
-    setPipelineStep(4)
-  }, [form, goToStep, addCard, cards])
+    setPipelineStep(3)
+  }, [form, goToStep, addCard, cards, audit])
 
   const handleBrandAccept = useCallback(() => {
-    setPipelineStep(5)
+    setPipelineStep(4)
   }, [])
 
   const handleBrandDecline = useCallback(() => {
@@ -322,6 +391,21 @@ export function FormShell() {
   const isPipelineStep = pipelineStep !== null
 
   const currentTheme = form.watch('campaign.theme')
+  const watchedCampaignName = form.watch('campaign.campaignName') ?? ''
+  const watchedRegions = form.watch('audience.region') ?? []
+  const watchedChannels = form.watch('audience.channel') ?? []
+  const watchedDescription = form.watch('campaign.emailDescription') ?? ''
+
+  if (settingsLoading || kanbanLoading) {
+    return (
+      <div className="min-h-screen bg-brand-bg-warm dark:bg-[#1a1714] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading platform...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-brand-bg-warm dark:bg-[#1a1714] flex flex-col">
@@ -338,49 +422,78 @@ export function FormShell() {
 
           {/* Right controls */}
           <div className="flex items-center gap-1">
-            {/* Desktop nav items */}
-            <nav className="hidden md:flex items-center mr-3" aria-label="Platform navigation">
-              {showBoard ? (
-                <button
-                  type="button"
-                  onClick={() => setShowBoard(false)}
-                  className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
-                >
-                  Email Briefing
-                  <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
-                </button>
-              ) : (
-                <span className="relative text-[#e8e5ce] text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 opacity-100 after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-['']">
-                  Email Briefing
-                </span>
-              )}
+            {/* Desktop nav icons */}
+            <nav className="hidden md:flex items-center gap-0.5 mr-2" aria-label="Platform navigation">
+              {/* Board */}
               <button
                 type="button"
-                onClick={() => setShowBoard(true)}
-                className={`group relative text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary ${showBoard ? 'text-[#e8e5ce] after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:bg-brand-accent after:content-[\'\'] relative' : 'text-white/70 hover:text-white'}`}
+                onClick={() => setShowBoard(!showBoard)}
+                title="Campaign board"
+                aria-label="Campaign board"
+                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showBoard ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
               >
-                Board
-                {cards.length > 0 && <span className="ml-1 text-brand-accent">({cards.length})</span>}
-                {!showBoard && <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="18" rx="1" />
+                  <rect x="14" y="3" width="7" height="10" rx="1" />
+                  <rect x="14" y="17" width="7" height="4" rx="1" />
+                </svg>
+                {cards.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-primary text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
+                    {cards.length}
+                  </span>
+                )}
               </button>
+              {/* Drafts */}
               <button
                 type="button"
                 onClick={openDrafts}
-                className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
+                title="Saved drafts"
+                aria-label="Saved drafts"
+                className="w-8 h-8 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
               >
-                Drafts
-                {drafts.length > 0 && <span className="ml-1 text-brand-accent">({drafts.length})</span>}
-                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                {drafts.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-primary text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
+                    {drafts.length}
+                  </span>
+                )}
               </button>
+              {/* Settings */}
               <button
                 type="button"
                 onClick={openSettings}
-                className="group relative text-white/70 hover:text-white text-xs tracking-[0.12em] uppercase font-ni-heading px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 focus-visible:ring-offset-brand-primary"
+                title="Settings"
+                aria-label="Settings"
+                className="w-8 h-8 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
               >
-                Settings
-                <span className="absolute bottom-0 left-4 right-4 h-[2px] bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left" aria-hidden="true" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
               </button>
             </nav>
+
+            {/* User + sign out */}
+            {profile && (
+              <div className="hidden md:flex items-center gap-2 mr-3 pl-3 border-l border-white/20">
+                <span className="text-xs text-white/60 truncate max-w-[120px]">{profile.displayName}</span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="text-xs text-white/50 hover:text-white transition-colors"
+                  title="Sign out"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
             {/* Save status — always present so layout doesn't shift */}
             <span
@@ -445,6 +558,18 @@ export function FormShell() {
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
               </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Sign out"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -458,43 +583,56 @@ export function FormShell() {
       )}
 
       {/* ── Hero band — compact on interior steps ── */}
-      {!showBoard && <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
-        <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
-          <div>
-            <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
-            <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
-              Email Briefing
-            </h1>
-            {showTemplatePicker && (
-              <p className="text-[#e8e5ce]/60 text-sm mt-2">
-                Create brand-compliant HTML emails for Ninety One marketing campaigns.
-              </p>
-            )}
-          </div>
-          {!showTemplatePicker && (
-            <div className="text-right hidden sm:block shrink-0">
-              {!isPipelineStep ? (
-                <>
-                  <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Current Step</p>
-                  <p className="font-ni-display leading-none">
-                    <span className="text-brand-accent text-3xl">{currentStep + 1}</span>
-                    <span className="text-white/30 text-2xl mx-1.5">/</span>
-                    <span className="text-white/50 text-2xl">4</span>
+      {!showBoard && (() => {
+        const dynamicName = buildEmailName(watchedCampaignName, watchedRegions, watchedChannels, watchedDescription)
+        const hasData = watchedCampaignName || watchedRegions.length > 0 || watchedChannels.length > 0
+        return (
+          <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
+            <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
+              <div className="min-w-0">
+                <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
+                <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
+                  {!showTemplatePicker && hasData ? (
+                    <>
+                      <span className="text-white/50">Email Briefing:</span>{' '}
+                      <span className="truncate">{dynamicName}</span>
+                    </>
+                  ) : (
+                    'Email Briefing'
+                  )}
+                </h1>
+                {showTemplatePicker && (
+                  <p className="text-[#e8e5ce]/60 text-sm mt-2">
+                    Create brand-compliant HTML emails for Ninety One marketing campaigns.
                   </p>
-                  <p className="text-white/50 text-xs uppercase tracking-[0.18em] mt-1.5 font-ni-heading">{STEP_LABELS[currentStep]}</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
-                  <p className="font-ni-display text-[#e8e5ce] text-xl leading-none">
-                    {pipelineStep === 4 ? 'Brand Review' : 'HTML Email'}
-                  </p>
-                </>
+                )}
+              </div>
+              {!showTemplatePicker && (
+                <div className="text-right hidden sm:block shrink-0">
+                  {!isPipelineStep ? (
+                    <>
+                      <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Current Step</p>
+                      <p className="font-ni-display leading-none">
+                        <span className="text-brand-accent text-3xl">{currentStep + 1}</span>
+                        <span className="text-white/30 text-2xl mx-1.5">/</span>
+                        <span className="text-white/50 text-2xl">3</span>
+                      </p>
+                      <p className="text-white/50 text-xs uppercase tracking-[0.18em] mt-1.5 font-ni-heading">{STEP_LABELS[currentStep]}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
+                      <p className="font-ni-display text-[#e8e5ce] text-xl leading-none">
+                        {pipelineStep === 3 ? 'Brand Review' : 'HTML Email'}
+                      </p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
-      </div>}
+          </div>
+        )
+      })()}
 
       {/* ── Step tabs (sticky below nav) ── */}
       {!showBoard && <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
@@ -526,19 +664,18 @@ export function FormShell() {
                 <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700">
                   <div ref={stepContentRef} className="p-8 lg:p-10">
                     {!isPipelineStep && currentStep === 0 && <StepCampaign />}
-                    {!isPipelineStep && currentStep === 1 && <StepAudience />}
-                    {!isPipelineStep && currentStep === 2 && <StepContent />}
-                    {!isPipelineStep && currentStep === 3 && (
+                    {!isPipelineStep && currentStep === 1 && <StepContent />}
+                    {!isPipelineStep && currentStep === 2 && (
                       <StepReview onSubmit={submitBrief} submitStatus={submitStatus} />
                     )}
-                    {pipelineStep === 4 && (
+                    {pipelineStep === 3 && (
                       <StepBrandReview
                         onAccept={handleBrandAccept}
                         onDecline={handleBrandDecline}
                         onGoToStep={handleGoToStep}
                       />
                     )}
-                    {pipelineStep === 5 && (
+                    {pipelineStep === 4 && (
                       <StepHtmlReview
                         onComplete={() => {
                           saveDraft(form.getValues(), form.getValues().campaign.campaignName)
@@ -555,6 +692,8 @@ export function FormShell() {
                     step={effectiveStep}
                     currentTheme={currentTheme}
                     onChangeTemplate={!isPipelineStep && currentStep === 0 ? handleChangeTemplate : undefined}
+                    campaignName={watchedCampaignName || undefined}
+                    onOpenInsights={watchedCampaignName ? () => setShowInsights(true) : undefined}
                   />
                 </div>
               </div>
@@ -582,7 +721,7 @@ export function FormShell() {
               <div />
             )}
             <span className="text-xs text-brand-text-muted dark:text-gray-500 hidden sm:block">
-              Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">4</strong>
+              Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">3</strong>
             </span>
             {isLastBriefStep ? (
               <button
@@ -641,6 +780,11 @@ export function FormShell() {
 
       {/* Drawers */}
       <SettingsPanel />
+      <CampaignInsightsSlideOver
+        isOpen={showInsights}
+        onClose={() => setShowInsights(false)}
+        campaignName={watchedCampaignName}
+      />
       <DraftsDrawer
         isOpen={isDraftsOpen}
         onClose={closeDrafts}

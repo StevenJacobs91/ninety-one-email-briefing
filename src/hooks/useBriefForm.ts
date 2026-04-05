@@ -5,9 +5,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { briefSchema, type BriefFormData } from '../lib/schema'
 import { getStepFields } from '../lib/validateStep'
 import { downloadBriefJson, copyBriefToClipboard } from '../lib/exportBrief'
+import { insertBrief } from '../lib/supabaseQueries'
 import type { BriefPayload } from '../types/brief.types'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 4
 
 interface BriefFormDefaults {
   fromName?: string
@@ -28,6 +29,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
       status: 'draft',
     },
     campaign: {
+      emailDescription: '',
       emailType: (defaults?.emailType ?? 'campaign') as BriefFormData['campaign']['emailType'],
       campaignName: '',
       theme: (defaults?.theme ?? 'leatherback-coral') as BriefFormData['campaign']['theme'],
@@ -87,7 +89,12 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
   }
 }
 
-export function useBriefForm(defaults?: BriefFormDefaults) {
+interface SupabaseContext {
+  teamId?: string
+  userId?: string
+}
+
+export function useBriefForm(defaults?: BriefFormDefaults, supabaseCtx?: SupabaseContext) {
   const [currentStep, setCurrentStep] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
@@ -135,12 +142,20 @@ export function useBriefForm(defaults?: BriefFormDefaults) {
       } else {
         await copyBriefToClipboard(payload)
       }
+
+      // Persist to Supabase
+      if (supabaseCtx?.teamId && supabaseCtx?.userId) {
+        insertBrief(supabaseCtx.teamId, supabaseCtx.userId, payload).catch((err) =>
+          console.error('Brief persistence failed:', err)
+        )
+      }
+
       form.setValue('meta.status', 'submitted')
       setSubmitStatus('success')
     } catch {
       setSubmitStatus('error')
     }
-  }, [form])
+  }, [form, supabaseCtx])
 
   return {
     form,
