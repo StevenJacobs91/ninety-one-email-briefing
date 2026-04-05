@@ -170,44 +170,39 @@ export const DEFAULT_HTML_MODULES: HtmlModuleConfig[] = [
 export const DEFAULT_FORM_STEPS: FormStepConfig[] = [
   { id: 'campaign', label: 'Campaign', order: 0, visible: true },
   { id: 'content', label: 'Content', order: 1, visible: true },
-  { id: 'review', label: 'Review', order: 2, visible: true },
+  { id: 'review', label: 'Brief Review', order: 2, visible: true },
 ]
 
 // ─── Default Form Fields ────────────────────────────────────
 
 export const DEFAULT_FORM_FIELDS: FormFieldConfig[] = [
-  // Step 0 — Campaign (Deadlines, Targeting, Email Identity, Message Envelope, Sender, Audience)
+  // Step 0 — Campaign (core email identity fields only)
   { id: 'campaign.emailDescription', label: 'Email Description', stepIndex: 0, required: false, visible: true, order: 0 },
-  { id: 'deadlines.contentApprovalDate', label: 'Content Approval Date', stepIndex: 0, required: true, visible: true, order: 1 },
-  { id: 'deadlines.sendDate', label: 'Send Date', stepIndex: 0, required: true, visible: true, order: 2 },
-  { id: 'deadlines.urgency', label: 'Urgency', stepIndex: 0, required: true, visible: true, order: 3 },
-  { id: 'deadlines.oneOnOneRequired', label: '1-1 Required', stepIndex: 0, required: false, visible: true, order: 4 },
-  { id: 'deadlines.notes', label: 'Notes', stepIndex: 0, required: false, visible: true, order: 5 },
-  { id: 'audience.clientGroup', label: 'Client Group', stepIndex: 0, required: true, visible: true, order: 6 },
-  { id: 'audience.region', label: 'Region', stepIndex: 0, required: true, visible: true, order: 7 },
-  { id: 'audience.channel', label: 'Channel', stepIndex: 0, required: true, visible: true, order: 8 },
-  { id: 'campaign.emailType', label: 'Email Type', stepIndex: 0, required: true, visible: true, order: 9 },
-  { id: 'campaign.campaignName', label: 'Campaign Name', stepIndex: 0, required: true, visible: true, order: 10 },
-  { id: 'campaign.theme', label: 'Brand Theme', stepIndex: 0, required: true, visible: true, order: 11 },
-  { id: 'campaign.subjectLine', label: 'Subject Line', stepIndex: 0, required: true, visible: true, order: 12 },
-  { id: 'campaign.previewText', label: 'Preview Text', stepIndex: 0, required: true, visible: true, order: 13 },
-  { id: 'campaign.fromName', label: 'From Name', stepIndex: 0, required: true, visible: true, order: 14 },
-  { id: 'campaign.fromAddress', label: 'From Address', stepIndex: 0, required: true, visible: true, order: 15 },
-  { id: 'campaign.replyToEmail', label: 'Reply-To Email', stepIndex: 0, required: false, visible: true, order: 16 },
-  { id: 'assets.logoVariant', label: 'Logo Variant', stepIndex: 0, required: true, visible: true, order: 17 },
-  { id: 'assets.heroImageUrl', label: 'Hero Image URL', stepIndex: 0, required: false, visible: true, order: 18 },
-  { id: 'assets.heroImageAlt', label: 'Hero Image Alt Text', stepIndex: 0, required: false, visible: true, order: 19 },
-  { id: 'audience.distributionLists', label: 'Distribution Lists', stepIndex: 0, required: false, visible: true, order: 20 },
-  { id: 'audience.pardotListId', label: 'Pardot List ID', stepIndex: 0, required: false, visible: true, order: 21 },
+  { id: 'campaign.emailType',        label: 'Email Type',        stepIndex: 0, required: true,  visible: true, order: 1 },
+  { id: 'campaign.campaignName',     label: 'Campaign Name',     stepIndex: 0, required: true,  visible: true, order: 2 },
+  { id: 'campaign.theme',            label: 'Brand Theme',       stepIndex: 0, required: true,  visible: true, order: 3 },
+  { id: 'campaign.subjectLine',      label: 'Subject Line',      stepIndex: 0, required: true,  visible: true, order: 4 },
+  { id: 'campaign.previewText',      label: 'Preview Text',      stepIndex: 0, required: true,  visible: true, order: 5 },
+  { id: 'campaign.fromName',         label: 'From Name',         stepIndex: 0, required: true,  visible: true, order: 6 },
+  { id: 'campaign.fromAddress',      label: 'From Address',      stepIndex: 0, required: true,  visible: true, order: 7 },
+  { id: 'campaign.replyToEmail',     label: 'Reply-To Email',    stepIndex: 0, required: false, visible: true, order: 8 },
 
   // Step 1 — Content
-  { id: 'content.headline', label: 'Headline', stepIndex: 1, required: true, visible: true, order: 0 },
-  { id: 'content.bodyIntro', label: 'Body Intro', stepIndex: 1, required: true, visible: true, order: 1 },
-  { id: 'content.sections', label: 'Content Sections', stepIndex: 1, required: true, visible: true, order: 2 },
-  { id: 'content.modules', label: 'Email Modules', stepIndex: 1, required: false, visible: true, order: 3 },
-  { id: 'content.cta', label: 'Call to Action', stepIndex: 1, required: true, visible: true, order: 4 },
-  { id: 'content.legalDisclaimer', label: 'Legal Disclaimer', stepIndex: 1, required: false, visible: true, order: 5 },
-  { id: 'content.includeUnsubscribe', label: 'Include Unsubscribe', stepIndex: 1, required: false, visible: true, order: 6 },
+  { id: 'content.headline',          label: 'Headline',           stepIndex: 1, required: true,  visible: true, order: 0 },
+  { id: 'content.bodyIntro',         label: 'Body Intro',         stepIndex: 1, required: true,  visible: true, order: 1 },
+  { id: 'content.sections',          label: 'Content Sections',   stepIndex: 1, required: true,  visible: true, order: 2 },
+  { id: 'content.modules',           label: 'Email Modules',      stepIndex: 1, required: false, visible: true, order: 3 },
+  { id: 'content.cta',               label: 'Call to Action',     stepIndex: 1, required: true,  visible: true, order: 4 },
+  { id: 'content.legalDisclaimer',   label: 'Legal Disclaimer',   stepIndex: 1, required: false, visible: true, order: 5 },
+  { id: 'content.includeUnsubscribe',label: 'Include Unsubscribe',stepIndex: 1, required: false, visible: true, order: 6 },
+
+  // Step 2 — Brief Review (controls which sections appear in the review summary)
+  { id: 'review.campaignSection',   label: 'Campaign Section',   stepIndex: 2, required: false, visible: true, order: 0 },
+  { id: 'review.audienceSection',   label: 'Audience Section',   stepIndex: 2, required: false, visible: true, order: 1 },
+  { id: 'review.contentSection',    label: 'Content Section',    stepIndex: 2, required: false, visible: true, order: 2 },
+  { id: 'review.assetsSection',     label: 'Assets Section',     stepIndex: 2, required: false, visible: true, order: 3 },
+  { id: 'review.deadlinesSection',  label: 'Deadlines Section',  stepIndex: 2, required: false, visible: true, order: 4 },
+  { id: 'review.exportOptions',     label: 'Export Options',     stepIndex: 2, required: false, visible: true, order: 5 },
 ]
 
 // ─── Default Brand Guardian Config ──────────────────────────
