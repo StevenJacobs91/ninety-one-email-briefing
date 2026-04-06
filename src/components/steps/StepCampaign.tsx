@@ -130,10 +130,30 @@ export function StepCampaign() {
   function handleCampaignSelect(campaignName: string) {
     setValue('campaign.campaignName', campaignName, { shouldValidate: true })
     const campaign = allCampaigns.find((c) => c.name === campaignName)
+
     if (campaign?.senderPreset) {
       if (campaign.senderPreset.fromName) setValue('campaign.fromName', campaign.senderPreset.fromName, { shouldValidate: false })
       if (campaign.senderPreset.fromAddress) setValue('campaign.fromAddress', campaign.senderPreset.fromAddress, { shouldValidate: false })
       if (campaign.senderPreset.replyToEmail !== undefined) setValue('campaign.replyToEmail', campaign.senderPreset.replyToEmail, { shouldValidate: false })
+    }
+
+    if (campaign?.contentPreset) {
+      const cp = campaign.contentPreset
+      const set = (field: Parameters<typeof setValue>[0], value: string) =>
+        setValue(field, value as never, { shouldDirty: true, shouldValidate: false })
+
+      if (cp.theme) set('campaign.theme', cp.theme)
+      if (cp.subjectLine) set('campaign.subjectLine', cp.subjectLine)
+      if (cp.previewText) set('campaign.previewText', cp.previewText)
+      if (cp.headline) set('content.headline', cp.headline)
+      if (cp.subHeadline) set('content.subHeadline', cp.subHeadline)
+      if (cp.heroImageUrl) set('assets.heroImageUrl', cp.heroImageUrl)
+      if (cp.signatureId) set('content.footerSignoffId', cp.signatureId)
+      if (cp.pardotListId) set('audience.pardotListId', cp.pardotListId)
+      if (cp.disclaimerId) {
+        const disclaimerEntry = (settings.legalDisclaimers ?? []).find((d) => d.id === cp.disclaimerId)
+        if (disclaimerEntry) set('content.legalDisclaimer', disclaimerEntry.text)
+      }
     }
   }
 

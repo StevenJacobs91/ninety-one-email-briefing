@@ -108,7 +108,9 @@ function hasAnyContentPresetValue(cp: CampaignContentPreset): boolean {
 }
 
 function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
-  const contentPreset = form.hasContentPreset && hasAnyContentPresetValue(form.contentPreset)
+  // Save contentPreset if the section is enabled OR if any field has a value —
+  // prevents accidentally discarding filled-in data when the toggle state is stale.
+  const contentPreset = hasAnyContentPresetValue(form.contentPreset)
     ? { ...form.contentPreset }
     : undefined
 
