@@ -108,21 +108,90 @@ export interface LegalDisclaimerConfig {
   isDefault: boolean // Whether this is the auto-selected default for the region
 }
 
+/** A single form-field → API-parameter mapping entry */
+export interface PardotFieldMapping {
+  id: string
+  /** Dot-path into BriefFormData, e.g. "campaign.subjectLine" */
+  formField: string
+  /** Account Engagement API parameter name, e.g. "subject" or "customField__c" */
+  apiParameter: string
+  /** Which API object this parameter belongs to */
+  apiObject: 'list-email' | 'prospect' | 'campaign'
+  /** Optional transformation note shown in the UI */
+  notes: string
+}
+
+export type PardotSenderType =
+  | 'general_user'
+  | 'specific_user'
+  | 'assigned_user'
+  | 'account_owner'
+  | 'account_custom_field'
+  | 'prospect_custom_field'
+
+export type PardotEdition = 'growth' | 'plus' | 'advanced' | 'premium'
+
 export interface PardotConfig {
   /** Use mock data instead of live API calls */
   useMockData: boolean
-  /** Salesforce Account Engagement Business Unit ID (18-char) */
+
+  // ── Environment ──────────────────────────────────────────────────
+  /** Production uses login.salesforce.com / pi.pardot.com; Sandbox uses test.salesforce.com / pi.demo.pardot.com */
+  environment: 'production' | 'sandbox'
+
+  // ── Connected App (OAuth 2.0) ────────────────────────────────────
+  /** Consumer Key from the Salesforce Connected App */
+  clientId: string
+  /** Consumer Secret from the Salesforce Connected App */
+  clientSecret: string
+  /** OAuth redirect/callback URI registered on the Connected App */
+  redirectUri: string
+
+  // ── Business Unit ────────────────────────────────────────────────
+  /** Salesforce Account Engagement Business Unit ID (18-char, starts with 0Uv) */
   businessUnitId: string
+
+  // ── Proxy & Instance ─────────────────────────────────────────────
   /**
    * URL of your server-side proxy that forwards requests to the Pardot v5 API.
-   * Required when useMockData = false.
+   * Required — Account Engagement does not support browser CORS requests.
    */
   apiProxyUrl: string
   /**
-   * Pardot instance base URL.
+   * Pardot instance base URL (derived from environment, can be overridden).
    * Standard: https://pi.pardot.com  |  EU: https://pi.eu.pardot.com
    */
   instanceUrl: string
+
+  // ── API Version ──────────────────────────────────────────────────
+  /** v5 is preferred for all new integrations; v4 for legacy AMPSEA accounts */
+  apiVersion: 'v5' | 'v4'
+
+  // ── Edition & Rate Limits ────────────────────────────────────────
+  /** Account edition — determines daily API call limit */
+  edition: PardotEdition
+
+  // ── Email Defaults ───────────────────────────────────────────────
+  /** Default Pardot list ID to use when none is specified in the brief */
+  defaultListId: string
+  /** Default Pardot campaign ID to associate with list emails */
+  defaultCampaignId: string
+  /** Default email template ID (integer string) */
+  defaultEmailTemplateId: string
+  /** Comma-separated list IDs to always suppress from sends */
+  defaultSuppressionListIds: string
+
+  // ── Sender & Reply-To ────────────────────────────────────────────
+  senderType: PardotSenderType
+  /** User ID when senderType is "specific_user" */
+  senderUserId: string
+  replyToType: PardotSenderType
+  /** Static reply-to address when replyToType is "specific_user" */
+  replyToAddress: string
+
+  // ── Field Mappings ───────────────────────────────────────────────
+  /** Manual mapping from brief form fields to Account Engagement API parameters */
+  fieldMappings: PardotFieldMapping[]
 }
 
 /** Sender details that auto-populate when this campaign is selected */

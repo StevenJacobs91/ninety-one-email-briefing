@@ -5,7 +5,14 @@
       "name": "dev",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--port", "5173"],
+      "env": {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},
       "port": 5173
+    },
+    {
+      "name": "mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", ".", "-p", "5174", "--no-clipboard"],
+      "port": 5174
     }
   ]
 }

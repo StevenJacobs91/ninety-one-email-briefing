@@ -11,6 +11,7 @@ import type {
   FormDefaults,
   LegalDisclaimerConfig,
   PardotConfig,
+  PardotFieldMapping,
   CampaignEntry,
   SignoffEntry,
   AssetEntry,
@@ -279,9 +280,32 @@ export const DEFAULT_LEGAL_DISCLAIMERS: LegalDisclaimerConfig[] = [
 
 export const DEFAULT_PARDOT_CONFIG: PardotConfig = {
   useMockData: true,
+  environment: 'production',
+  clientId: '',
+  clientSecret: '',
+  redirectUri: '',
   businessUnitId: '',
   apiProxyUrl: '',
   instanceUrl: 'https://pi.pardot.com',
+  apiVersion: 'v5',
+  edition: 'plus',
+  defaultListId: '',
+  defaultCampaignId: '',
+  defaultEmailTemplateId: '',
+  defaultSuppressionListIds: '',
+  senderType: 'general_user',
+  senderUserId: '',
+  replyToType: 'general_user',
+  replyToAddress: '',
+  fieldMappings: [
+    { id: 'fm-1', formField: 'campaign.subjectLine',   apiParameter: 'subject',                 apiObject: 'list-email', notes: '' },
+    { id: 'fm-2', formField: 'campaign.campaignName',  apiParameter: 'name',                    apiObject: 'list-email', notes: 'Used as internal email label' },
+    { id: 'fm-3', formField: 'audience.pardotListId',  apiParameter: 'recipientListIds',         apiObject: 'list-email', notes: 'Comma-separated list IDs' },
+    { id: 'fm-4', formField: 'campaign.fromName',      apiParameter: 'senderOptions.name',      apiObject: 'list-email', notes: '' },
+    { id: 'fm-5', formField: 'campaign.fromAddress',   apiParameter: 'senderOptions.address',   apiObject: 'list-email', notes: '' },
+    { id: 'fm-6', formField: 'campaign.replyToEmail',  apiParameter: 'replyToOptions.address',  apiObject: 'list-email', notes: '' },
+    { id: 'fm-7', formField: 'deadlines.sendDate',     apiParameter: 'scheduledTime',           apiObject: 'list-email', notes: 'ISO 8601 — convert from YYYY-MM-DD' },
+  ],
 }
 
 // ─── Default Campaigns ──────────────────────────────────────
