@@ -11,7 +11,9 @@ import { FieldTextarea } from '../ui/FieldTextarea'
 import { SubSection } from '../ui/SubSection'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { StepAudience } from './StepAudience'
+import { SendTimeSuggestion } from './SendTimeSuggestion'
 
 // Merge built-in array with custom settings items, deduplicating by value
 function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
@@ -48,6 +50,7 @@ function buildTags(data: BriefFormData): string {
 export function StepCampaign() {
   const { register, watch, formState: { errors }, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
+  const { profile } = useAuth()
 
   // ── Campaign fields ──
   const emailDescription = watch('campaign.emailDescription') ?? ''
@@ -217,6 +220,17 @@ export function StepCampaign() {
 
       {/* Sub-section: Deadlines */}
       <SubSection title="Deadlines">
+        {settings.sendTimeOptimisation?.enabled && profile?.teamId && (
+          <SendTimeSuggestion
+            teamId={profile.teamId}
+            emailType={watch('campaign.emailType') ?? ''}
+            enabled={settings.sendTimeOptimisation.enabled}
+            onApply={(isoDate) => {
+              const dateOnly = isoDate.split('T')[0]
+              setValue('deadlines.sendDate', dateOnly, { shouldValidate: true })
+            }}
+          />
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldText
             label="Content Approval Date"

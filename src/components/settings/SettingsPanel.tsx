@@ -20,6 +20,7 @@ import { TabCampaignInsights } from './TabCampaignInsights'
 import { TabApprovals } from './TabApprovals'
 import { TabSendTimeOptimisation } from './TabSendTimeOptimisation'
 import { TabBenchmarks } from './TabBenchmarks'
+import { TabAudienceHealth } from './TabAudienceHealth'
 
 interface TabConfig {
   id: SettingsTab
@@ -237,7 +238,7 @@ export function SettingsPanel() {
               {activeTab === 'approvals'       && <TabApprovals />}
               {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
-              {activeTab === 'audience-health' && <div className="max-w-2xl space-y-8"><p className="text-sm text-gray-500 dark:text-gray-400">Audience Health monitoring is configured here. Enable the feature to view the Audience Health dashboard from the main navigation.</p></div>}
+              {activeTab === 'audience-health' && <TabAudienceHealth />}
             </div>
           </div>
         </div>
