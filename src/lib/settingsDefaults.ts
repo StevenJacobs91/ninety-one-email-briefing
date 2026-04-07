@@ -11,12 +11,12 @@ import type {
   FormDefaults,
   LegalDisclaimerConfig,
   PardotConfig,
-  PardotFieldMapping,
   CampaignEntry,
   SignoffEntry,
   AssetEntry,
   CampaignInsightsConfig,
 } from '../types/settings.types'
+import type { ApprovalConfig } from '../types/approval.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 
 // ─── Default Brand Themes ───────────────────────────────────
@@ -358,6 +358,16 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
   },
 ]
 
+// ─── Approvals Defaults ─────────────────────────────────────
+
+const DEFAULT_APPROVALS: ApprovalConfig = {
+  enabled: false,
+  defaultStages: [],
+  emailTypeConfigs: [],
+  selfServiceRequest: true,
+  blockDistributionWithoutApproval: false,
+}
+
 // ─── Campaign Insights Defaults ─────────────────────────────
 
 const DEFAULT_CAMPAIGN_INSIGHTS: CampaignInsightsConfig = {
@@ -408,5 +418,6 @@ export function createDefaultSettings(): AppSettings {
       },
     },
     campaignInsights: DEFAULT_CAMPAIGN_INSIGHTS,
+    approvals: DEFAULT_APPROVALS,
   }
 }

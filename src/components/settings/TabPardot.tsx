@@ -151,89 +151,11 @@ function ConfigBadge({ cfg }: { cfg: PardotConfig }) {
   )
 }
 
-// ─── Field Mapping Row ────────────────────────────────────────────────────────
-
-function MappingRow({
-  mapping,
-  onChange,
-  onDelete,
-}: {
-  mapping: PardotFieldMapping
-  onChange: (patch: Partial<PardotFieldMapping>) => void
-  onDelete: () => void
-}) {
-  return (
-    <tr className="group border-b border-gray-100 dark:border-gray-800 last:border-0">
-      {/* Form field */}
-      <td className="py-2 pr-2">
-        <select
-          value={mapping.formField}
-          onChange={(e) => onChange({ formField: e.target.value })}
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
-        >
-          <option value="">— Select field —</option>
-          {FORM_FIELD_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-          {!FORM_FIELD_OPTIONS.find((o) => o.value === mapping.formField) && mapping.formField && (
-            <option value={mapping.formField}>{mapping.formField}</option>
-          )}
-        </select>
-      </td>
-      {/* API parameter */}
-      <td className="py-2 pr-2">
-        <input
-          type="text"
-          value={mapping.apiParameter}
-          onChange={(e) => onChange({ apiParameter: e.target.value })}
-          placeholder="e.g. subject or customField__c"
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
-        />
-      </td>
-      {/* API object */}
-      <td className="py-2 pr-2">
-        <select
-          value={mapping.apiObject}
-          onChange={(e) => onChange({ apiObject: e.target.value as PardotFieldMapping['apiObject'] })}
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
-        >
-          {(Object.entries(API_OBJECT_LABELS) as [PardotFieldMapping['apiObject'], string][]).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
-      </td>
-      {/* Notes */}
-      <td className="py-2 pr-2">
-        <input
-          type="text"
-          value={mapping.notes}
-          onChange={(e) => onChange({ notes: e.target.value })}
-          placeholder="Optional note"
-          className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
-        />
-      </td>
-      {/* Delete */}
-      <td className="py-2 text-center">
-        <button
-          type="button"
-          onClick={onDelete}
-          className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-          title="Remove mapping"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </td>
-    </tr>
-  )
-}
-
 // ─── Main Tab ─────────────────────────────────────────────────────────────────
 
 export function TabPardot() {
   const { settings, updateSettings } = useSettings()
-  const cfg: PardotConfig = {
+  const cfgDefaults: Partial<PardotConfig> = {
     environment: 'production',
     clientId: '',
     clientSecret: '',
@@ -249,8 +171,8 @@ export function TabPardot() {
     replyToType: 'general_user',
     replyToAddress: '',
     fieldMappings: [],
-    ...settings.pardot,
   }
+  const cfg: PardotConfig = { ...cfgDefaults, ...settings.pardot } as PardotConfig
 
   function update(patch: Partial<PardotConfig>) {
     updateSettings({ pardot: { ...cfg, ...patch } })

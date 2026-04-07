@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { KanbanProvider } from './contexts/KanbanContext'
+import { ApprovalsProvider } from './contexts/ApprovalsContext'
 import { FormShell } from './components/layout/FormShell'
 import { LoginPage } from './components/auth/LoginPage'
 
@@ -24,11 +25,13 @@ function AuthGate() {
   return (
     <SettingsProvider>
       <KanbanProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="*" element={<FormShell />} />
-          </Routes>
-        </BrowserRouter>
+        <ApprovalsProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="*" element={<FormShell />} />
+            </Routes>
+          </BrowserRouter>
+        </ApprovalsProvider>
       </KanbanProvider>
     </SettingsProvider>
   )

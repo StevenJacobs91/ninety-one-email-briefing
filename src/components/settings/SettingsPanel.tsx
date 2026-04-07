@@ -17,6 +17,7 @@ import { TabSignatures } from './TabSignatures'
 import { TabUsers } from './TabUsers'
 import { TabAuditLog } from './TabAuditLog'
 import { TabCampaignInsights } from './TabCampaignInsights'
+import { TabApprovals } from './TabApprovals'
 
 interface TabConfig {
   id: SettingsTab
@@ -68,6 +69,12 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Analytics',
     tabs: [
       { id: 'insights', label: 'Campaign Insights', description: 'Enable or disable insights and configure which panels are shown' },
+    ],
+  },
+  {
+    label: 'Approvals',
+    tabs: [
+      { id: 'approvals', label: 'Approvals', description: 'Configure approval workflow, roles, and routing rules' },
     ],
   },
 ]
@@ -222,6 +229,7 @@ export function SettingsPanel() {
               {activeTab === 'disclaimers' && <TabDisclaimers />}
               {activeTab === 'pardot'     && <TabPardot />}
               {activeTab === 'insights'   && <TabCampaignInsights />}
+              {activeTab === 'approvals'  && <TabApprovals />}
             </div>
           </div>
         </div>

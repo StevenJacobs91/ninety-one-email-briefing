@@ -334,6 +334,8 @@ export interface AppSettings {
   audit: AuditConfig
   // Campaign Insights
   campaignInsights: CampaignInsightsConfig
+  // Approvals
+  approvals: import('./approval.types').ApprovalConfig
 }
 
 export type SettingsTab =
@@ -352,3 +354,4 @@ export type SettingsTab =
   | 'pardot'
   | 'audit'
   | 'insights'
+  | 'approvals'

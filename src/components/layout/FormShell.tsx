@@ -20,6 +20,8 @@ import { StepBrandReview } from '../steps/StepBrandReview'
 import { StepHtmlReview } from '../steps/StepHtmlReview'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { KanbanBoard } from '../kanban/KanbanBoard'
+import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
+import { useApprovals } from '../../contexts/ApprovalsContext'
 import type { BriefTemplate } from '../../lib/constants'
 import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
@@ -214,6 +216,7 @@ export function FormShell() {
   const { senderDefaults, formDefaults } = settings
   const { profile, user, signOut } = useAuth()
   const { addCard, cards, loading: kanbanLoading } = useKanban()
+  const { pendingCount } = useApprovals()
 
   // Derive visible brief steps from settings, sorted by order
   const visibleBriefSteps = useMemo(
@@ -255,6 +258,7 @@ export function FormShell() {
   )
   const [showBoard, setShowBoard] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
+  const [showApprovals, setShowApprovals] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
@@ -467,6 +471,26 @@ export function FormShell() {
                   </span>
                 )}
               </button>
+              {/* Approvals */}
+              {settings.approvals?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setShowApprovals(!showApprovals)}
+                  title="Approvals"
+                  aria-label="Approvals"
+                  className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showApprovals ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-400 text-gray-900 text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              )}
               {/* Drafts */}
               <button
                 type="button"
@@ -807,6 +831,10 @@ export function FormShell() {
 
       {/* Drawers */}
       <SettingsPanel />
+      <ApprovalsPanel
+        isOpen={showApprovals}
+        onClose={() => setShowApprovals(false)}
+      />
       <CampaignInsightsSlideOver
         isOpen={showInsights}
         onClose={() => setShowInsights(false)}
