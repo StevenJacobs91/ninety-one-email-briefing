@@ -6,6 +6,9 @@ import { FieldTextarea } from '../ui/FieldTextarea'
 import { URGENCY_OPTIONS, BRAND_THEMES } from '../../lib/constants'
 import { BriefSummary } from '../ui/BriefSummary'
 import { PrintBrief } from '../ui/PrintBrief'
+import { SendTimeSuggestion } from './SendTimeSuggestion'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface StepDeadlinesProps {
   onSubmit: (mode: 'download' | 'clipboard') => void
@@ -43,6 +46,8 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
   const { register, watch, setValue, formState: { errors } } = form
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [tagsCopied, setTagsCopied] = useState(false)
+  const { settings } = useSettings()
+  const { profile } = useAuth()
 
   const notes = watch('deadlines.notes') ?? ''
   const contentApprovalDate = watch('deadlines.contentApprovalDate') ?? ''
@@ -70,6 +75,18 @@ export function StepDeadlines({ onSubmit, submitStatus }: StepDeadlinesProps) {
   return (
     <div>
       <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-8">Deadlines</h2>
+
+      {settings.sendTimeOptimisation?.enabled && profile?.teamId && (
+        <SendTimeSuggestion
+          teamId={profile.teamId}
+          emailType={watch('campaign.emailType') ?? ''}
+          enabled={settings.sendTimeOptimisation.enabled}
+          onApply={(isoDate) => {
+            const dateOnly = isoDate.split('T')[0]
+            setValue('deadlines.sendDate', dateOnly, { shouldValidate: true })
+          }}
+        />
+      )}
 
       <FieldText
         label="Content Approval Date"

@@ -15,6 +15,8 @@ import type {
   SignoffEntry,
   AssetEntry,
   CampaignInsightsConfig,
+  BenchmarksConfig,
+  AudienceHealthConfig,
 } from '../types/settings.types'
 import type { ApprovalConfig } from '../types/approval.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
@@ -358,6 +360,13 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
   },
 ]
 
+// ─── Send Time Optimisation Defaults ────────────────────────
+
+const DEFAULT_SEND_TIME_OPTIMISATION = {
+  enabled: false,
+  minEventsRequired: 5,
+}
+
 // ─── Approvals Defaults ─────────────────────────────────────
 
 const DEFAULT_APPROVALS: ApprovalConfig = {
@@ -381,6 +390,9 @@ const DEFAULT_CAMPAIGN_INSIGHTS: CampaignInsightsConfig = {
   showKeyInsights: true,
   showRecommendations: true,
 }
+
+const DEFAULT_BENCHMARKS: BenchmarksConfig = { enabled: false }
+const DEFAULT_AUDIENCE_HEALTH: AudienceHealthConfig = { enabled: false }
 
 // ─── Full Default Settings ──────────────────────────────────
 
@@ -419,5 +431,8 @@ export function createDefaultSettings(): AppSettings {
     },
     campaignInsights: DEFAULT_CAMPAIGN_INSIGHTS,
     approvals: DEFAULT_APPROVALS,
+    sendTimeOptimisation: DEFAULT_SEND_TIME_OPTIMISATION,
+    benchmarks: DEFAULT_BENCHMARKS,
+    audienceHealth: DEFAULT_AUDIENCE_HEALTH,
   }
 }

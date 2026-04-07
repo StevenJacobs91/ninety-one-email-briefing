@@ -18,6 +18,8 @@ import { TabUsers } from './TabUsers'
 import { TabAuditLog } from './TabAuditLog'
 import { TabCampaignInsights } from './TabCampaignInsights'
 import { TabApprovals } from './TabApprovals'
+import { TabSendTimeOptimisation } from './TabSendTimeOptimisation'
+import { TabBenchmarks } from './TabBenchmarks'
 
 interface TabConfig {
   id: SettingsTab
@@ -68,7 +70,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Analytics',
     tabs: [
-      { id: 'insights', label: 'Campaign Insights', description: 'Enable or disable insights and configure which panels are shown' },
+      { id: 'insights',        label: 'Campaign Insights',     description: 'Enable or disable insights and configure which panels are shown' },
+      { id: 'send-time',       label: 'Send Time Optimisation', description: 'ML-powered send time recommendations based on historical engagement' },
+      { id: 'benchmarks',      label: 'Benchmarks',            description: 'Add industry benchmark data and compare against your campaign performance' },
+      { id: 'audience-health', label: 'Audience Health',       description: 'Configure predictive churn detection and audience health monitoring' },
     ],
   },
   {
@@ -229,7 +234,10 @@ export function SettingsPanel() {
               {activeTab === 'disclaimers' && <TabDisclaimers />}
               {activeTab === 'pardot'     && <TabPardot />}
               {activeTab === 'insights'   && <TabCampaignInsights />}
-              {activeTab === 'approvals'  && <TabApprovals />}
+              {activeTab === 'approvals'       && <TabApprovals />}
+              {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
+              {activeTab === 'benchmarks'      && <TabBenchmarks />}
+              {activeTab === 'audience-health' && <div className="max-w-2xl space-y-8"><p className="text-sm text-gray-500 dark:text-gray-400">Audience Health monitoring is configured here. Enable the feature to view the Audience Health dashboard from the main navigation.</p></div>}
             </div>
           </div>
         </div>

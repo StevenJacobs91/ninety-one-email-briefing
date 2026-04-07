@@ -22,6 +22,7 @@ import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { KanbanBoard } from '../kanban/KanbanBoard'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
+import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
 import type { BriefTemplate } from '../../lib/constants'
 import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
@@ -259,6 +260,7 @@ export function FormShell() {
   const [showBoard, setShowBoard] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showApprovals, setShowApprovals] = useState(false)
+  const [showAudienceHealth, setShowAudienceHealth] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
@@ -489,6 +491,20 @@ export function FormShell() {
                       {pendingCount}
                     </span>
                   )}
+                </button>
+              )}
+              {/* Audience Health */}
+              {settings.audienceHealth?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setShowAudienceHealth(!showAudienceHealth)}
+                  title="Audience Health"
+                  aria-label="Audience Health"
+                  className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showAudienceHealth ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
                 </button>
               )}
               {/* Drafts */}
@@ -835,6 +851,13 @@ export function FormShell() {
         isOpen={showApprovals}
         onClose={() => setShowApprovals(false)}
       />
+      {settings.audienceHealth?.enabled && profile?.teamId && (
+        <AudienceHealthDashboard
+          isOpen={showAudienceHealth}
+          onClose={() => setShowAudienceHealth(false)}
+          teamId={profile.teamId}
+        />
+      )}
       <CampaignInsightsSlideOver
         isOpen={showInsights}
         onClose={() => setShowInsights(false)}

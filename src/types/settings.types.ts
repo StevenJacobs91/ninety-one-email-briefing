@@ -306,6 +306,25 @@ export interface CampaignInsightsConfig {
   showRecommendations: boolean
 }
 
+// ─── Send Time Optimisation ──────────────────────────────────
+
+export interface SendTimeOptimisationConfig {
+  enabled: boolean
+  minEventsRequired: number
+}
+
+// ─── Competitive Benchmarking ────────────────────────────────
+
+export interface BenchmarksConfig {
+  enabled: boolean
+}
+
+// ─── Audience Health ─────────────────────────────────────────
+
+export interface AudienceHealthConfig {
+  enabled: boolean
+}
+
 // ─── Full AppSettings ────────────────────────────────────────
 
 export interface AppSettings {
@@ -336,6 +355,12 @@ export interface AppSettings {
   campaignInsights: CampaignInsightsConfig
   // Approvals
   approvals: import('./approval.types').ApprovalConfig
+  // Send Time Optimisation
+  sendTimeOptimisation: SendTimeOptimisationConfig
+  // Competitive Benchmarking
+  benchmarks: BenchmarksConfig
+  // Audience Health
+  audienceHealth: AudienceHealthConfig
 }
 
 export type SettingsTab =
@@ -355,3 +380,6 @@ export type SettingsTab =
   | 'audit'
   | 'insights'
   | 'approvals'
+  | 'send-time'
+  | 'benchmarks'
+  | 'audience-health'

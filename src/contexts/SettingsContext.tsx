@@ -56,6 +56,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           customClientGroups: remote.customClientGroups ?? defaults.customClientGroups,
           customChannels: remote.customChannels ?? defaults.customChannels,
           customRegions: remote.customRegions ?? defaults.customRegions,
+          sendTimeOptimisation: { ...defaults.sendTimeOptimisation, ...(remote.sendTimeOptimisation ?? {}) },
         })
       }
       setLoading(false)
