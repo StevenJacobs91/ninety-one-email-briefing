@@ -273,3 +273,18 @@ export async function removeMember(userId: string): Promise<void> {
 
   if (error) throw new Error(`Failed to remove member: ${error.message}`)
 }
+
+export async function createTeamMember(
+  email: string,
+  password: string,
+  displayName: string,
+  role: UserRole,
+): Promise<{ userId: string }> {
+  const { data, error } = await supabase.functions.invoke('create-user', {
+    body: { email, password, displayName, role },
+  })
+
+  if (error) throw new Error(error.message ?? 'Failed to create user')
+  if (data?.error) throw new Error(data.error)
+  return { userId: data.userId }
+}

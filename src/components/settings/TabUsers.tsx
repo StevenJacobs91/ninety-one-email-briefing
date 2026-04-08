@@ -6,6 +6,7 @@ import {
   updateMemberRole,
   updateMemberDisplayName,
   removeMember,
+  createTeamMember,
   type TeamMember,
   type UserRole,
 } from '../../lib/supabaseQueries'
@@ -201,14 +202,173 @@ function MemberRow({
   )
 }
 
+const INITIAL_FORM = { email: '', password: '', displayName: '', role: 'requester' as UserRole }
+
+function AddUserForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const [form, setForm] = useState(INITIAL_FORM)
+  const [showPassword, setShowPassword] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function set(field: keyof typeof INITIAL_FORM, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    setError('')
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.email.trim() || !form.password) return
+    setSaving(true)
+    setError('')
+    try {
+      await createTeamMember(form.email.trim(), form.password, form.displayName.trim() || form.email.trim(), form.role)
+      onSuccess()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4">
+      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">New Team Member</p>
+
+      <div className="grid grid-cols-2 gap-3">
+        {/* Email */}
+        <div className="col-span-2">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Email address <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            required
+            value={form.email}
+            onChange={(e) => set('email', e.target.value)}
+            placeholder="user@example.com"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+          />
+        </div>
+
+        {/* Display name */}
+        <div className="col-span-2">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Display name
+          </label>
+          <input
+            type="text"
+            value={form.displayName}
+            onChange={(e) => set('displayName', e.target.value)}
+            placeholder="e.g. Jane Smith (defaults to email)"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="col-span-2 sm:col-span-1">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Password <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              required
+              minLength={6}
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              placeholder="Min. 6 characters"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 pr-9 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Role */}
+        <div className="col-span-2 sm:col-span-1">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Role
+          </label>
+          <select
+            value={form.role}
+            onChange={(e) => set('role', e.target.value)}
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary"
+          >
+            {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={saving || !form.email.trim() || !form.password}
+          className="px-4 py-2 rounded-lg bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+        >
+          {saving ? (
+            <>
+              <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+              Creating…
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create user
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export function TabUsers() {
   const { profile: currentProfile } = useAuth()
   const { log: audit } = useAuditLog()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showAddForm, setShowAddForm] = useState(false)
 
   const teamId = currentProfile?.teamId
+  const isAdmin = currentProfile?.role === 'admin'
 
   const loadMembers = useCallback(async () => {
     if (!teamId) return
@@ -231,7 +391,6 @@ export function TabUsers() {
   const handleRoleChange = useCallback(async (userId: string, role: UserRole) => {
     const target = members.find((m) => m.id === userId)
     const oldRole = target?.role
-    // Optimistic update
     setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, role } : m))
     try {
       await updateMemberRole(userId, role)
@@ -276,6 +435,11 @@ export function TabUsers() {
     }
   }, [loadMembers, members, audit])
 
+  const handleUserCreated = useCallback(() => {
+    setShowAddForm(false)
+    loadMembers()
+  }, [loadMembers])
+
   const adminCount = members.filter((m) => m.role === 'admin').length
 
   if (loading) {
@@ -299,10 +463,7 @@ export function TabUsers() {
     return (
       <div className="text-center py-8">
         <p className="text-sm text-red-600 dark:text-red-400 mb-3">{error}</p>
-        <button
-          onClick={loadMembers}
-          className="text-xs text-brand-primary hover:underline font-medium"
-        >
+        <button onClick={loadMembers} className="text-xs text-brand-primary hover:underline font-medium">
           Try again
         </button>
       </div>
@@ -314,26 +475,45 @@ export function TabUsers() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Team Members
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Team Members</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             {members.length} member{members.length !== 1 ? 's' : ''} on this team
           </p>
         </div>
-        <button
-          onClick={loadMembers}
-          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
-          title="Refresh"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-          </svg>
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && !showAddForm && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90 transition-colors"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add user
+            </button>
+          )}
+          <button
+            onClick={loadMembers}
+            className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex items-center gap-1"
+            title="Refresh"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* Add user form */}
+      {showAddForm && (
+        <AddUserForm
+          onSuccess={handleUserCreated}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
 
       {/* Role legend */}
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg px-4 py-3">
@@ -365,18 +545,22 @@ export function TabUsers() {
         ))}
       </div>
 
-      {/* Info note */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg px-4 py-3 flex items-start gap-2">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        <p className="text-[11px] text-amber-800 dark:text-amber-200">
-          New users sign up at the login page and are automatically assigned the <strong>Requester</strong> role.
-          Promote them here to <strong>Producer</strong> or <strong>Admin</strong> as needed.
-        </p>
-      </div>
+      {/* Info note — only shown when add form is hidden */}
+      {!showAddForm && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg px-4 py-3 flex items-start gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <p className="text-[11px] text-amber-800 dark:text-amber-200">
+            {isAdmin
+              ? <>Use <strong>Add user</strong> above to create accounts directly, or users can sign up at the login page (assigned <strong>Requester</strong> by default).</>
+              : <>New users sign up at the login page and are automatically assigned the <strong>Requester</strong> role. Admins can promote them here.</>
+            }
+          </p>
+        </div>
+      )}
     </div>
   )
 }
