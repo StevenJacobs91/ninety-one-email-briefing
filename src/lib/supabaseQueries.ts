@@ -280,8 +280,16 @@ export async function createTeamMember(
   displayName: string,
   role: UserRole,
 ): Promise<{ userId: string }> {
+  // Explicitly retrieve the session token — functions.invoke() may fall back to
+  // the anon key in some environments, which has no `sub` claim and fails our
+  // admin check in the edge function.
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Not authenticated')
+
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: { email, password, displayName, role },
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (error) throw new Error(error.message ?? 'Failed to create user')
