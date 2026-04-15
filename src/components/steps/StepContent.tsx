@@ -546,6 +546,7 @@ export function StepContent() {
                 {headers.length === 0 ? (
                   <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No headers match your search.</p>
                 ) : (
+                  <div className="overflow-y-auto max-h-[488px] pr-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {headers.map((asset) => {
                       const isSelected = heroImageUrl === asset.url
@@ -596,6 +597,7 @@ export function StepContent() {
                         </button>
                       )
                     })}
+                  </div>
                   </div>
                 )}
 
