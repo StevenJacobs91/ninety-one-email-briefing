@@ -78,6 +78,16 @@ const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: strin
   },
 }
 
+interface BriefSummaryData {
+  campaignName: string
+  sendDate: string
+  subjectLine: string
+  previewText: string
+  fromName: string
+  fromAddress: string
+  replyToEmail: string
+}
+
 interface HelpPanelProps {
   stepId: string
   currentStepIndex: number
@@ -86,9 +96,10 @@ interface HelpPanelProps {
   onChangeTemplate?: () => void
   campaignName?: string
   onOpenInsights?: () => void
+  briefSummary?: BriefSummaryData
 }
 
-function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights }: HelpPanelProps) {
+function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary }: HelpPanelProps) {
   const { settings } = useSettings()
   const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
   const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
@@ -122,6 +133,54 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
           </>
         )}
       </div>
+
+      {/* Campaign summary — only on HTML Email pipeline step */}
+      {stepId === 'html-email' && briefSummary && (
+        <div className="bg-brand-bg-panel dark:bg-brand-bg-panel-dark border border-brand-border-warm dark:border-gray-700 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
+            <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">Campaign Details</p>
+          </div>
+          <dl className="space-y-3.5">
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Campaign</dt>
+              <dd className="text-sm font-medium text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.campaignName || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Send Date</dt>
+              <dd className="text-sm text-brand-primary dark:text-gray-200">
+                {briefSummary.sendDate
+                  ? new Date(briefSummary.sendDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '—'}
+              </dd>
+            </div>
+            <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Subject Line</dt>
+              <dd className="text-sm text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.subjectLine || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Preview Text</dt>
+              <dd className="text-sm text-brand-text-body dark:text-gray-300 leading-snug">{briefSummary.previewText || '—'}</dd>
+            </div>
+            <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Sender</dt>
+              <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">{briefSummary.fromName || '—'}</dd>
+              {briefSummary.fromAddress && (
+                <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.fromAddress}>
+                  {briefSummary.fromAddress}
+                </dd>
+              )}
+              {briefSummary.replyToEmail && (
+                <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.replyToEmail}>
+                  Reply: {briefSummary.replyToEmail}
+                </dd>
+              )}
+            </div>
+          </dl>
+        </div>
+      )}
 
       {/* Active brand theme swatch */}
       {theme && !isPipeline && (
@@ -432,6 +491,12 @@ export function FormShell() {
   const watchedRegions = form.watch('audience.region') ?? []
   const watchedChannels = form.watch('audience.channel') ?? []
   const watchedDescription = form.watch('campaign.emailDescription') ?? ''
+  const watchedSubjectLine = form.watch('campaign.subjectLine') ?? ''
+  const watchedPreviewText = form.watch('campaign.previewText') ?? ''
+  const watchedFromName = form.watch('campaign.fromName') ?? ''
+  const watchedFromAddress = (form.watch('campaign') as Record<string, string>)?.fromAddress ?? ''
+  const watchedReplyToEmail = form.watch('campaign.replyToEmail') ?? ''
+  const watchedSendDate = form.watch('deadlines.sendDate') ?? ''
 
   if (settingsLoading || kanbanLoading) {
     return (
@@ -853,6 +918,15 @@ export function FormShell() {
                     onChangeTemplate={!isPipelineStep && currentBriefStepId === 'campaign' ? handleChangeTemplate : undefined}
                     campaignName={watchedCampaignName || undefined}
                     onOpenInsights={watchedCampaignName ? () => setShowInsights(true) : undefined}
+                    briefSummary={pipelineStep === 4 ? {
+                      campaignName: watchedCampaignName,
+                      sendDate: watchedSendDate,
+                      subjectLine: watchedSubjectLine,
+                      previewText: watchedPreviewText,
+                      fromName: watchedFromName,
+                      fromAddress: watchedFromAddress,
+                      replyToEmail: watchedReplyToEmail,
+                    } : undefined}
                   />
                 </div>
               </div>

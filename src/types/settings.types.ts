@@ -98,6 +98,8 @@ export interface FormDefaults {
   urgency: 'standard' | 'urgent'
   emailType: string
   includeUnsubscribe: boolean
+  /** Show the auto-generated Tags section in the Campaign tab. Tags are still collected when hidden. */
+  showTagsSection: boolean
 }
 
 export interface LegalDisclaimerConfig {

@@ -257,6 +257,7 @@ export const DEFAULT_FORM_DEFAULTS: FormDefaults = {
   urgency: 'standard',
   emailType: 'campaign',
   includeUnsubscribe: true,
+  showTagsSection: true,
 }
 
 // ─── Default Legal Disclaimers ──────────────────────────────

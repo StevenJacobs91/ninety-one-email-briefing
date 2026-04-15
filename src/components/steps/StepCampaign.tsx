@@ -637,8 +637,8 @@ export function StepCampaign() {
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
-      {/* Auto-generated Tags */}
-      <SubSection title="Tags">
+      {/* Auto-generated Tags — visibility controlled by Settings → General → Show Tags section */}
+      {(settings.formDefaults.showTagsSection ?? true) && <SubSection title="Tags">
         <div className="flex items-center justify-between mb-1">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Auto-generated Tags
@@ -672,7 +672,7 @@ export function StepCampaign() {
         <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
           {tags || '—'}
         </div>
-      </SubSection>
+      </SubSection>}
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 

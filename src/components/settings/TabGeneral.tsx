@@ -125,6 +125,26 @@ export function TabGeneral() {
               }`} />
             </button>
           </div>
+
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Show Tags section in Campaign tab</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Tags are always collected — this controls visibility only</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updateSettings({ formDefaults: { ...formDefaults, showTagsSection: !(formDefaults.showTagsSection ?? true) } })}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                (formDefaults.showTagsSection ?? true) ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+              role="switch"
+              aria-checked={formDefaults.showTagsSection ?? true}
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                (formDefaults.showTagsSection ?? true) ? 'translate-x-4.5' : 'translate-x-0.5'
+              }`} />
+            </button>
+          </div>
         </div>
       </section>
 
