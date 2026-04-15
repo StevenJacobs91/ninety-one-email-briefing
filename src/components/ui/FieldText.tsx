@@ -8,6 +8,7 @@ interface FieldTextProps {
   required?: boolean
   placeholder?: string
   maxLength?: number
+  suggestedLength?: number
   currentLength?: number
   type?: 'text' | 'email' | 'number' | 'date'
   min?: string
@@ -31,6 +32,7 @@ export function FieldText({
   required,
   placeholder,
   maxLength,
+  suggestedLength,
   currentLength,
   type = 'text',
   min,
@@ -99,6 +101,16 @@ export function FieldText({
                 : 'text-gray-500 dark:text-gray-400'
           }`} aria-live="polite">
             {currentLength}/{maxLength}
+          </p>
+        )}
+        {suggestedLength != null && maxLength == null && currentLength != null && (
+          <p className={`text-xs ml-auto ${
+            currentLength > suggestedLength
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-gray-400 dark:text-gray-500'
+          }`} aria-live="polite">
+            {currentLength}
+            <span className="text-gray-300 dark:text-gray-600">/{suggestedLength}</span>
           </p>
         )}
       </div>

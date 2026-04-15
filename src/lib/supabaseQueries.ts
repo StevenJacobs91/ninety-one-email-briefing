@@ -227,12 +227,14 @@ export interface TeamMember {
   role: UserRole
   teamId: string
   createdAt: string
+  presetClientGroups: string[]
+  presetRegions: string[]
 }
 
 export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from('team_members')
-    .select('id, email, display_name, role, team_id, created_at')
+    .select('id, email, display_name, role, team_id, created_at, preset_client_groups, preset_regions')
     .eq('team_id', teamId)
     .order('created_at', { ascending: true })
 
@@ -244,6 +246,8 @@ export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
     role: row.role as UserRole,
     teamId: row.team_id,
     createdAt: row.created_at,
+    presetClientGroups: row.preset_client_groups ?? [],
+    presetRegions: row.preset_regions ?? [],
   }))
 }
 
@@ -263,6 +267,15 @@ export async function updateMemberDisplayName(userId: string, displayName: strin
     .eq('id', userId)
 
   if (error) throw new Error(`Failed to update display name: ${error.message}`)
+}
+
+export async function updateMemberPresets(userId: string, clientGroups: string[], regions: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ preset_client_groups: clientGroups, preset_regions: regions })
+    .eq('id', userId)
+
+  if (error) throw new Error(`Failed to update presets: ${error.message}`)
 }
 
 export async function removeMember(userId: string): Promise<void> {

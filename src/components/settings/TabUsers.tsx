@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAuditLog } from '../../hooks/useAuditLog'
+import { CLIENT_GROUPS, CLIENT_GROUP_REGIONS } from '../../lib/constants'
+import type { ClientGroup } from '../../lib/constants'
 import {
   fetchTeamMembers,
   updateMemberRole,
   updateMemberDisplayName,
+  updateMemberPresets,
   removeMember,
   createTeamMember,
   type TeamMember,
   type UserRole,
 } from '../../lib/supabaseQueries'
+import { useSettings } from '../../contexts/SettingsContext'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -43,21 +47,65 @@ function MemberRow({
   member,
   isCurrentUser,
   isLastAdmin,
+  allClientGroups,
   onRoleChange,
   onNameChange,
+  onPresetChange,
   onRemove,
 }: {
   member: TeamMember
   isCurrentUser: boolean
   isLastAdmin: boolean
+  allClientGroups: string[]
   onRoleChange: (id: string, role: UserRole) => void
   onNameChange: (id: string, name: string) => void
+  onPresetChange: (id: string, clientGroups: string[], regions: string[]) => void
   onRemove: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(member.displayName)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const [roleMenuOpen, setRoleMenuOpen] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+  const [presetClientGroups, setPresetClientGroups] = useState<string[]>(member.presetClientGroups)
+  const [presetRegions, setPresetRegions] = useState<string[]>(member.presetRegions)
+
+  // Available regions filtered by selected preset client groups
+  const availablePresetRegions = presetClientGroups.length === 0
+    ? Object.values(CLIENT_GROUP_REGIONS).flat()
+    : presetClientGroups.flatMap((g) => CLIENT_GROUP_REGIONS[g as ClientGroup] ?? [])
+
+  function togglePresetClientGroup(group: string) {
+    const isRemoving = presetClientGroups.includes(group)
+    const next = isRemoving
+      ? presetClientGroups.filter((g) => g !== group)
+      : [...presetClientGroups, group]
+    setPresetClientGroups(next)
+    // Remove any regions that no longer belong to the selected groups
+    if (isRemoving) {
+      const validRegions = new Set(next.flatMap((g) => CLIENT_GROUP_REGIONS[g as ClientGroup] ?? []))
+      setPresetRegions((prev) => prev.filter((r) => validRegions.has(r)))
+    }
+  }
+
+  function togglePresetRegion(region: string) {
+    setPresetRegions((prev) =>
+      prev.includes(region) ? prev.filter((r) => r !== region) : [...prev, region]
+    )
+  }
+
+  function handleSavePresets() {
+    onPresetChange(member.id, presetClientGroups, presetRegions)
+    setShowPresets(false)
+  }
+
+  function handleCancelPresets() {
+    setPresetClientGroups(member.presetClientGroups)
+    setPresetRegions(member.presetRegions)
+    setShowPresets(false)
+  }
+
+  const hasPresets = member.presetClientGroups.length > 0 || member.presetRegions.length > 0
 
   const canChangeRole = !isCurrentUser || !isLastAdmin
   const canRemove = !isCurrentUser
@@ -70,55 +118,63 @@ function MemberRow({
   }
 
   return (
-    <div className="flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-      {/* Avatar */}
-      <div className="w-9 h-9 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 flex items-center justify-center shrink-0">
-        <span className="text-xs font-semibold text-brand-primary dark:text-brand-accent">
-          {member.displayName.charAt(0).toUpperCase()}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {editing ? (
-            <div className="flex items-center gap-1">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditing(false); }}
-                className="border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-primary w-40"
-                autoFocus
-              />
-              <button onClick={handleSaveName} className="text-xs text-brand-primary hover:underline">Save</button>
-              <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
-            </div>
-          ) : (
-            <>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                {member.displayName}
-              </span>
-              {isCurrentUser && (
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">(you)</span>
-              )}
-              <button
-                onClick={() => { setEditName(member.displayName); setEditing(true); }}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-opacity"
-                title="Edit name"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-            </>
-          )}
+    <div className="rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+      <div className="flex items-center gap-4 py-3 px-4">
+        {/* Avatar */}
+        <div className="w-9 h-9 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 flex items-center justify-center shrink-0">
+          <span className="text-xs font-semibold text-brand-primary dark:text-brand-accent">
+            {member.displayName.charAt(0).toUpperCase()}
+          </span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
-      </div>
 
-      {/* Role selector */}
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {editing ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditing(false); }}
+                  className="border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-brand-primary w-40"
+                  autoFocus
+                />
+                <button onClick={handleSaveName} className="text-xs text-brand-primary hover:underline">Save</button>
+                <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+              </div>
+            ) : (
+              <>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {member.displayName}
+                </span>
+                {isCurrentUser && (
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">(you)</span>
+                )}
+                <button
+                  onClick={() => { setEditName(member.displayName); setEditing(true); }}
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-opacity"
+                  title="Edit name"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
+            {hasPresets && (
+              <span className="text-[10px] text-brand-primary dark:text-brand-accent bg-brand-primary/8 dark:bg-brand-primary/15 px-1.5 py-0.5 rounded font-medium shrink-0">
+                {[...member.presetClientGroups, ...member.presetRegions].join(', ')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Role selector */}
       <div className="relative">
         <button
           onClick={() => canChangeRole && setRoleMenuOpen(!roleMenuOpen)}
@@ -159,6 +215,22 @@ function MemberRow({
         )}
       </div>
 
+      {/* Preset region button */}
+      <button
+        onClick={() => setShowPresets(!showPresets)}
+        title="Set targeting preset"
+        className={`opacity-0 group-hover:opacity-100 shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-all ${
+          hasPresets
+            ? 'opacity-100 text-brand-primary dark:text-brand-accent bg-brand-primary/8 dark:bg-brand-primary/15 hover:bg-brand-primary/15'
+            : 'text-gray-400 hover:text-brand-primary hover:bg-brand-primary/8 dark:hover:bg-brand-primary/15'
+        }`}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+        </svg>
+        Presets
+      </button>
+
       {/* Joined date */}
       <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 hidden sm:block w-20 text-right">
         {new Date(member.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -198,6 +270,86 @@ function MemberRow({
           <div className="w-7" />
         )}
       </div>
+      </div>
+
+      {/* Preset editor — inline expandable panel */}
+      {showPresets && (
+        <div className="mx-4 mb-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+          <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+            Targeting Preset — auto-fills Campaign tab on login
+          </p>
+
+          {/* Client Group */}
+          <div>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Client Group</p>
+            <div className="flex flex-wrap gap-1.5">
+              {allClientGroups.map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => togglePresetClientGroup(group)}
+                  className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${
+                    presetClientGroups.includes(group)
+                      ? 'bg-brand-primary text-white border-brand-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                  }`}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Region */}
+          {presetClientGroups.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Region</p>
+              <div className="flex flex-wrap gap-1.5">
+                {availablePresetRegions.map((region) => (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() => togglePresetRegion(region)}
+                    className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${
+                      presetRegions.includes(region)
+                        ? 'bg-brand-primary text-white border-brand-primary'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleSavePresets}
+              className="px-3 py-1.5 rounded bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90 transition-colors"
+            >
+              Save preset
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelPresets}
+              className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              Cancel
+            </button>
+            {hasPresets && (
+              <button
+                type="button"
+                onClick={() => { setPresetClientGroups([]); setPresetRegions([]); onPresetChange(member.id, [], []); setShowPresets(false); }}
+                className="ml-auto text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Clear preset
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -362,6 +514,7 @@ function AddUserForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
 export function TabUsers() {
   const { profile: currentProfile } = useAuth()
   const { log: audit } = useAuditLog()
+  const { settings } = useSettings()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -369,6 +522,12 @@ export function TabUsers() {
 
   const teamId = currentProfile?.teamId
   const isAdmin = currentProfile?.role === 'admin'
+
+  // Merged client groups list (built-in + custom)
+  const allClientGroups = [
+    ...CLIENT_GROUPS,
+    ...(settings.customClientGroups ?? []).map((cg) => cg.name).filter((n) => !(CLIENT_GROUPS as readonly string[]).includes(n)),
+  ]
 
   const loadMembers = useCallback(async () => {
     if (!teamId) return
@@ -414,6 +573,16 @@ export function TabUsers() {
     } catch (err) {
       loadMembers()
       console.error('Failed to update name:', err)
+    }
+  }, [loadMembers])
+
+  const handlePresetChange = useCallback(async (userId: string, clientGroups: string[], regions: string[]) => {
+    setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, presetClientGroups: clientGroups, presetRegions: regions } : m))
+    try {
+      await updateMemberPresets(userId, clientGroups, regions)
+    } catch (err) {
+      loadMembers()
+      console.error('Failed to update presets:', err)
     }
   }, [loadMembers])
 
@@ -538,8 +707,10 @@ export function TabUsers() {
             member={member}
             isCurrentUser={member.id === currentProfile?.id}
             isLastAdmin={member.role === 'admin' && adminCount <= 1}
+            allClientGroups={allClientGroups}
             onRoleChange={handleRoleChange}
             onNameChange={handleNameChange}
+            onPresetChange={handlePresetChange}
             onRemove={handleRemove}
           />
         ))}
