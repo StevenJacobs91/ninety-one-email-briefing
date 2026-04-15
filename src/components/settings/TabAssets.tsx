@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { AssetEntry, AssetCategory } from '../../types/settings.types'
 import { v4 as uuidv4 } from 'uuid'
+import { PRESET_PROFILE_ASSETS, PRESET_HEADER_ASSETS } from '../../lib/assetLibraryData'
 
 const CATEGORIES: { value: AssetCategory; label: string }[] = [
   { value: 'header',   label: 'Headers' },
@@ -153,8 +154,23 @@ export function TabAssets() {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [importConfirm, setImportConfirm] = useState<'headers' | 'profiles' | null>(null)
+  const [importDone, setImportDone] = useState<'headers' | 'profiles' | null>(null)
 
   const assets = settings.assets ?? []
+
+  function handleImportPresets(type: 'headers' | 'profiles') {
+    const presets = type === 'headers' ? PRESET_HEADER_ASSETS : PRESET_PROFILE_ASSETS
+    const existingUrls = new Set(assets.map((a) => a.url))
+    const newAssets = presets
+      .filter((p) => !existingUrls.has(p.url))
+      .map((p) => ({ ...p, id: uuidv4() }))
+    if (newAssets.length === 0) { setImportConfirm(null); return }
+    updateSettings({ assets: [...assets, ...newAssets] })
+    setImportConfirm(null)
+    setImportDone(type)
+    setTimeout(() => setImportDone(null), 3000)
+  }
 
   const filtered = activeCategory === 'all'
     ? assets
@@ -179,6 +195,40 @@ export function TabAssets() {
 
   return (
     <div className="space-y-5">
+      {/* Import presets banner */}
+      <div className="flex items-center gap-2 flex-wrap p-3 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/20 dark:border-brand-primary/30 rounded-lg">
+        <span className="text-xs text-gray-600 dark:text-gray-400 flex-1 min-w-0">Import from library:</span>
+        {importConfirm === 'headers' ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400">Import {PRESET_HEADER_ASSETS.filter(p => !assets.some(a => a.url === p.url)).length} new headers?</span>
+            <button type="button" onClick={() => handleImportPresets('headers')} className="text-xs px-2.5 py-1 bg-brand-primary text-white rounded-md hover:bg-brand-primary-hover transition-colors">Import</button>
+            <button type="button" onClick={() => setImportConfirm(null)} className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+          </div>
+        ) : importConfirm === 'profiles' ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 dark:text-gray-400">Import {PRESET_PROFILE_ASSETS.filter(p => !assets.some(a => a.url === p.url)).length} new profiles?</span>
+            <button type="button" onClick={() => handleImportPresets('profiles')} className="text-xs px-2.5 py-1 bg-brand-primary text-white rounded-md hover:bg-brand-primary-hover transition-colors">Import</button>
+            <button type="button" onClick={() => setImportConfirm(null)} className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+          </div>
+        ) : (
+          <>
+            <button type="button" onClick={() => setImportConfirm('headers')}
+              className="text-xs px-2.5 py-1 border border-brand-primary/30 dark:border-brand-accent/30 text-brand-primary dark:text-brand-accent rounded-md hover:bg-brand-primary/5 transition-colors">
+              + 354 Headers
+            </button>
+            <button type="button" onClick={() => setImportConfirm('profiles')}
+              className="text-xs px-2.5 py-1 border border-brand-primary/30 dark:border-brand-accent/30 text-brand-primary dark:text-brand-accent rounded-md hover:bg-brand-primary/5 transition-colors">
+              + 358 Profiles
+            </button>
+            {importDone && (
+              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                ✓ {importDone === 'headers' ? 'Headers' : 'Profiles'} imported
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
       {/* Category filter tabs */}
       <div className="flex items-center gap-1 flex-wrap">
         <button

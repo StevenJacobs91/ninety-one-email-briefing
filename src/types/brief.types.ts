@@ -48,6 +48,7 @@ export interface ContentDetails {
   bodyIntro: string
   sections: ContentSection[]
   modules: string[]
+  moduleNotes?: Record<string, string>
   cta: CallToAction
   legalDisclaimer?: string
   includeUnsubscribe: boolean

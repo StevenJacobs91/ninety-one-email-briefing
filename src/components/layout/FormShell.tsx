@@ -23,6 +23,10 @@ import { KanbanBoard } from '../kanban/KanbanBoard'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
+import { EmailBuilderShell } from '../builder/EmailBuilderShell'
+import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
+import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
+import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
 import type { BriefTemplate } from '../../lib/constants'
 import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
@@ -258,6 +262,9 @@ export function FormShell() {
     () => !localStorage.getItem('ni-email-brief-draft')
   )
   const [showBoard, setShowBoard] = useState(false)
+  const [showBuilder, setShowBuilder] = useState(false)
+  const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation'>('email')
+  const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showApprovals, setShowApprovals] = useState(false)
   const [showAudienceHealth, setShowAudienceHealth] = useState(false)
@@ -442,11 +449,56 @@ export function FormShell() {
       {/* ── Sticky navigation bar ── */}
       <header className="sticky top-0 z-40 bg-brand-primary dark:bg-brand-primary-dark">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          {/* Logo + platform label */}
+          {/* Logo + platform dropdown */}
           <div className="flex items-center gap-0 shrink-0">
             <img src="https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png" alt="Ninety One" className="h-5 w-auto" />
-            <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block">
-              <span className="text-white/70 text-xs tracking-[0.2em] uppercase font-ni-heading">Email Briefing Platform</span>
+            <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block relative">
+              <button
+                type="button"
+                onClick={() => setShowPlatformDropdown((v) => !v)}
+                className="flex items-center gap-1.5 text-white/70 hover:text-white text-xs tracking-[0.2em] uppercase font-ni-heading transition-colors"
+                aria-haspopup="true"
+                aria-expanded={showPlatformDropdown}
+              >
+                {activePlatform === 'email' && 'Email Briefing Platform'}
+                {activePlatform === 'web' && 'Web Briefing Platform'}
+                {activePlatform === 'social' && 'Social Media Briefing'}
+                {activePlatform === 'marketing-automation' && 'Marketing Automation'}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60 ml-0.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {showPlatformDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPlatformDropdown(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                    {[
+                      { id: 'email' as const, label: 'Email Briefing Platform', desc: 'HTML email production briefs', icon: '✉' },
+                      { id: 'web' as const, label: 'Web Briefing Platform', desc: 'Website & article publishing', icon: '🌐' },
+                      { id: 'social' as const, label: 'Social Media Briefing', desc: 'LinkedIn, X, Instagram & more', icon: '📱' },
+                      { id: 'marketing-automation' as const, label: 'Marketing Automation', desc: 'PRD-style automation briefs', icon: '⚙' },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setActivePlatform(p.id); setShowPlatformDropdown(false) }}
+                        className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${activePlatform === p.id ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : ''}`}
+                      >
+                        <span className="text-base mt-0.5 shrink-0">{p.icon}</span>
+                        <div>
+                          <p className={`text-sm font-medium ${activePlatform === p.id ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-800 dark:text-gray-200'}`}>{p.label}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{p.desc}</p>
+                        </div>
+                        {activePlatform === p.id && (
+                          <svg className="ml-auto mt-1 shrink-0 text-brand-primary dark:text-brand-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -472,6 +524,19 @@ export function FormShell() {
                     {cards.length}
                   </span>
                 )}
+              </button>
+              {/* Email Builder */}
+              <button
+                type="button"
+                onClick={() => setShowBuilder(!showBuilder)}
+                title="Email Builder"
+                aria-label="Email Builder"
+                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showBuilder ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
               </button>
               {/* Approvals */}
               {settings.approvals?.enabled && (
@@ -580,6 +645,17 @@ export function FormShell() {
             <div className="flex items-center gap-0.5 md:hidden ml-1">
               <button
                 type="button"
+                onClick={() => setShowBuilder(!showBuilder)}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Email Builder"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowBoard(!showBoard)}
                 className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                 aria-label="Campaign board"
@@ -640,6 +716,22 @@ export function FormShell() {
         {/* Coral accent line */}
         <div className="h-[2px] bg-brand-accent/50" aria-hidden="true" />
       </header>
+
+      {/* ── Email Builder — full-screen overlay ── */}
+      {showBuilder && (
+        <EmailBuilderShell onClose={() => setShowBuilder(false)} />
+      )}
+
+      {/* ── Platform overlays ── */}
+      {activePlatform === 'web' && (
+        <WebBriefingPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'social' && (
+        <SocialMediaPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'marketing-automation' && (
+        <MarketingAutomationPlatform onClose={() => setActivePlatform('email')} />
+      )}
 
       {/* ── Board view — replaces all form content when active ── */}
       {showBoard && (

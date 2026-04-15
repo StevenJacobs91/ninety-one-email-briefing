@@ -20,6 +20,8 @@ import type {
 } from '../types/settings.types'
 import type { ApprovalConfig } from '../types/approval.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
+import { PRESET_CAMPAIGNS } from './campaignPresets'
+import { PRESET_PROFILE_ASSETS, PRESET_HEADER_ASSETS } from './assetLibraryData'
 
 // ─── Default Brand Themes ───────────────────────────────────
 
@@ -312,13 +314,7 @@ export const DEFAULT_PARDOT_CONFIG: PardotConfig = {
 
 // ─── Default Campaigns ──────────────────────────────────────
 
-export const DEFAULT_CAMPAIGNS: CampaignEntry[] = [
-  { id: 'camp-global-all', name: 'Quarterly Market Update', regions: [], channels: [], clientGroups: [] },
-  { id: 'camp-za-int', name: 'SA Intermediary Newsletter', regions: ['South Africa'], channels: ['Advisor'], clientGroups: ['Southern Africa'] },
-  { id: 'camp-uk-inst', name: 'UK Institutional Webinar Series', regions: ['United Kingdom'], channels: ['Institutional'], clientGroups: ['United Kingdom'] },
-  { id: 'camp-global-inst', name: 'Global Institutional Outlook', regions: [], channels: ['Institutional'], clientGroups: [] },
-  { id: 'camp-eu-ret', name: 'EU Retail Fund Update', regions: [], channels: ['Individual Investor'], clientGroups: ['Europe'] },
-]
+export const DEFAULT_CAMPAIGNS: CampaignEntry[] = PRESET_CAMPAIGNS
 
 // ─── Default Sign-off Signatures ────────────────────────────
 
@@ -358,6 +354,8 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
     colourOverlay: '#221b3b',
     altText: 'Ninety One header 1044498000',
   },
+  ...PRESET_HEADER_ASSETS,
+  ...PRESET_PROFILE_ASSETS,
 ]
 
 // ─── Send Time Optimisation Defaults ────────────────────────

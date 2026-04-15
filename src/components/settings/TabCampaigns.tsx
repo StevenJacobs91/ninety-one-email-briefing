@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
 import { CLIENT_GROUPS, CHANNELS, BRAND_THEMES } from '../../lib/constants'
+import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
 
 const CHANNEL_LABELS: Record<string, string> = {
   Advisor: 'Advisor',
@@ -466,6 +467,20 @@ export function TabCampaigns() {
   const [newForm, setNewForm] = useState<CampaignFormState>(EMPTY_FORM)
   const [editForm, setEditForm] = useState<CampaignFormState>(EMPTY_FORM)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [importDone, setImportDone] = useState(false)
+  const [importConfirm, setImportConfirm] = useState(false)
+
+  function handleImportPresets() {
+    const existingNames = new Set(campaigns.map((c) => c.name))
+    const newCampaigns: CampaignEntry[] = PRESET_CAMPAIGNS
+      .filter((p) => !existingNames.has(p.name))
+      .map((p) => ({ ...p, id: uuidv4() }))
+    if (newCampaigns.length === 0) { setImportConfirm(false); return }
+    saveCampaigns([...campaigns, ...newCampaigns])
+    setImportConfirm(false)
+    setImportDone(true)
+    setTimeout(() => setImportDone(false), 3000)
+  }
 
   function saveCampaigns(next: CampaignEntry[]) {
     updateSettings({ campaigns: next })
@@ -500,15 +515,40 @@ export function TabCampaigns() {
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Campaigns appear in the brief form filtered by client group and audience. Leave filters empty to show a campaign for all. Add a sender preset to auto-fill the From Name, From Email and Reply-to fields when this campaign is selected.
         </p>
-        {!addingNew && (
-          <button
-            type="button"
-            onClick={() => { setAddingNew(true); setNewForm(EMPTY_FORM) }}
-            className="text-xs font-medium text-brand-primary dark:text-brand-accent px-3 py-1.5 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors shrink-0"
-          >
-            + Add Campaign
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {!addingNew && (
+            <>
+              {importConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Import {PRESET_CAMPAIGNS.filter(p => !campaigns.some(c => c.name === p.name)).length} new campaigns?
+                  </span>
+                  <button type="button" onClick={handleImportPresets}
+                    className="text-xs px-2.5 py-1 bg-brand-primary text-white rounded-md hover:bg-brand-primary-hover transition-colors">
+                    Import
+                  </button>
+                  <button type="button" onClick={() => setImportConfirm(false)}
+                    className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setImportConfirm(true)}
+                  className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1.5 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Import Presets
+                </button>
+              )}
+              {importDone && <span className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Imported</span>}
+              <button
+                type="button"
+                onClick={() => { setAddingNew(true); setNewForm(EMPTY_FORM) }}
+                className="text-xs font-medium text-brand-primary dark:text-brand-accent px-3 py-1.5 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors"
+              >
+                + Add Campaign
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* New campaign form */}
