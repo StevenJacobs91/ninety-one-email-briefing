@@ -21,6 +21,7 @@ import { TabApprovals } from './TabApprovals'
 import { TabSendTimeOptimisation } from './TabSendTimeOptimisation'
 import { TabBenchmarks } from './TabBenchmarks'
 import { TabAudienceHealth } from './TabAudienceHealth'
+import { TabGreetings } from './TabGreetings'
 
 interface TabConfig {
   id: SettingsTab
@@ -57,7 +58,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Content',
     tabs: [
-      { id: 'modules', label: 'Email Modules', description: 'Add, remove, and organise email modules' },
+      { id: 'modules',    label: 'Email Modules', description: 'Add, remove, and organise email modules' },
+      { id: 'greetings',  label: 'Greetings',     description: 'Manage email greeting options and salutation text' },
     ],
   },
   {
@@ -230,6 +232,7 @@ export function SettingsPanel() {
               {activeTab === 'templates'  && <TabTemplates />}
               {activeTab === 'assets'     && <TabAssets />}
               {activeTab === 'modules'    && <TabModules />}
+              {activeTab === 'greetings'  && <TabGreetings />}
               {activeTab === 'layout'     && <TabFormLayout />}
               {activeTab === 'guardian'   && <TabBrandGuardian />}
               {activeTab === 'disclaimers' && <TabDisclaimers />}

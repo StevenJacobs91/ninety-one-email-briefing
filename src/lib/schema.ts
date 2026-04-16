@@ -32,6 +32,7 @@ const campaignSchema = z.object({
   fromName: z.string().min(1, 'From name is required'),
   fromAddress: z.string().email('Must be a valid email address'),
   replyToEmail: z.string().email('Must be a valid email address').or(z.literal('')).optional(),
+  utmCampaign: z.string().optional(),
 })
 
 const distributionListSchema = z.object({
@@ -67,6 +68,7 @@ const audienceSchema = z.object({
 const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
+  greetingId: z.string().optional(),
   bodyIntro: z.string().min(1, 'Body intro is required'),
   sections: z.array(contentSectionSchema).min(1, 'At least one section required').max(4, 'Max 4 sections'),
   modules: z.array(z.string()),

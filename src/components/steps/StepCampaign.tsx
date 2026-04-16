@@ -147,6 +147,7 @@ export function StepCampaign() {
       if (cp.heroImageUrl) set('assets.heroImageUrl', cp.heroImageUrl)
       if (cp.signatureId) set('content.footerSignoffId', cp.signatureId)
       if (cp.pardotListId) set('audience.pardotListId', cp.pardotListId)
+      if (cp.greetingId) set('content.greetingId', cp.greetingId)
       if (cp.disclaimerId) {
         const disclaimerEntry = (settings.legalDisclaimers ?? []).find((d) => d.id === cp.disclaimerId)
         if (disclaimerEntry) set('content.legalDisclaimer', disclaimerEntry.text)
@@ -587,6 +588,13 @@ export function StepCampaign() {
           error={errors.campaign?.replyToEmail}
           type="email"
           placeholder="Optional — reply@ninetyone.com"
+        />
+
+        <FieldText
+          label="UTM Campaign"
+          registration={register('campaign.utmCampaign')}
+          placeholder="e.g. taking-stock-sa-q2-2026"
+          hint="Applied as utm_campaign= on all links in the generated email"
         />
       </SubSection>
 

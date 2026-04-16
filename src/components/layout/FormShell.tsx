@@ -78,6 +78,16 @@ const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: strin
   },
 }
 
+interface DistributionListSummary {
+  name: string
+  rowCount?: number
+  analysis?: {
+    cleanRowCount: number
+    blankEmailCount: number
+    unknownEmailCount: number
+  }
+}
+
 interface BriefSummaryData {
   campaignName: string
   sendDate: string
@@ -86,6 +96,12 @@ interface BriefSummaryData {
   fromName: string
   fromAddress: string
   replyToEmail: string
+  utmCampaign: string
+  ctaUrl: string
+  ctaLabel: string
+  bodyIntroLinks: string[]
+  distributionLists: DistributionListSummary[]
+  pardotListId: string
 }
 
 interface HelpPanelProps {
@@ -134,14 +150,15 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
         )}
       </div>
 
-      {/* Campaign summary — only on HTML Email pipeline step */}
+      {/* Checklist details — only on HTML Email pipeline step */}
       {stepId === 'html-email' && briefSummary && (
         <div className="bg-brand-bg-panel dark:bg-brand-bg-panel-dark border border-brand-border-warm dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-5">
             <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
-            <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">Campaign Details</p>
+            <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">Checklist details</p>
           </div>
           <dl className="space-y-3.5">
+            {/* Campaign + Send Date */}
             <div>
               <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Campaign</dt>
               <dd className="text-sm font-medium text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.campaignName || '—'}</dd>
@@ -154,7 +171,10 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
                   : '—'}
               </dd>
             </div>
+
             <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+
+            {/* Subject + Preview */}
             <div>
               <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Subject Line</dt>
               <dd className="text-sm text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.subjectLine || '—'}</dd>
@@ -163,7 +183,10 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
               <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Preview Text</dt>
               <dd className="text-sm text-brand-text-body dark:text-gray-300 leading-snug">{briefSummary.previewText || '—'}</dd>
             </div>
+
             <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+
+            {/* Sender */}
             <div>
               <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Sender</dt>
               <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">{briefSummary.fromName || '—'}</dd>
@@ -178,6 +201,125 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
                 </dd>
               )}
             </div>
+
+            {/* UTM Campaign */}
+            {briefSummary.utmCampaign && (
+              <>
+                <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                <div>
+                  <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">UTM Campaign</dt>
+                  <dd className="text-sm font-mono text-brand-primary dark:text-gray-200 break-all">{briefSummary.utmCampaign}</dd>
+                </div>
+              </>
+            )}
+
+            {/* Links list */}
+            {(() => {
+              const links = [
+                briefSummary.ctaUrl ? { label: briefSummary.ctaLabel || 'CTA', url: briefSummary.ctaUrl } : null,
+                ...briefSummary.bodyIntroLinks.map((url) => ({ label: url, url })),
+              ].filter(Boolean) as { label: string; url: string }[]
+              return links.length > 0 ? (
+                <>
+                  <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                  <div>
+                    <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-1.5">Links</dt>
+                    <dd className="space-y-1">
+                      {links.map((link, i) => (
+                        <div key={i} className="flex items-start gap-1.5">
+                          <span className="mt-1.5 w-1 h-1 rounded-full bg-brand-accent shrink-0" />
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-brand-primary dark:text-brand-accent hover:underline break-all leading-snug"
+                            title={link.url}
+                          >
+                            {link.label !== link.url && link.label
+                              ? <><span className="font-medium">{link.label}</span><span className="text-brand-text-muted dark:text-gray-500 ml-1 font-mono">↗</span></>
+                              : <span className="font-mono">{link.url.length > 42 ? link.url.slice(0, 42) + '…' : link.url}</span>
+                            }
+                          </a>
+                        </div>
+                      ))}
+                    </dd>
+                  </div>
+                </>
+              ) : null
+            })()}
+
+            {/* Audience */}
+            {(briefSummary.pardotListId || briefSummary.distributionLists.length > 0) && (
+              <>
+                <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                <div>
+                  <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-2">Audience</dt>
+                  <dd className="space-y-2.5">
+                    {briefSummary.distributionLists.map((dl, i) => {
+                      const total = dl.analysis?.cleanRowCount ?? dl.rowCount ?? 0
+                      const unmailable = (dl.analysis?.blankEmailCount ?? 0) + (dl.analysis?.unknownEmailCount ?? 0)
+                      const mailable = total - unmailable
+                      const mailablePct = total > 0 ? Math.round((mailable / total) * 100) : null
+                      const mailableColor =
+                        mailablePct === null ? '' :
+                        mailablePct >= 90 ? 'text-[#009d80]' :
+                        mailablePct >= 80 ? 'text-[#cf6f13]' :
+                        'text-[#d83949]'
+
+                      return (
+                        <div key={i} className="text-xs space-y-1">
+                          {/* List name + Pardot link */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="font-medium text-brand-primary dark:text-gray-200">{dl.name || '—'}</span>
+                            {briefSummary.pardotListId && (
+                              <span className="text-brand-text-muted dark:text-gray-500">
+                                ·{' '}
+                                <a
+                                  href={`https://pi.pardot.com/list/read?id=${briefSummary.pardotListId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-brand-primary dark:text-brand-accent hover:underline font-mono"
+                                  title={`Pardot list ID: ${briefSummary.pardotListId}`}
+                                >
+                                  #{briefSummary.pardotListId}
+                                </a>
+                              </span>
+                            )}
+                          </div>
+                          {/* Stats */}
+                          {total > 0 && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 pl-0">
+                              <span className="text-brand-text-muted dark:text-gray-500">Total</span>
+                              <span className="font-medium text-brand-primary dark:text-gray-200 tabular-nums">{total.toLocaleString()}</span>
+                              <span className="text-brand-text-muted dark:text-gray-500">Mailable</span>
+                              <span className={`font-medium tabular-nums ${mailableColor}`}>
+                                {mailable.toLocaleString()}{mailablePct !== null && <span className="font-normal text-[10px] ml-1">({mailablePct}%)</span>}
+                              </span>
+                              <span className="text-brand-text-muted dark:text-gray-500">Unmailable</span>
+                              <span className="font-medium text-brand-primary dark:text-gray-200 tabular-nums">{unmailable.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {/* If no dist lists but pardot ID provided */}
+                    {briefSummary.distributionLists.length === 0 && briefSummary.pardotListId && (
+                      <div className="text-xs">
+                        <a
+                          href={`https://pi.pardot.com/list/read?id=${briefSummary.pardotListId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-primary dark:text-brand-accent hover:underline font-mono"
+                          title={`Pardot list ID: ${briefSummary.pardotListId}`}
+                        >
+                          Pardot List #{briefSummary.pardotListId}
+                        </a>
+                      </div>
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
           </dl>
         </div>
       )}
@@ -497,6 +639,33 @@ export function FormShell() {
   const watchedFromAddress = (form.watch('campaign') as Record<string, string>)?.fromAddress ?? ''
   const watchedReplyToEmail = form.watch('campaign.replyToEmail') ?? ''
   const watchedSendDate = form.watch('deadlines.sendDate') ?? ''
+  const watchedUtmCampaign = form.watch('campaign.utmCampaign') ?? ''
+  const watchedCtaUrl = form.watch('content.cta.url') ?? ''
+  const watchedCtaLabel = form.watch('content.cta.label') ?? ''
+  const watchedBodyIntro = form.watch('content.bodyIntro') ?? ''
+  const watchedDistLists = form.watch('audience.distributionLists') ?? []
+  const watchedPardotListId = form.watch('audience.pardotListId') ?? ''
+
+  // Extract href links from rich-text HTML (body intro), excluding common header/footer/social/disclaimer domains
+  const bodyIntroLinks = useMemo(() => {
+    if (!watchedBodyIntro) return []
+    const matches = [...watchedBodyIntro.matchAll(/href="(https?:\/\/[^"]+)"/gi)]
+    const EXCLUDED_PATTERNS = [
+      /ninetyone\.com\/l\//i,           // Pardot tracking links (header/footer logos)
+      /weare\.ninetyone\.com\/l\//i,
+      /linkedin\.com/i,
+      /twitter\.com/i,
+      /x\.com/i,
+      /facebook\.com/i,
+      /instagram\.com/i,
+      /youtube\.com/i,
+      /unsubscribe/i,
+      /privacy/i,
+    ]
+    return matches
+      .map((m) => m[1])
+      .filter((url) => !EXCLUDED_PATTERNS.some((re) => re.test(url)))
+  }, [watchedBodyIntro])
 
   if (settingsLoading || kanbanLoading) {
     return (
@@ -926,6 +1095,12 @@ export function FormShell() {
                       fromName: watchedFromName,
                       fromAddress: watchedFromAddress,
                       replyToEmail: watchedReplyToEmail,
+                      utmCampaign: watchedUtmCampaign,
+                      ctaUrl: watchedCtaUrl,
+                      ctaLabel: watchedCtaLabel,
+                      bodyIntroLinks,
+                      distributionLists: (watchedDistLists as unknown as DistributionListSummary[]),
+                      pardotListId: watchedPardotListId,
                     } : undefined}
                   />
                 </div>

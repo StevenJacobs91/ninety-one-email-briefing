@@ -215,6 +215,7 @@ export interface CampaignContentPreset {
   disclaimerId: string       // References LegalDisclaimerConfig.id
   distributionList: string   // Distribution list name/identifier
   pardotListId: string       // Pardot list ID
+  greetingId?: string        // References GreetingConfig.id
 }
 
 export interface CampaignEntry {
@@ -225,6 +226,15 @@ export interface CampaignEntry {
   clientGroups: string[] // empty = applies to all client groups
   senderPreset?: CampaignSenderPreset // optional — auto-fills sender fields when selected
   contentPreset?: CampaignContentPreset // optional — auto-fills content/design fields when selected
+}
+
+// ─── Greetings / Salutations ────────────────────────────────
+
+export interface GreetingConfig {
+  id: string
+  label: string    // Display name, e.g. "Internal — Dear Colleague"
+  value: string    // Actual greeting text / merge-field string
+  isDefault: boolean
 }
 
 // ─── Footer Sign-off Signatures ─────────────────────────────
@@ -363,6 +373,8 @@ export interface AppSettings {
   benchmarks: BenchmarksConfig
   // Audience Health
   audienceHealth: AudienceHealthConfig
+  // Greetings / Salutations
+  greetings: GreetingConfig[]
 }
 
 export type SettingsTab =
@@ -385,3 +397,4 @@ export type SettingsTab =
   | 'send-time'
   | 'benchmarks'
   | 'audience-health'
+  | 'greetings'

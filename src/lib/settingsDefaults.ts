@@ -17,6 +17,7 @@ import type {
   CampaignInsightsConfig,
   BenchmarksConfig,
   AudienceHealthConfig,
+  GreetingConfig,
 } from '../types/settings.types'
 import type { ApprovalConfig } from '../types/approval.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
@@ -359,6 +360,20 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
   ...PRESET_PROFILE_ASSETS,
 ]
 
+// ─── Default Greetings ──────────────────────────────────────
+
+export const DEFAULT_GREETINGS: GreetingConfig[] = [
+  { id: 'greeting-internal',        label: 'Internal — Dear Colleague',     value: 'Dear Colleague,',                              isDefault: false },
+  { id: 'greeting-investor',        label: 'Investor — Dear Investor',       value: 'Dear Investor,',                               isDefault: false },
+  { id: 'greeting-hello',           label: 'Hello',                          value: 'Hello,',                                       isDefault: false },
+  { id: 'greeting-standard-sa',     label: 'Standard SA — Dear Adviser',     value: 'Dear Financial Adviser,',                     isDefault: false },
+  { id: 'greeting-standard-global', label: 'Standard Global',                value: 'Dear %%preferred_name%%,',                    isDefault: false },
+  { id: 'greeting-broker-preferred',label: 'Broker — Preferred Name',        value: 'Dear %%preferred_name%%,',                    isDefault: false },
+  { id: 'greeting-dear-last-name',  label: 'Dear Last Name',                 value: 'Dear %%last_name%%,',                         isDefault: false },
+  { id: 'greeting-korea',           label: 'Korea',                          value: '%%first_name%%님, 안녕하세요.',               isDefault: false },
+  { id: 'greeting-japan',           label: 'Japan',                          value: '%%last_name%%様',                              isDefault: false },
+]
+
 // ─── Send Time Optimisation Defaults ────────────────────────
 
 const DEFAULT_SEND_TIME_OPTIMISATION = {
@@ -433,5 +448,6 @@ export function createDefaultSettings(): AppSettings {
     sendTimeOptimisation: DEFAULT_SEND_TIME_OPTIMISATION,
     benchmarks: DEFAULT_BENCHMARKS,
     audienceHealth: DEFAULT_AUDIENCE_HEALTH,
+    greetings: DEFAULT_GREETINGS,
   }
 }

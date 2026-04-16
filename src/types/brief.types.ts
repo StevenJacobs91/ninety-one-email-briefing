@@ -25,6 +25,7 @@ export interface CampaignDetails {
   fromName: string
   fromAddress: string
   replyToEmail?: string
+  utmCampaign?: string
 }
 
 export interface DistributionListFile {
@@ -45,6 +46,7 @@ export interface AudienceDetails {
 export interface ContentDetails {
   headline: string
   subHeadline?: string
+  greetingId?: string
   bodyIntro: string
   sections: ContentSection[]
   modules: string[]

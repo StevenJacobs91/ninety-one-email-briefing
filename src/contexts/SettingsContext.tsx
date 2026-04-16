@@ -59,6 +59,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           sendTimeOptimisation: { ...defaults.sendTimeOptimisation, ...(remote.sendTimeOptimisation ?? {}) },
           benchmarks: { ...defaults.benchmarks, ...(remote.benchmarks ?? {}) },
           audienceHealth: { ...defaults.audienceHealth, ...(remote.audienceHealth ?? {}) },
+          greetings: remote.greetings ?? defaults.greetings,
         })
       }
       setLoading(false)

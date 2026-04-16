@@ -81,6 +81,7 @@ const EMPTY_CONTENT_PRESET: CampaignContentPreset = {
   disclaimerId: '',
   distributionList: '',
   pardotListId: '',
+  greetingId: undefined,
 }
 const EMPTY_FORM: CampaignFormState = {
   name: '',
@@ -182,6 +183,8 @@ function ContentPresetFields({
   signoffs: { id: string; name: string }[]
   disclaimers: { id: string; label: string }[]
 }) {
+  const { settings } = useSettings()
+  const greetings = settings.greetings ?? []
   return (
     <div className="space-y-3 pt-1">
       {/* Brand Theme */}
@@ -276,6 +279,25 @@ function ContentPresetFields({
           placeholder="e.g. Insights from our investment team"
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
+      </div>
+
+      {/* Greeting */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Default Greeting</label>
+        <select
+          value={contentPreset.greetingId ?? ''}
+          onChange={(e) => onChange({ greetingId: e.target.value })}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        >
+          <option value="">— None —</option>
+          {greetings.map((g) => (
+            <option key={g.id} value={g.id}>{g.label}</option>
+          ))}
+        </select>
+        {contentPreset.greetingId && (() => {
+          const g = greetings.find((gr) => gr.id === contentPreset.greetingId)
+          return g ? <p className="text-[10px] text-gray-400 mt-0.5 italic">&ldquo;{g.value}&rdquo;</p> : null
+        })()}
       </div>
 
       {/* Two-column: Signature + Disclaimer */}

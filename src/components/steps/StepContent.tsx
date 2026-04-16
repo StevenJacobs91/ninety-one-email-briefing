@@ -315,6 +315,7 @@ export function StepContent() {
 
   const headline = watch('content.headline') ?? ''
   const subHeadline = watch('content.subHeadline') ?? ''
+  const greetingId = watch('content.greetingId') ?? ''
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const ctaLabel = watch('content.cta.label') ?? ''
   const selectedRegions = watch('audience.region') ?? []
@@ -783,6 +784,32 @@ export function StepContent() {
         maxLength={80}
         currentLength={subHeadline.length}
       />
+
+      {/* Greeting */}
+      <div className="mb-4">
+        <label className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
+          Greeting
+        </label>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">
+          Placed above the body intro in the generated email. Manage options in Settings → Greetings.
+        </p>
+        <select
+          value={greetingId}
+          onChange={(e) => setValue('content.greetingId', e.target.value, { shouldValidate: false })}
+          className="w-full border border-brand-border-field dark:border-gray-600 px-3 py-3 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors"
+        >
+          <option value="">— None —</option>
+          {(settings.greetings ?? []).map((g) => (
+            <option key={g.id} value={g.id}>{g.label}</option>
+          ))}
+        </select>
+        {greetingId && (() => {
+          const selected = (settings.greetings ?? []).find((g) => g.id === greetingId)
+          return selected ? (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 italic">&ldquo;{selected.value}&rdquo;</p>
+          ) : null
+        })()}
+      </div>
 
       <RichTextarea
         label="Body Intro"
