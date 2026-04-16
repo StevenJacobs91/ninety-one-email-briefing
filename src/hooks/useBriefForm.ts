@@ -98,6 +98,7 @@ export function useBriefForm(
   defaults?: BriefFormDefaults,
   supabaseCtx?: SupabaseContext,
   totalBriefSteps = DEFAULT_TOTAL_STEPS,
+  onSubmitSuccess?: (payload: BriefPayload) => void,
 ) {
   const [currentStep, setCurrentStep] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -156,10 +157,11 @@ export function useBriefForm(
 
       form.setValue('meta.status', 'submitted')
       setSubmitStatus('success')
+      onSubmitSuccess?.(payload)
     } catch {
       setSubmitStatus('error')
     }
-  }, [form, supabaseCtx])
+  }, [form, supabaseCtx, onSubmitSuccess])
 
   return {
     form,

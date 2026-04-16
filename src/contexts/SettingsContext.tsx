@@ -60,6 +60,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           benchmarks: { ...defaults.benchmarks, ...(remote.benchmarks ?? {}) },
           audienceHealth: { ...defaults.audienceHealth, ...(remote.audienceHealth ?? {}) },
           greetings: remote.greetings ?? defaults.greetings,
+          notifications: remote.notifications
+            ? {
+                ...defaults.notifications,
+                ...remote.notifications,
+                // Merge events: ensure any new event types added in updates are included
+                events: defaults.notifications.events.map((defaultEvt) => {
+                  const saved = remote.notifications?.events?.find(
+                    (e) => e.eventType === defaultEvt.eventType
+                  )
+                  return saved ? { ...defaultEvt, ...saved } : defaultEvt
+                }),
+              }
+            : defaults.notifications,
         })
       }
       setLoading(false)

@@ -35,6 +35,8 @@ import type { SavedDraft } from '../../hooks/useDrafts'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { buildEmailName } from '../../lib/emailName'
 import { getStepFields } from '../../lib/validateStep'
+import { triggerNotification } from '../../lib/notificationService'
+import type { BriefPayload } from '../../types/brief.types'
 
 
 const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: string[] }> = {
@@ -450,7 +452,23 @@ export function FormShell() {
   }, {
     teamId: profile?.teamId,
     userId: user?.id,
-  }, visibleBriefSteps.length || 3)
+  }, visibleBriefSteps.length || 3, useCallback((payload: BriefPayload) => {
+    if (settings.notifications) {
+      triggerNotification('brief_submitted', {
+        briefId: payload.meta.briefId,
+        campaignName: payload.campaign.campaignName,
+        emailType: payload.campaign.emailType,
+        subjectLine: payload.campaign.subjectLine,
+        sendDate: payload.deadlines.sendDate,
+        contentApprovalDate: payload.deadlines.contentApprovalDate,
+        urgency: payload.deadlines.urgency,
+        regions: (payload.audience.region ?? []).join(', '),
+        channels: (payload.audience.channel ?? []).join(', '),
+        requesterName: profile?.displayName ?? '',
+        requesterEmail: user?.email ?? '',
+      }, settings.notifications).catch(console.error)
+    }
+  }, [settings.notifications, profile?.displayName, user?.email]))
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
   const { mode, setMode } = useDarkMode()

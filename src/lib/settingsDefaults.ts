@@ -20,6 +20,12 @@ import type {
   GreetingConfig,
 } from '../types/settings.types'
 import type { ApprovalConfig } from '../types/approval.types'
+import {
+  NOTIFICATION_EVENT_META,
+  type NotificationsSettings,
+  type NotificationEventConfig,
+  type NotificationEventType,
+} from '../types/notifications.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
 import { PRESET_CAMPAIGNS } from './campaignPresets'
 import { PRESET_PROFILE_ASSETS, PRESET_HEADER_ASSETS } from './assetLibraryData'
@@ -449,5 +455,31 @@ export function createDefaultSettings(): AppSettings {
     benchmarks: DEFAULT_BENCHMARKS,
     audienceHealth: DEFAULT_AUDIENCE_HEALTH,
     greetings: DEFAULT_GREETINGS,
+    notifications: DEFAULT_NOTIFICATIONS,
   }
+}
+
+// ─── Default Notifications ────────────────────────────────────────────────────
+
+const DEFAULT_NOTIFICATION_EVENTS: NotificationEventConfig[] = (
+  Object.keys(NOTIFICATION_EVENT_META) as NotificationEventType[]
+).map((eventType) => ({
+  eventType,
+  enabled: false,
+  webhookUrl: '',
+  subjectTemplate: NOTIFICATION_EVENT_META[eventType].defaultSubject,
+  sendToRequester: true,
+  sendToTeam: false,
+  additionalRecipients: '',
+  includeFullPayload: true,
+}))
+
+export const DEFAULT_NOTIFICATIONS: NotificationsSettings = {
+  enabled: false,
+  globalWebhookUrl: '',
+  retryOnFailure: true,
+  maxRetries: 3,
+  logDelivery: true,
+  deadlineWarningHours: 48,
+  events: DEFAULT_NOTIFICATION_EVENTS,
 }

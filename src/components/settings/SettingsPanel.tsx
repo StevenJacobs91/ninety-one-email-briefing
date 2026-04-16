@@ -22,6 +22,7 @@ import { TabSendTimeOptimisation } from './TabSendTimeOptimisation'
 import { TabBenchmarks } from './TabBenchmarks'
 import { TabAudienceHealth } from './TabAudienceHealth'
 import { TabGreetings } from './TabGreetings'
+import { TabNotifications } from './TabNotifications'
 
 interface TabConfig {
   id: SettingsTab
@@ -72,9 +73,10 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
       { id: 'general',   label: 'General',     description: 'Sender defaults, form defaults, and n8n integration' },
       { id: 'layout',    label: 'Form Layout',  description: 'Reorder fields and set required/optional' },
       { id: 'users',     label: 'Users',        description: 'Manage team members, roles, and access' },
-      { id: 'approvals', label: 'Approvals',    description: 'Configure approval workflow, roles, and routing rules' },
-      { id: 'audit',     label: 'Audit Trail',  description: 'Track user activity and manage audit logging' },
-      { id: 'pardot',    label: 'Pardot API',   description: 'Configure Salesforce Account Engagement integration' },
+      { id: 'approvals',      label: 'Approvals',      description: 'Configure approval workflow, roles, and routing rules' },
+      { id: 'audit',          label: 'Audit Trail',    description: 'Track user activity and manage audit logging' },
+      { id: 'notifications',  label: 'Notifications',  description: 'Configure Power Automate webhook triggers for email notifications' },
+      { id: 'pardot',         label: 'Pardot API',     description: 'Configure Salesforce Account Engagement integration' },
     ],
   },
 ]
@@ -430,6 +432,7 @@ export function SettingsPanel() {
               {activeTab === 'pardot'          && <TabPardot />}
               {activeTab === 'insights'        && <TabCampaignInsights />}
               {activeTab === 'approvals'       && <TabApprovals />}
+              {activeTab === 'notifications'   && <TabNotifications />}
               {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}

@@ -5,6 +5,7 @@ import type { BriefFormData } from '../lib/schema'
 import { useAuth } from './AuthContext'
 import { useSettings } from './SettingsContext'
 import { writeAuditLog } from '../lib/auditLog'
+import { triggerNotification } from '../lib/notificationService'
 import {
   fetchKanbanCards,
   insertKanbanCard,
@@ -120,10 +121,23 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
           })
         }
 
+        // Notification
+        if (settings.notifications) {
+          triggerNotification('kanban_moved', {
+            emailName: c.emailName,
+            briefId: c.briefId,
+            fromColumn: fromCol,
+            toColumn: column,
+            movedBy: profile?.displayName ?? '',
+            sendDate: c.sendDate ?? '',
+            urgency: c.urgency,
+          }, settings.notifications).catch(console.error)
+        }
+
         return updated
       })
     )
-  }, [auditCtx, settings.audit])
+  }, [auditCtx, settings.audit, settings.notifications, profile])
 
   const updateCardNotes = useCallback((id: string, notes: string) => {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, notes } : c)))
@@ -147,7 +161,16 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         details: { emailName: card.emailName },
       })
     }
-  }, [cards, auditCtx, settings.audit])
+    if (settings.notifications && card) {
+      triggerNotification('kanban_card_removed', {
+        emailName: card.emailName,
+        briefId: card.briefId,
+        removedBy: profile?.displayName ?? '',
+        sendDate: card.sendDate ?? '',
+        urgency: card.urgency,
+      }, settings.notifications).catch(console.error)
+    }
+  }, [cards, auditCtx, settings.audit, settings.notifications, profile])
 
   const getColumnCards = useCallback(
     (column: KanbanColumn) => cards.filter((c) => c.column === column),

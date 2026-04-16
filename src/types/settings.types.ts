@@ -375,6 +375,8 @@ export interface AppSettings {
   audienceHealth: AudienceHealthConfig
   // Greetings / Salutations
   greetings: GreetingConfig[]
+  // Power Automate notifications
+  notifications: import('./notifications.types').NotificationsSettings
 }
 
 export type SettingsTab =
@@ -398,3 +400,4 @@ export type SettingsTab =
   | 'benchmarks'
   | 'audience-health'
   | 'greetings'
+  | 'notifications'
