@@ -88,14 +88,14 @@ export function TabGreetings() {
             type="text"
             value={editing.value}
             onChange={(e) => setEditing({ ...editing, value: e.target.value })}
-            placeholder="e.g. Dear %%preferred_name%%,"
+            placeholder="e.g. Dear {{Recipient.FirstName}},"
             className={inputCls}
           />
           <p className="text-[10px] text-gray-400 mt-0.5">
-            Use Pardot merge fields like{' '}
-            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">%%first_name%%</code>,{' '}
-            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">%%last_name%%</code>,{' '}
-            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">%%preferred_name%%</code>.
+            Use Pardot HML merge fields like{' '}
+            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">{'{{Recipient.FirstName}}'}</code>,{' '}
+            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">{'{{Recipient.LastName}}'}</code>,{' '}
+            <code className="font-mono bg-gray-100 dark:bg-gray-700 px-0.5 rounded">{'{{Recipient.Salutation}}'}</code>.
           </p>
         </div>
 
@@ -211,12 +211,13 @@ export function TabGreetings() {
       )}
 
       <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-gray-100 dark:border-gray-800">
-        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Supported merge fields</p>
+        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pardot HML merge fields</p>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">These are rendered at send time by Pardot / Account Engagement.</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400">
-          <span><code className="font-mono text-brand-primary dark:text-brand-accent">%%first_name%%</code> — First name</span>
-          <span><code className="font-mono text-brand-primary dark:text-brand-accent">%%last_name%%</code> — Last name</span>
-          <span><code className="font-mono text-brand-primary dark:text-brand-accent">%%preferred_name%%</code> — Preferred name</span>
-          <span><code className="font-mono text-brand-primary dark:text-brand-accent">%%salutation%%</code> — Salutation (Mr/Ms)</span>
+          <span><code className="font-mono text-brand-primary dark:text-brand-accent">{'{{Recipient.FirstName}}'}</code> — First name</span>
+          <span><code className="font-mono text-brand-primary dark:text-brand-accent">{'{{Recipient.LastName}}'}</code> — Last name</span>
+          <span><code className="font-mono text-brand-primary dark:text-brand-accent">{'{{Recipient.Salutation}}'}</code> — Salutation</span>
+          <span><code className="font-mono text-brand-primary dark:text-brand-accent">{'{{Recipient.Email}}'}</code> — Email address</span>
         </div>
       </div>
     </div>

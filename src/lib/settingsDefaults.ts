@@ -363,15 +363,15 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
 // ─── Default Greetings ──────────────────────────────────────
 
 export const DEFAULT_GREETINGS: GreetingConfig[] = [
-  { id: 'greeting-internal',        label: 'Internal — Dear Colleague',     value: 'Dear Colleague,',                              isDefault: false },
-  { id: 'greeting-investor',        label: 'Investor — Dear Investor',       value: 'Dear Investor,',                               isDefault: false },
-  { id: 'greeting-hello',           label: 'Hello',                          value: 'Hello,',                                       isDefault: false },
-  { id: 'greeting-standard-sa',     label: 'Standard SA — Dear Adviser',     value: 'Dear Financial Adviser,',                     isDefault: false },
-  { id: 'greeting-standard-global', label: 'Standard Global',                value: 'Dear %%preferred_name%%,',                    isDefault: false },
-  { id: 'greeting-broker-preferred',label: 'Broker — Preferred Name',        value: 'Dear %%preferred_name%%,',                    isDefault: false },
-  { id: 'greeting-dear-last-name',  label: 'Dear Last Name',                 value: 'Dear %%last_name%%,',                         isDefault: false },
-  { id: 'greeting-korea',           label: 'Korea',                          value: '%%first_name%%님, 안녕하세요.',               isDefault: false },
-  { id: 'greeting-japan',           label: 'Japan',                          value: '%%last_name%%様',                              isDefault: false },
+  { id: 'greeting-internal',        label: 'Internal — Dear Colleague',     value: 'Dear Colleague,',                                          isDefault: false },
+  { id: 'greeting-investor',        label: 'Investor — Dear Investor',       value: 'Dear Investor,',                                           isDefault: false },
+  { id: 'greeting-hello',           label: 'Hello',                          value: 'Hello,',                                                   isDefault: false },
+  { id: 'greeting-standard-sa',     label: 'Standard SA — Dear Adviser',     value: 'Dear Financial Adviser,',                                  isDefault: false },
+  { id: 'greeting-standard-global', label: 'Standard Global',                value: 'Dear {{Recipient.FirstName}},',                            isDefault: false },
+  { id: 'greeting-broker-preferred',label: 'Broker — Preferred Name',        value: 'Dear {{Recipient.FirstName}},',                            isDefault: false },
+  { id: 'greeting-dear-last-name',  label: 'Dear Last Name',                 value: 'Dear {{Recipient.LastName}},',                             isDefault: false },
+  { id: 'greeting-korea',           label: 'Korea',                          value: '{{Recipient.FirstName}}님, 안녕하세요.',                  isDefault: false },
+  { id: 'greeting-japan',           label: 'Japan',                          value: '{{Recipient.LastName}}様',                                  isDefault: false },
 ]
 
 // ─── Send Time Optimisation Defaults ────────────────────────
