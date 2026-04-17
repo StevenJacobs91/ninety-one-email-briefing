@@ -473,7 +473,25 @@ export function createDefaultSettings(): AppSettings {
     rolePermissions: DEFAULT_ROLE_PERMISSIONS,
     userGroups: [],
     headers: DEFAULT_HEADER_TYPES,
+    powerAutomate: DEFAULT_POWER_AUTOMATE_CONFIG,
   }
+}
+
+// ─── Default Power Automate Config ──────────────────────────
+
+export const DEFAULT_POWER_AUTOMATE_CONFIG = {
+  enabled: false,
+  briefSubmissionFlow:  { webhookUrl: '', enabled: false },
+  listAnalysisFlow:     { webhookUrl: '', enabled: false },
+  campaignInsightsFlow: { webhookUrl: '', enabled: false },
+  secretHeaderName:  'x-api-key',
+  secretHeaderValue: '',
+  includeFullBrief:      true,
+  includeCampaignConfig: false,
+  includeKanbanData:     false,
+  retryOnFailure:   true,
+  timeoutSeconds:   30,
+  fieldMappings:    [] as import('../types/settings.types').PowerAutomateFieldMapping[],
 }
 
 // ─── Default Header Types ────────────────────────────────────

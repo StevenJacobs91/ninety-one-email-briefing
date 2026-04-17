@@ -459,6 +459,63 @@ export interface AppSettings {
   userGroups: UserGroup[]
   // Header types
   headers: HeaderTypeConfig[]
+  // Power Automate
+  powerAutomate: PowerAutomateConfig
+}
+
+// ─── Power Automate ──────────────────────────────────────────
+
+export interface PowerAutomateFlowEndpoint {
+  /** Webhook URL from the "When an HTTP request is received" trigger */
+  webhookUrl: string
+  /** Whether this flow endpoint is active */
+  enabled: boolean
+}
+
+export interface PowerAutomateFieldMapping {
+  id: string
+  /** Brief field path e.g. "campaign.subjectLine" */
+  briefField: string
+  /** Power Automate flow input parameter name */
+  flowParameter: string
+  notes: string
+}
+
+export interface PowerAutomateConfig {
+  /** Master enable toggle — when false, no flows are triggered */
+  enabled: boolean
+
+  // ── Flow endpoints ──────────────────────────────────────────
+  /** Triggered when a brief is submitted */
+  briefSubmissionFlow: PowerAutomateFlowEndpoint
+  /** Triggered to request Pardot list health analysis */
+  listAnalysisFlow: PowerAutomateFlowEndpoint
+  /** Triggered to request Pardot campaign performance insights */
+  campaignInsightsFlow: PowerAutomateFlowEndpoint
+
+  // ── Security ────────────────────────────────────────────────
+  /** Optional custom header name to pass a shared secret (e.g. "x-api-key") */
+  secretHeaderName: string
+  /** Shared secret value sent in the header above */
+  secretHeaderValue: string
+
+  // ── Payload options ─────────────────────────────────────────
+  /** Include the full serialised BriefPayload in the submission body */
+  includeFullBrief: boolean
+  /** Include campaign preset and settings metadata */
+  includeCampaignConfig: boolean
+  /** Include Kanban card metadata (column, urgency, dates) */
+  includeKanbanData: boolean
+
+  // ── Retry / timeout ─────────────────────────────────────────
+  /** Retry once after 5 s on network-level failure */
+  retryOnFailure: boolean
+  /** HTTP timeout in seconds (3–60) */
+  timeoutSeconds: number
+
+  // ── Custom field mappings ────────────────────────────────────
+  /** Maps brief fields to Power Automate flow input parameter names */
+  fieldMappings: PowerAutomateFieldMapping[]
 }
 
 export type SettingsTab =
@@ -484,3 +541,4 @@ export type SettingsTab =
   | 'audience-health'
   | 'greetings'
   | 'notifications'
+  | 'power-automate'

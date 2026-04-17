@@ -24,6 +24,7 @@ import { TabAudienceHealth } from './TabAudienceHealth'
 import { TabGreetings } from './TabGreetings'
 import { TabNotifications } from './TabNotifications'
 import { TabHeaders } from './TabHeaders'
+import { TabPowerAutomate } from './TabPowerAutomate'
 
 interface TabConfig {
   id: SettingsTab
@@ -78,7 +79,8 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
       { id: 'approvals',      label: 'Approvals',      description: 'Configure approval workflow, roles, and routing rules' },
       { id: 'audit',          label: 'Audit Trail',    description: 'Track user activity and manage audit logging' },
       { id: 'notifications',  label: 'Notifications',  description: 'Configure Power Automate webhook triggers for email notifications' },
-      { id: 'pardot',         label: 'Pardot API',     description: 'Configure Salesforce Account Engagement integration' },
+      { id: 'pardot',          label: 'Pardot API',        description: 'Configure Salesforce Account Engagement integration' },
+      { id: 'power-automate',  label: 'Power Automate',    description: 'Send brief data to Pardot and other services via Power Automate flows' },
     ],
   },
 ]
@@ -438,6 +440,7 @@ export function SettingsPanel() {
               {activeTab === 'headers'         && <TabHeaders />}
               {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
+              {activeTab === 'power-automate' && <TabPowerAutomate />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}
             </div>
           </div>
