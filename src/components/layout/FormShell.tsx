@@ -28,7 +28,6 @@ import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
 import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
 import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
 import type { BriefTemplate } from '../../lib/constants'
-import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
 import type { SavedDraft } from '../../hooks/useDrafts'
@@ -120,7 +119,7 @@ interface HelpPanelProps {
 function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary }: HelpPanelProps) {
   const { settings } = useSettings()
   const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
-  const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
+  const theme = (settings.brandThemes ?? []).find((t) => t.id === currentTheme)
   const isPipeline = stepId === 'brand-review' || stepId === 'html-email'
   const eyebrow = isPipeline
     ? `Pipeline · ${stepId === 'brand-review' ? 'Brand Review' : 'HTML Email'}`

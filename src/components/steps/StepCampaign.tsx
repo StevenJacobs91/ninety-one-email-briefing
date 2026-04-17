@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import {
-  EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, CLIENT_GROUPS, CHANNELS,
+  EMAIL_TYPES, EMAIL_TYPE_LABELS, CLIENT_GROUPS, CHANNELS,
   CLIENT_GROUP_REGIONS,
 } from '../../lib/constants'
+import type { BrandThemeConfig } from '../../types/settings.types'
 import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
@@ -22,7 +23,7 @@ function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
 }
 
 // ─── Tags builder ──────────────────────────────────────────────────────────────
-function buildTags(data: BriefFormData): string {
+function buildTags(data: BriefFormData, themes: BrandThemeConfig[] = []): string {
   const now = new Date()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const yy = String(now.getFullYear()).slice(-2)
@@ -31,7 +32,7 @@ function buildTags(data: BriefFormData): string {
   const namePart = data.campaign.campaignName || 'untitled'
   const emailName = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
 
-  const themeLabel = BRAND_THEMES.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
+  const themeLabel = themes.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
 
   return [
     `parent - ${emailName}`,
@@ -195,7 +196,7 @@ export function StepCampaign() {
   const today = new Date().toISOString().split('T')[0]
   const data = watch()
 
-  const tags = useMemo(() => buildTags(data as BriefFormData), [data])
+  const tags = useMemo(() => buildTags(data as BriefFormData, settings.brandThemes ?? []), [data, settings.brandThemes])
 
   useEffect(() => {
     setValue('deadlines.tags', tags)
@@ -507,7 +508,7 @@ export function StepCampaign() {
                 role="radiogroup"
                 aria-labelledby="theme-label"
               >
-                {BRAND_THEMES.map((theme) => (
+                {(settings.brandThemes ?? []).map((theme) => (
                   <label
                     key={theme.id}
                     role="radio"

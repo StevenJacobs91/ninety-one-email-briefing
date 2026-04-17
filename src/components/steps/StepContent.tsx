@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { v4 as uuidv4 } from 'uuid'
 import type { BriefFormData } from '../../lib/schema'
-import { REGION_LEGAL_DISCLAIMERS, BRAND_THEMES, LOGO_VARIANTS } from '../../lib/constants'
+import { REGION_LEGAL_DISCLAIMERS, LOGO_VARIANTS } from '../../lib/constants'
 import { ContentEditorShell } from '../content-editor/ContentEditorShell'
 import { useSettings } from '../../contexts/SettingsContext'
 import { FieldText } from '../ui/FieldText'
@@ -324,9 +324,9 @@ export function StepContent() {
   const selectedTheme = watch('campaign.theme')
   const campaignSubjectLine = watch('campaign.subjectLine') ?? ''
   const accentColour = useMemo(() => {
-    const theme = BRAND_THEMES.find((t) => t.id === selectedTheme)
+    const theme = (settings.brandThemes ?? []).find((t) => t.id === selectedTheme)
     return theme?.accent ?? '#fbaa96'
-  }, [selectedTheme])
+  }, [selectedTheme, settings.brandThemes])
   const themeAssets = useMemo(() => {
     const t = (settings.brandThemes ?? []).find((t) => t.id === selectedTheme)
     return { logoUrl: t?.logoUrl, stripeUrl: t?.stripeUrl }
@@ -554,7 +554,6 @@ export function StepContent() {
             // Theme-colour filter: match colourOverlay to selected theme's primary
             const selectedThemeId = watch('campaign.theme') as string
             const selectedTheme = (settings.brandThemes ?? []).find((t) => t.id === selectedThemeId)
-              ?? BRAND_THEMES.find((t) => t.id === selectedThemeId)
             const themePrimary = selectedTheme?.primary?.toLowerCase() ?? ''
 
             const themeHeaders = themePrimary

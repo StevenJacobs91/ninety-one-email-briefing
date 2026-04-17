@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
-import { CLIENT_GROUPS, CHANNELS, BRAND_THEMES } from '../../lib/constants'
+import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
 import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -196,12 +196,12 @@ function ContentPresetFields({
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         >
           <option value="">— None —</option>
-          {BRAND_THEMES.map((t) => (
+          {(settings.brandThemes ?? []).map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>
           ))}
         </select>
         {contentPreset.theme && (() => {
-          const t = BRAND_THEMES.find((bt) => bt.id === contentPreset.theme)
+          const t = (settings.brandThemes ?? []).find((bt) => bt.id === contentPreset.theme)
           return t ? (
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: t.primary }} />
@@ -652,7 +652,7 @@ export function TabCampaigns() {
                   {c.contentPreset && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {[
-                        c.contentPreset.theme && BRAND_THEMES.find((t) => t.id === c.contentPreset!.theme)?.label,
+                        c.contentPreset.theme && (settings.brandThemes ?? []).find((t) => t.id === c.contentPreset!.theme)?.label,
                         c.contentPreset.subjectLine && `"${c.contentPreset.subjectLine}"`,
                         c.contentPreset.headline,
                       ].filter(Boolean).join(' · ') || 'Content preset configured'}

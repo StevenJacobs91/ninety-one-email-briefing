@@ -1,5 +1,5 @@
 import { useSettings } from '../../contexts/SettingsContext'
-import { EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, URGENCY_OPTIONS } from '../../lib/constants'
+import { EMAIL_TYPES, EMAIL_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
 
 export function TabGeneral() {
@@ -78,7 +78,7 @@ export function TabGeneral() {
               onChange={(e) => updateSettings({ formDefaults: { ...formDefaults, theme: e.target.value } })}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             >
-              {BRAND_THEMES.map((t) => (
+              {(settings.brandThemes ?? []).map((t) => (
                 <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
