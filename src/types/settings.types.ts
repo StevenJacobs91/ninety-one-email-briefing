@@ -337,6 +337,70 @@ export interface AudienceHealthConfig {
   enabled: boolean
 }
 
+// ─── Header Types ────────────────────────────────────────────
+
+export interface HeaderTypeAssets {
+  logoUrl?: string
+  stripeUrl?: string
+  slimStripeUrl?: string
+  thirtyFiveYearGraphicUrl?: string
+}
+
+export interface HeaderTypeConfig {
+  id: string
+  label: string
+  description: string
+  requiresHeroImage: boolean
+  isDefault: boolean
+  /** Built-in types can be edited but not deleted */
+  builtIn: boolean
+  enabled: boolean
+  /** HTML code snippet for the email template producer */
+  htmlSnippet: string
+  /** Asset URLs associated with this header type */
+  assets: HeaderTypeAssets
+  /** Internal notes / usage guidance */
+  notes: string
+}
+
+// ─── Role Permissions ────────────────────────────────────────
+
+export type RolePermissionKey =
+  | 'canSubmitBriefs'
+  | 'canViewAllBriefs'
+  | 'canEditAnyBrief'
+  | 'canDeleteBriefs'
+  | 'canViewKanban'
+  | 'canMoveKanbanCards'
+  | 'canDeleteKanbanCards'
+  | 'canViewAnalytics'
+  | 'canManageAssets'
+  | 'canManageTemplates'
+  | 'canExportData'
+  | 'canAccessSettings'
+  | 'canConfigureNotifications'
+  | 'canManageApprovals'
+  | 'canManageUsers'
+
+export type RolePermissions = Record<RolePermissionKey, boolean>
+
+export interface RolePermissionConfig {
+  admin: RolePermissions
+  producer: RolePermissions
+  requester: RolePermissions
+}
+
+// ─── User Groups (Teams) ─────────────────────────────────────
+
+export interface UserGroup {
+  id: string
+  name: string
+  description: string
+  memberIds: string[]
+  colour: string
+  createdAt: string
+}
+
 // ─── Full AppSettings ────────────────────────────────────────
 
 export interface AppSettings {
@@ -377,9 +441,16 @@ export interface AppSettings {
   greetings: GreetingConfig[]
   // Power Automate notifications
   notifications: import('./notifications.types').NotificationsSettings
+  // Role permissions matrix
+  rolePermissions: RolePermissionConfig
+  // User groups (Teams)
+  userGroups: UserGroup[]
+  // Header types
+  headers: HeaderTypeConfig[]
 }
 
 export type SettingsTab =
+  | 'headers'
   | 'general'
   | 'campaigns'
   | 'lists'

@@ -71,6 +71,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
     },
     htmlEdits: [],
     assets: {
+      headerType: 'standard',
       logoVariant: 'horizontal',
       stripeColour: '',
       heroImageUrl: '',

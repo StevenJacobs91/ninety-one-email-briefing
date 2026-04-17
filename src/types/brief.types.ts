@@ -77,6 +77,7 @@ export interface AssetAttachment {
 }
 
 export interface AssetDetails {
+  headerType?: string
   logoVariant: 'horizontal' | 'stacked' | 'icon'
   stripeColour?: string
   heroImageUrl?: string

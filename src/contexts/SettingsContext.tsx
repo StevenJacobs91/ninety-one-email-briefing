@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
-import type { AppSettings } from '../types/settings.types'
-import { createDefaultSettings } from '../lib/settingsDefaults'
+import type { AppSettings, HeaderTypeConfig } from '../types/settings.types'
+import { createDefaultSettings, DEFAULT_HEADER_TYPES } from '../lib/settingsDefaults'
 import { useAuth } from './AuthContext'
 import { fetchSettings, upsertSettings } from '../lib/supabaseQueries'
 
@@ -60,6 +60,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           benchmarks: { ...defaults.benchmarks, ...(remote.benchmarks ?? {}) },
           audienceHealth: { ...defaults.audienceHealth, ...(remote.audienceHealth ?? {}) },
           greetings: remote.greetings ?? defaults.greetings,
+          rolePermissions: remote.rolePermissions
+            ? {
+                admin: { ...defaults.rolePermissions.admin, ...remote.rolePermissions.admin },
+                producer: { ...defaults.rolePermissions.producer, ...remote.rolePermissions.producer },
+                requester: { ...defaults.rolePermissions.requester, ...remote.rolePermissions.requester },
+              }
+            : defaults.rolePermissions,
+          userGroups: remote.userGroups ?? defaults.userGroups,
+          headers: (() => {
+            if (!remote.headers) return DEFAULT_HEADER_TYPES
+            // Merge: keep all built-in defaults (with user edits applied), append any custom types
+            const remoteMap = new Map((remote.headers as HeaderTypeConfig[]).map((h) => [h.id, h]))
+            const merged = DEFAULT_HEADER_TYPES.map((d) => remoteMap.has(d.id) ? { ...d, ...remoteMap.get(d.id) } : d)
+            const customTypes = (remote.headers as HeaderTypeConfig[]).filter((h) => !DEFAULT_HEADER_TYPES.some((d) => d.id === h.id))
+            return [...merged, ...customTypes]
+          })(),
           notifications: remote.notifications
             ? {
                 ...defaults.notifications,

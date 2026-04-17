@@ -360,7 +360,6 @@ export function StepContent() {
   })
 
   const heroImageUrl = watch('assets.heroImageUrl') ?? ''
-  const stripeColour = watch('assets.stripeColour') ?? ''
   const attachments = watch('assets.attachments') ?? []
 
   const [isDragging, setIsDragging] = useState(false)
@@ -416,79 +415,131 @@ export function StepContent() {
     <div>
       <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-8">Content</h2>
 
-      <SubSection title="Assets">
-        {/* Logo variant + Stripe colour — two column */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Logo Variant */}
-          <div>
-            <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Logo Variant<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-            </p>
-            <div className="flex flex-col gap-2" role="radiogroup" aria-labelledby="logo-variant-label">
-              {LOGO_VARIANTS.map((variant) => {
-                const selected = watch('assets.logoVariant') === variant
-                return (
-                  <label
-                    key={variant}
-                    className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-colors ${
-                      selected
-                        ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary dark:ring-brand-accent'
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <input type="radio" {...register('assets.logoVariant')} value={variant} className="sr-only" />
-                    <LogoPreview variant={variant} />
-                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 capitalize">{variant}</span>
-                  </label>
-                )
-              })}
-            </div>
-          </div>
+      <SubSection title="Header type">
+        {/* Header type selector */}
+        {(() => {
+          const allHeaderTypes = (settings.headers ?? []).filter((h) => h.enabled)
+          const selectedHeaderType = watch('assets.headerType') ?? 'standard'
+          const activeType = allHeaderTypes.find((h) => h.id === selectedHeaderType) ?? allHeaderTypes[0]
+          const requiresHeroImage = activeType?.requiresHeroImage ?? false
 
-          {/* Stripe Colour */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Stripe / Accent Colour
-            </label>
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="color"
-                value={stripeColour || '#fbaa96'}
-                onChange={(e) => setValue('assets.stripeColour', e.target.value, { shouldValidate: true })}
-                className="w-10 h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600 p-0.5 bg-white dark:bg-gray-800"
-                title="Pick stripe colour"
-              />
-              <input
-                {...register('assets.stripeColour')}
-                placeholder="e.g. #fbaa96"
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-                onChange={(e) => {
-                  const val = e.target.value
-                  register('assets.stripeColour').onChange(e)
-                  if (/^#[0-9A-Fa-f]{6}$/.test(val)) setValue('assets.stripeColour', val)
-                }}
-              />
-            </div>
-            {stripeColour && /^#[0-9A-Fa-f]{6}$/.test(stripeColour) && (
-              <div
-                className="h-5 rounded border border-gray-200 dark:border-gray-700"
-                style={{ backgroundColor: stripeColour }}
-                title={`Preview: ${stripeColour}`}
-              />
-            )}
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              Overrides the selected theme's default accent colour.
-            </p>
-          </div>
-        </div>
+          return (
+            <>
+              {allHeaderTypes.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                  No header types configured. Add types in <strong>Settings → Design Elements → Headers</strong>.
+                </p>
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Choose the header layout for this email. Configure header types and paste HTML snippets in <strong>Settings → Headers</strong>.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {allHeaderTypes.map((ht) => {
+                      const isSelected = selectedHeaderType === ht.id ||
+                        (!selectedHeaderType && ht.isDefault)
+                      return (
+                        <button
+                          key={ht.id}
+                          type="button"
+                          onClick={() => setValue('assets.headerType', ht.id, { shouldValidate: true })}
+                          className={`text-left rounded-xl border-2 p-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                            isSelected
+                              ? 'border-brand-primary dark:border-brand-accent bg-brand-primary/5 dark:bg-brand-primary/10 ring-1 ring-brand-primary dark:ring-brand-accent'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-brand-primary/40 dark:hover:border-brand-accent/40 bg-white dark:bg-gray-800'
+                          }`}
+                        >
+                          {/* Mini header preview */}
+                          <div
+                            className="w-full rounded overflow-hidden mb-2 relative"
+                            style={{
+                              height: ht.id.startsWith('slim') ? 32 : 48,
+                              background: ht.requiresHeroImage
+                                ? 'linear-gradient(135deg, #2d3748 0%, #1a202c 60%, #4a5568 100%)'
+                                : 'var(--brand-primary, #134848)',
+                            }}
+                          >
+                            {ht.requiresHeroImage && (
+                              <div className="absolute inset-0 opacity-20"
+                                style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,.06) 4px, rgba(255,255,255,.06) 8px)' }}
+                              />
+                            )}
+                            {/* Logo area */}
+                            <div className="absolute left-2 top-1.5 flex items-center gap-1">
+                              <div className="w-3.5 h-2.5 bg-white/70 rounded-sm" />
+                              {ht.id.includes('35yr') && (
+                                <div className="w-3.5 h-2.5 rounded-sm flex items-center justify-center" style={{ background: '#fcaa28' }}>
+                                  <span className="text-[4px] font-bold text-white leading-none">35</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Headline/sub-headline */}
+                            <div className="absolute left-2 bottom-1.5 space-y-0.5">
+                              <div className="h-1 rounded-sm w-10" style={{ background: 'var(--brand-accent, #fbaa96)', opacity: 0.9 }} />
+                              <div className="h-0.5 w-7 bg-white/30 rounded-sm" />
+                            </div>
+                            {/* Stripes */}
+                            <div className="absolute right-0 top-0 bottom-0 w-[28%] flex gap-px">
+                              {[0.5, 0.8, 1.0, 0.6].map((op, i) => (
+                                <div key={i} className="flex-1" style={{ background: `rgba(251,170,150,${op})` }} />
+                              ))}
+                            </div>
+                          </div>
 
-        {/* Hero Image */}
-        <div>
-          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hero Image</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-            Recommended: 640 × 270 px. Select from the library, upload and crop in-browser, or paste a CDN URL.
-          </p>
+                          <p className={`text-xs font-semibold leading-tight mb-0.5 ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-800 dark:text-gray-200'}`}>
+                            {ht.label}
+                          </p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight line-clamp-2">
+                            {ht.description}
+                          </p>
+                          {ht.requiresHeroImage && (
+                            <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                              Hero image required
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
+              {/* Logo variant */}
+              <div className="mt-5">
+                <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Logo Variant<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+                </p>
+                <div className="flex gap-3" role="radiogroup" aria-labelledby="logo-variant-label">
+                  {LOGO_VARIANTS.map((variant) => {
+                    const selected = watch('assets.logoVariant') === variant
+                    return (
+                      <label
+                        key={variant}
+                        className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-colors w-24 ${
+                          selected
+                            ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary dark:ring-brand-accent'
+                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                        }`}
+                      >
+                        <input type="radio" {...register('assets.logoVariant')} value={variant} className="sr-only" />
+                        <LogoPreview variant={variant} />
+                        <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 capitalize">{variant}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Hero Image — only shown when selected header type requires it */}
+              {requiresHeroImage && (
+                <div className="mt-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hero Image</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold uppercase tracking-wider">Required for this header</span>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                    Recommended: 640 × 270 px. Select from the library, upload and crop in-browser, or paste a CDN URL.
+                  </p>
           {/* Header Library */}
           {(() => {
             const allHeaders = (settings.assets ?? []).filter((a) => a.category === 'header')
@@ -752,16 +803,20 @@ export function StepContent() {
               )}
             </div>
           )}
-        </div>
 
-        {/* Hero image alt text */}
-        <FieldText
-          label="Hero Image Alt Text"
-          registration={register('assets.heroImageAlt')}
-          error={errors.assets?.heroImageAlt as never}
-          required={!!heroImageUrl}
-          placeholder={heroImageUrl ? 'Required — describe the image for accessibility' : 'Required once a hero image is set'}
-        />
+          {/* Hero image alt text — inside the conditional */}
+          <FieldText
+            label="Hero Image Alt Text"
+            registration={register('assets.heroImageAlt')}
+            error={errors.assets?.heroImageAlt as never}
+            required={!!heroImageUrl}
+            placeholder={heroImageUrl ? 'Required — describe the image for accessibility' : 'Required once a hero image is set'}
+          />
+        </div>
+      )}
+    </>
+  )
+})()}
       </SubSection>
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />

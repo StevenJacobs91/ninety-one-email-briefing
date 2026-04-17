@@ -87,6 +87,7 @@ const assetAttachmentSchema = z.object({
 })
 
 const assetSchema = z.object({
+  headerType: z.string().optional().default('standard'),
   logoVariant: z.enum(LOGO_VARIANTS),
   stripeColour: z.string().optional(),
   heroImageUrl: z.string().optional().refine(

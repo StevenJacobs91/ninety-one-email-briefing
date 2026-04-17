@@ -18,6 +18,9 @@ import type {
   BenchmarksConfig,
   AudienceHealthConfig,
   GreetingConfig,
+  RolePermissionConfig,
+  RolePermissionKey,
+  HeaderTypeConfig,
 } from '../types/settings.types'
 import type { ApprovalConfig } from '../types/approval.types'
 import {
@@ -456,7 +459,126 @@ export function createDefaultSettings(): AppSettings {
     audienceHealth: DEFAULT_AUDIENCE_HEALTH,
     greetings: DEFAULT_GREETINGS,
     notifications: DEFAULT_NOTIFICATIONS,
+    rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+    userGroups: [],
+    headers: DEFAULT_HEADER_TYPES,
   }
+}
+
+// ─── Default Header Types ────────────────────────────────────
+
+export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
+  {
+    id: 'standard',
+    label: 'Standard',
+    description: 'Logo, standard-height stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: true,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: '',
+  },
+  {
+    id: 'standard-bg-image',
+    label: 'Standard with Background Image',
+    description: 'Full photo background with dark overlay — logo, stripes, headline, and sub-headline over the image',
+    requiresHeroImage: true,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires a hero image (640 × 270 px recommended). The image is used as the header background with a dark overlay.',
+  },
+  {
+    id: 'slim',
+    label: 'Slim',
+    description: 'Logo, smaller-height stripes, headline, and sub-headline in a compact header',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: '',
+  },
+  {
+    id: 'standard-35yr',
+    label: 'Standard with 35-Year Logo',
+    description: 'Logo, 35-year anniversary graphic, standard stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires the 35-year graphic asset URL to be configured below.',
+  },
+  {
+    id: 'slim-35yr',
+    label: 'Slim with 35-Year Logo',
+    description: 'Logo, 35-year anniversary graphic, smaller stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires the 35-year graphic asset URL to be configured below.',
+  },
+]
+
+// ─── Default Role Permissions ────────────────────────────────
+
+const ALL_PERMISSION_KEYS: RolePermissionKey[] = [
+  'canSubmitBriefs',
+  'canViewAllBriefs',
+  'canEditAnyBrief',
+  'canDeleteBriefs',
+  'canViewKanban',
+  'canMoveKanbanCards',
+  'canDeleteKanbanCards',
+  'canViewAnalytics',
+  'canManageAssets',
+  'canManageTemplates',
+  'canExportData',
+  'canAccessSettings',
+  'canConfigureNotifications',
+  'canManageApprovals',
+  'canManageUsers',
+]
+
+function makePermissions(defaults: Partial<Record<RolePermissionKey, boolean>>): Record<RolePermissionKey, boolean> {
+  return Object.fromEntries(
+    ALL_PERMISSION_KEYS.map((k) => [k, defaults[k] ?? false])
+  ) as Record<RolePermissionKey, boolean>
+}
+
+export const DEFAULT_ROLE_PERMISSIONS: RolePermissionConfig = {
+  admin: makePermissions(Object.fromEntries(ALL_PERMISSION_KEYS.map((k) => [k, true]))),
+  producer: makePermissions({
+    canSubmitBriefs: true,
+    canViewAllBriefs: true,
+    canEditAnyBrief: true,
+    canDeleteBriefs: false,
+    canViewKanban: true,
+    canMoveKanbanCards: true,
+    canDeleteKanbanCards: true,
+    canViewAnalytics: true,
+    canManageAssets: true,
+    canManageTemplates: true,
+    canExportData: true,
+    canAccessSettings: true,
+    canConfigureNotifications: true,
+    canManageApprovals: true,
+    canManageUsers: false,
+  }),
+  requester: makePermissions({
+    canSubmitBriefs: true,
+    canViewKanban: true,
+  }),
 }
 
 // ─── Default Notifications ────────────────────────────────────────────────────

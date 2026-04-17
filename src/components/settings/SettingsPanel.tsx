@@ -23,6 +23,7 @@ import { TabBenchmarks } from './TabBenchmarks'
 import { TabAudienceHealth } from './TabAudienceHealth'
 import { TabGreetings } from './TabGreetings'
 import { TabNotifications } from './TabNotifications'
+import { TabHeaders } from './TabHeaders'
 
 interface TabConfig {
   id: SettingsTab
@@ -52,6 +53,7 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
   {
     label: 'Design Elements',
     tabs: [
+      { id: 'headers',   label: 'Headers',        description: 'Manage header types, HTML snippets, and header assets' },
       { id: 'themes',    label: 'Brand Themes',   description: 'Manage colour palettes and brand themes' },
       { id: 'templates', label: 'HTML Templates', description: 'Configure template file mappings' },
       { id: 'modules',   label: 'Email Modules',  description: 'Add, remove, and organise email modules' },
@@ -433,6 +435,7 @@ export function SettingsPanel() {
               {activeTab === 'insights'        && <TabCampaignInsights />}
               {activeTab === 'approvals'       && <TabApprovals />}
               {activeTab === 'notifications'   && <TabNotifications />}
+              {activeTab === 'headers'         && <TabHeaders />}
               {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}
