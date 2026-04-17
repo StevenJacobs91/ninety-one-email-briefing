@@ -155,6 +155,9 @@ function ConfigBadge({ cfg }: { cfg: PardotConfig }) {
 
 export function TabPardot() {
   const { settings, updateSettings } = useSettings()
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
+  const [testMessage, setTestMessage] = useState('')
+
   const cfgDefaults: Partial<PardotConfig> = {
     environment: 'production',
     clientId: '',
@@ -195,6 +198,43 @@ export function TabPardot() {
 
   function deleteMapping(id: string) {
     update({ fieldMappings: cfg.fieldMappings.filter((m) => m.id !== id) })
+  }
+
+  function useBuiltInProxy() {
+    update({ apiProxyUrl: `${window.location.origin}/api` })
+  }
+
+  async function testConnection() {
+    setTestStatus('testing')
+    setTestMessage('')
+    try {
+      const proxyBase = cfg.apiProxyUrl?.trim().replace(/\/$/, '')
+      if (!proxyBase) {
+        setTestStatus('error')
+        setTestMessage('Set an API Proxy URL first.')
+        return
+      }
+      const res = await fetch(`${proxyBase}/pardot/test`, {
+        method: 'GET',
+        headers: {
+          'X-Pardot-Client-Id':        cfg.clientId        ?? '',
+          'X-Pardot-Client-Secret':    cfg.clientSecret    ?? '',
+          'X-Pardot-Business-Unit-Id': cfg.businessUnitId  ?? '',
+          'X-Pardot-Environment':      cfg.environment     ?? 'production',
+        },
+      })
+      const data = await res.json() as { ok: boolean; accountName?: string; instanceUrl?: string; error?: string; details?: string }
+      if (data.ok) {
+        setTestStatus('success')
+        setTestMessage(`Connected — ${data.accountName ?? data.instanceUrl ?? 'Pardot API'}`)
+      } else {
+        setTestStatus('error')
+        setTestMessage(data.details ? `${data.error}: ${data.details}` : (data.error ?? 'Connection failed'))
+      }
+    } catch (err) {
+      setTestStatus('error')
+      setTestMessage(err instanceof Error ? err.message : 'Unexpected error')
+    }
   }
 
   const derivedInstanceUrl = cfg.environment === 'sandbox'
@@ -381,15 +421,25 @@ export function TabPardot() {
           </Field>
           <Field
             label="API Proxy URL"
-            hint="Account Engagement does not allow direct browser requests (no CORS). Deploy a Cloudflare Worker, Vercel Edge Function, or n8n webhook that: (1) holds your OAuth tokens, (2) refreshes them automatically, and (3) forwards requests to the Account Engagement REST API with the correct headers."
+            hint="Account Engagement does not support direct browser requests (no CORS). This app ships with a built-in Vercel proxy — click 'Use built-in' to set it automatically. Alternatively, supply your own Cloudflare Worker, Vercel Edge Function, or n8n webhook URL."
           >
-            <input
-              type="url"
-              value={cfg.apiProxyUrl}
-              onChange={(e) => update({ apiProxyUrl: e.target.value })}
-              placeholder="https://your-proxy.workers.dev/pardot"
-              className={inputCls}
-            />
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={cfg.apiProxyUrl}
+                onChange={(e) => update({ apiProxyUrl: e.target.value })}
+                placeholder="https://your-app.vercel.app/api"
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={useBuiltInProxy}
+                title={`Set to ${window.location.origin}/api`}
+                className="shrink-0 text-xs font-medium px-3 py-2 rounded-md border border-brand-primary/30 dark:border-brand-accent/30 text-brand-primary dark:text-brand-accent hover:bg-brand-primary/5 dark:hover:bg-brand-accent/10 transition-colors whitespace-nowrap"
+              >
+                Use built-in
+              </button>
+            </div>
           </Field>
           <div className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
             <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Derived endpoints</p>
@@ -407,6 +457,44 @@ export function TabPardot() {
                 <dd>https://{derivedAuthDomain}/services/oauth2/token</dd>
               </div>
             </dl>
+          </div>
+
+          {/* Test Connection */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={testConnection}
+              disabled={testStatus === 'testing' || !cfg.clientId || !cfg.clientSecret || !cfg.businessUnitId || !cfg.apiProxyUrl}
+              className="text-xs font-medium px-4 py-2 rounded-md bg-brand-primary text-white hover:bg-brand-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              {testStatus === 'testing' ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Testing…
+                </>
+              ) : 'Test Connection'}
+            </button>
+            {testStatus === 'success' && (
+              <span className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {testMessage}
+              </span>
+            )}
+            {testStatus === 'error' && (
+              <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 max-w-xs">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span className="break-words">{testMessage}</span>
+              </span>
+            )}
           </div>
         </Section>
 
