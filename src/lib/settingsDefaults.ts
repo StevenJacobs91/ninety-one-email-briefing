@@ -479,6 +479,7 @@ export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
     htmlSnippet: '',
     assets: {},
     notes: '',
+    themeIds: [],
   },
   {
     id: 'standard-bg-image',
@@ -491,6 +492,7 @@ export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
     htmlSnippet: '',
     assets: {},
     notes: 'Requires a hero image (640 × 270 px recommended). The image is used as the header background with a dark overlay.',
+    themeIds: [],
   },
   {
     id: 'slim',
@@ -503,6 +505,7 @@ export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
     htmlSnippet: '',
     assets: {},
     notes: '',
+    themeIds: [],
   },
   {
     id: 'standard-35yr',
@@ -515,6 +518,7 @@ export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
     htmlSnippet: '',
     assets: {},
     notes: 'Requires the 35-year graphic asset URL to be configured below.',
+    themeIds: [],
   },
   {
     id: 'slim-35yr',
@@ -527,6 +531,7 @@ export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
     htmlSnippet: '',
     assets: {},
     notes: 'Requires the 35-year graphic asset URL to be configured below.',
+    themeIds: [],
   },
 ]
 

@@ -361,6 +361,11 @@ export interface HeaderTypeConfig {
   assets: HeaderTypeAssets
   /** Internal notes / usage guidance */
   notes: string
+  /**
+   * Brand theme IDs this header type is compatible with.
+   * Empty array means compatible with all themes.
+   */
+  themeIds: string[]
 }
 
 // ─── Role Permissions ────────────────────────────────────────

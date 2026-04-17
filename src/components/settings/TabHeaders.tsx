@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
-import type { HeaderTypeConfig, HeaderTypeAssets } from '../../types/settings.types'
+import type { HeaderTypeConfig, HeaderTypeAssets, BrandThemeConfig } from '../../types/settings.types'
 
 // ─── Header diagram previews ─────────────────────────────────
 
@@ -114,6 +114,7 @@ function HeaderTypeCard({
   onChange,
   onDelete,
   onSetDefault,
+  brandThemes,
 }: {
   headerType: HeaderTypeConfig
   isExpanded: boolean
@@ -121,9 +122,18 @@ function HeaderTypeCard({
   onChange: (updated: HeaderTypeConfig) => void
   onDelete: () => void
   onSetDefault: () => void
+  brandThemes: BrandThemeConfig[]
 }) {
   const [showDelete, setShowDelete] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+  const themeIds = headerType.themeIds ?? []
+
+  function toggleTheme(themeId: string) {
+    const next = themeIds.includes(themeId)
+      ? themeIds.filter((id) => id !== themeId)
+      : [...themeIds, themeId]
+    onChange({ ...headerType, themeIds: next })
+  }
 
   function updateAssets(patch: Partial<HeaderTypeAssets>) {
     onChange({ ...headerType, assets: { ...headerType.assets, ...patch } })
@@ -349,6 +359,78 @@ function HeaderTypeCard({
             />
           </div>
 
+          {/* Compatible Themes */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                Compatible Themes
+              </p>
+              {themeIds.length === 0 ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
+                  All themes
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...headerType, themeIds: [] })}
+                  className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors underline"
+                >
+                  Clear (use all themes)
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3 leading-relaxed">
+              Select the brand themes this header type is designed for. When a theme is selected in the brief form,
+              only compatible header types will be shown. Leave all unselected to make this header available for every theme.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {brandThemes.map((theme) => {
+                const selected = themeIds.includes(theme.id)
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    onClick={() => toggleTheme(theme.id)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all ${
+                      selected
+                        ? 'border-brand-primary dark:border-brand-accent bg-brand-primary/5 dark:bg-brand-accent/10'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800/40'
+                    }`}
+                  >
+                    {/* Colour swatch: primary circle + accent dot */}
+                    <span className="relative shrink-0 w-5 h-5">
+                      <span
+                        className="block w-5 h-5 rounded-full border border-black/10"
+                        style={{ background: theme.primary }}
+                      />
+                      <span
+                        className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white dark:border-gray-800"
+                        style={{ background: theme.accent }}
+                      />
+                    </span>
+                    <span className={`text-[10px] font-medium leading-tight truncate ${
+                      selected
+                        ? 'text-brand-primary dark:text-brand-accent'
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {theme.label}
+                    </span>
+                    {selected && (
+                      <svg
+                        width="10" height="10" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="3"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        className="ml-auto shrink-0 text-brand-primary dark:text-brand-accent"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Actions */}
           {!headerType.builtIn && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-100 dark:border-gray-700">
@@ -426,6 +508,7 @@ function NewHeaderTypeForm({
       htmlSnippet: '',
       assets: {},
       notes: '',
+      themeIds: [],
     })
   }
 
@@ -484,6 +567,7 @@ function NewHeaderTypeForm({
 export function TabHeaders() {
   const { settings, updateSettings } = useSettings()
   const headers = settings.headers ?? []
+  const brandThemes = settings.brandThemes ?? []
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showNewForm, setShowNewForm] = useState(false)
 
@@ -557,6 +641,7 @@ export function TabHeaders() {
             onChange={handleChange}
             onDelete={() => handleDelete(h.id)}
             onSetDefault={() => handleSetDefault(h.id)}
+            brandThemes={brandThemes}
           />
         ))}
       </div>

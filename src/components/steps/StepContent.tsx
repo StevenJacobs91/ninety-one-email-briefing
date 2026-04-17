@@ -418,7 +418,13 @@ export function StepContent() {
       <SubSection title="Header type">
         {/* Header type selector */}
         {(() => {
-          const allHeaderTypes = (settings.headers ?? []).filter((h) => h.enabled)
+          const currentTheme = watch('campaign.theme') ?? ''
+          const allHeaderTypes = (settings.headers ?? [])
+            .filter((h) => h.enabled)
+            .filter((h) => {
+              const ids = h.themeIds ?? []
+              return ids.length === 0 || ids.includes(currentTheme)
+            })
           const selectedHeaderType = watch('assets.headerType') ?? 'standard'
           const activeType = allHeaderTypes.find((h) => h.id === selectedHeaderType) ?? allHeaderTypes[0]
           const requiresHeroImage = activeType?.requiresHeroImage ?? false
