@@ -11,6 +11,8 @@ export interface BrandThemeConfig {
   logoUrl?: string        // Header logo image URL (120×60 px)
   stripeUrl?: string      // Decorative stripe image URL (200×234 px)
   footerLogoUrl?: string  // Footer logo image URL (120×130 px)
+  /** Default body text colour for this theme — cream on dark backgrounds, charcoal on light */
+  defaultTextColour?: '#e8e5ce' | '#424242'
 }
 
 export interface HtmlTemplateConfig {

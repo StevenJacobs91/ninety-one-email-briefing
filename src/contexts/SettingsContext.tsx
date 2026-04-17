@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
-import type { AppSettings, HeaderTypeConfig } from '../types/settings.types'
-import { createDefaultSettings, DEFAULT_HEADER_TYPES } from '../lib/settingsDefaults'
+import type { AppSettings, HeaderTypeConfig, BrandThemeConfig } from '../types/settings.types'
+import { createDefaultSettings, DEFAULT_HEADER_TYPES, DEFAULT_BRAND_THEMES } from '../lib/settingsDefaults'
 import { useAuth } from './AuthContext'
 import { fetchSettings, upsertSettings } from '../lib/supabaseQueries'
 
@@ -46,6 +46,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSettings({
           ...defaults,
           ...remote,
+          // Merge brand themes: apply user edits to built-in IDs, append custom themes
+          brandThemes: (() => {
+            if (!remote.brandThemes) return DEFAULT_BRAND_THEMES
+            const remoteMap = new Map((remote.brandThemes as BrandThemeConfig[]).map((t) => [t.id, t]))
+            const merged = DEFAULT_BRAND_THEMES.map((d) => remoteMap.has(d.id) ? { ...d, ...remoteMap.get(d.id) } : d)
+            const customThemes = (remote.brandThemes as BrandThemeConfig[]).filter((t) => !DEFAULT_BRAND_THEMES.some((d) => d.id === t.id))
+            return [...merged, ...customThemes]
+          })(),
           brandGuardian: { ...defaults.brandGuardian, ...remote.brandGuardian },
           senderDefaults: { ...defaults.senderDefaults, ...remote.senderDefaults },
           formDefaults: { ...defaults.formDefaults, ...remote.formDefaults },

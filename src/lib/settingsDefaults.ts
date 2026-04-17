@@ -76,21 +76,32 @@ function tints(hex: string): { tint01: string; tint02: string; tint03: string } 
 }
 
 export const DEFAULT_BRAND_THEMES: BrandThemeConfig[] = [
-  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', ...tints('#134848'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', ...tints('#134848'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
-  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', ...tints('#0a3323'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
-  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', ...tints('#0a3323'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', ...tints('#591739'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
-  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
-  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#591739', logoUrl: LOGO_PINOTAGE,     stripeUrl: STRIPE_PINOTAGE,     footerLogoUrl: FOOTER_PINOTAGE     },
-  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', ...tints('#221b3b'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
-  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', ...tints('#221b3b'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
-  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', ...tints('#221b3b'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
-  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', ...tints('#221b3b'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', ...tints('#221b3b'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
-  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', ...tints('#74908d'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', ...tints('#74908d'), accent: '#134848', logoUrl: LOGO_LEATHERBACK,  stripeUrl: STRIPE_LEATHERBACK,  footerLogoUrl: FOOTER_LEATHERBACK  },
+  // ── Dark primary backgrounds — cream text ────────────────────────────────
+  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', ...tints('#134848'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', ...tints('#134848'), accent: '#fcaa28', defaultTextColour: '#e8e5ce', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', ...tints('#0a3323'), accent: '#cf6f13', defaultTextColour: '#e8e5ce', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', ...tints('#0a3323'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', ...tints('#591739'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  // ── Light primary backgrounds — charcoal text ────────────────────────────
+  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#d83949', defaultTextColour: '#424242', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#009d80', defaultTextColour: '#424242', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#591739', defaultTextColour: '#424242', logoUrl: LOGO_PINOTAGE,     stripeUrl: STRIPE_PINOTAGE,     footerLogoUrl: FOOTER_PINOTAGE     },
+  // ── Deep indigo backgrounds — cream text ────────────────────────────────
+  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', ...tints('#221b3b'), accent: '#cf6f13', defaultTextColour: '#e8e5ce', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', ...tints('#221b3b'), accent: '#009d80', defaultTextColour: '#e8e5ce', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', ...tints('#221b3b'), accent: '#d83949', defaultTextColour: '#e8e5ce', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', ...tints('#221b3b'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', ...tints('#221b3b'), accent: '#fcaa28', defaultTextColour: '#e8e5ce', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  // ── Mid-tone backgrounds — cream text ───────────────────────────────────
+  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', ...tints('#74908d'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', ...tints('#74908d'), accent: '#134848', defaultTextColour: '#e8e5ce', logoUrl: LOGO_LEATHERBACK,  stripeUrl: STRIPE_LEATHERBACK,  footerLogoUrl: FOOTER_LEATHERBACK  },
+  // ── White + Accent colour — charcoal text ───────────────────────────────
+  { id: 'white-coral',          label: 'White / Cape Coral',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#fbaa96', defaultTextColour: '#424242' },
+  { id: 'white-yellowwood',     label: 'White / Warm Yellowwood',              primary: '#ffffff', ...tints('#ffffff'), accent: '#fcaa28', defaultTextColour: '#424242' },
+  { id: 'white-gold',           label: 'White / Gazania Gold',                 primary: '#ffffff', ...tints('#ffffff'), accent: '#cf6f13', defaultTextColour: '#424242' },
+  { id: 'white-red',            label: 'White / Protea Red',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#d83949', defaultTextColour: '#424242' },
+  { id: 'white-teal',           label: 'White / Ocean Teal',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#009d80', defaultTextColour: '#424242' },
+  { id: 'white-pinotage',       label: 'White / Pinotage Burgundy',            primary: '#ffffff', ...tints('#ffffff'), accent: '#591739', defaultTextColour: '#424242' },
 ]
 
 // ─── Default HTML Templates ─────────────────────────────────
