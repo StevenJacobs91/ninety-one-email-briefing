@@ -229,10 +229,10 @@ export interface CampaignEntry {
   senderPreset?: CampaignSenderPreset // optional — auto-fills sender fields when selected
   contentPreset?: CampaignContentPreset // optional — auto-fills content/design fields when selected
   /**
-   * Pardot Campaign URL for pulling Campaign Insights & Recommendations.
-   * e.g. https://pi.pardot.com/campaign/read/id/12345
+   * Pardot Campaign ID for pulling Campaign Insights & Recommendations.
+   * Numeric ID extracted from the campaign URL, e.g. "12345".
    */
-  pardotCampaignUrl?: string
+  pardotCampaignId?: string
 }
 
 // ─── Greetings / Salutations ────────────────────────────────

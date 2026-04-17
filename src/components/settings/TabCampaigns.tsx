@@ -63,7 +63,7 @@ interface CampaignFormState {
   name: string
   clientGroups: string[]
   channels: string[]
-  pardotCampaignUrl: string
+  pardotCampaignId: string
   hasSenderPreset: boolean
   preset: CampaignSenderPreset
   hasContentPreset: boolean
@@ -88,7 +88,7 @@ const EMPTY_FORM: CampaignFormState = {
   name: '',
   clientGroups: [],
   channels: [],
-  pardotCampaignUrl: '',
+  pardotCampaignId: '',
   hasSenderPreset: false,
   preset: EMPTY_PRESET,
   hasContentPreset: false,
@@ -100,12 +100,21 @@ function formFromEntry(c: CampaignEntry): CampaignFormState {
     name: c.name,
     clientGroups: [...(c.clientGroups ?? [])],
     channels: [...c.channels],
-    pardotCampaignUrl: c.pardotCampaignUrl ?? '',
+    pardotCampaignId: c.pardotCampaignId ?? '',
     hasSenderPreset: !!c.senderPreset,
     preset: c.senderPreset ? { ...c.senderPreset } : { ...EMPTY_PRESET },
     hasContentPreset: !!c.contentPreset,
     contentPreset: c.contentPreset ? { ...c.contentPreset } : { ...EMPTY_CONTENT_PRESET },
   }
+}
+
+/** Pulls a numeric campaign ID out of a Pardot URL, or returns the raw string if already an ID. */
+function extractCampaignId(input: string): string {
+  const trimmed = input.trim()
+  const urlMatch = trimmed.match(/\/campaign\/(?:read\/id\/)?(\d+)/i)
+  if (urlMatch) return urlMatch[1]
+  if (/^\d+$/.test(trimmed)) return trimmed
+  return ''
 }
 
 function hasAnyContentPresetValue(cp: CampaignContentPreset): boolean {
@@ -125,7 +134,7 @@ function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
     regions: [],
     clientGroups: form.clientGroups,
     channels: form.channels,
-    pardotCampaignUrl: form.pardotCampaignUrl.trim() || undefined,
+    pardotCampaignId: extractCampaignId(form.pardotCampaignId) || undefined,
     senderPreset: form.hasSenderPreset && form.preset.fromName.trim()
       ? { fromName: form.preset.fromName.trim(), fromAddress: form.preset.fromAddress.trim(), replyToEmail: form.preset.replyToEmail.trim() }
       : undefined,
@@ -416,15 +425,43 @@ function CampaignForm({
           <span className="ml-1.5 font-normal text-gray-400">optional</span>
         </label>
         <input
-          type="url"
-          value={form.pardotCampaignUrl}
-          onChange={(e) => onChange({ pardotCampaignUrl: e.target.value })}
-          placeholder="https://pi.pardot.com/campaign/read/id/12345"
-          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono placeholder:font-sans"
+          type="text"
+          value={form.pardotCampaignId}
+          onChange={(e) => onChange({ pardotCampaignId: e.target.value })}
+          placeholder="12345  or  https://pi.pardot.com/campaign/read/id/12345"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono placeholder:font-sans placeholder:text-xs"
         />
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-          Paste the Pardot Campaign URL to pull live Campaign Insights &amp; Recommendations data for this campaign.
-        </p>
+        {(() => {
+          const raw = form.pardotCampaignId.trim()
+          if (!raw) return (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              Paste a Campaign ID or full Pardot Campaign URL — the ID will be extracted automatically.
+            </p>
+          )
+          const extracted = extractCampaignId(raw)
+          const isUrl = raw.startsWith('http')
+          if (isUrl && extracted) return (
+            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+              Campaign ID extracted: <span className="font-mono font-semibold">{extracted}</span>
+            </p>
+          )
+          if (isUrl && !extracted) return (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+              ⚠ Couldn't extract a numeric ID from this URL — check the format.
+            </p>
+          )
+          if (extracted) return (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              Campaign ID: <span className="font-mono">{extracted}</span>
+            </p>
+          )
+          return (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+              ⚠ Enter a numeric ID or a valid Pardot Campaign URL.
+            </p>
+          )
+        })()}
       </div>
 
       {/* Sender Preset */}
@@ -654,19 +691,19 @@ export function TabCampaigns() {
                     {c.contentPreset && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-accent font-medium shrink-0">Content</span>
                     )}
-                    {c.pardotCampaignUrl && (
+                    {c.pardotCampaignId && (
                       <a
-                        href={c.pardotCampaignUrl}
+                        href={`${settings.pardot?.instanceUrl ?? 'https://pi.pardot.com'}/campaign/read/id/${c.pardotCampaignId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        title={c.pardotCampaignUrl}
+                        title={`Pardot Campaign ID: ${c.pardotCampaignId}`}
                         className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 font-medium shrink-0 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
                       >
                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                         </svg>
-                        Pardot
+                        #{c.pardotCampaignId}
                       </a>
                     )}
                   </div>
