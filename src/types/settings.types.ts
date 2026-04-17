@@ -228,6 +228,11 @@ export interface CampaignEntry {
   clientGroups: string[] // empty = applies to all client groups
   senderPreset?: CampaignSenderPreset // optional — auto-fills sender fields when selected
   contentPreset?: CampaignContentPreset // optional — auto-fills content/design fields when selected
+  /**
+   * Pardot Campaign URL for pulling Campaign Insights & Recommendations.
+   * e.g. https://pi.pardot.com/campaign/read/id/12345
+   */
+  pardotCampaignUrl?: string
 }
 
 // ─── Greetings / Salutations ────────────────────────────────

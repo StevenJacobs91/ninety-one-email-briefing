@@ -63,6 +63,7 @@ interface CampaignFormState {
   name: string
   clientGroups: string[]
   channels: string[]
+  pardotCampaignUrl: string
   hasSenderPreset: boolean
   preset: CampaignSenderPreset
   hasContentPreset: boolean
@@ -87,6 +88,7 @@ const EMPTY_FORM: CampaignFormState = {
   name: '',
   clientGroups: [],
   channels: [],
+  pardotCampaignUrl: '',
   hasSenderPreset: false,
   preset: EMPTY_PRESET,
   hasContentPreset: false,
@@ -98,6 +100,7 @@ function formFromEntry(c: CampaignEntry): CampaignFormState {
     name: c.name,
     clientGroups: [...(c.clientGroups ?? [])],
     channels: [...c.channels],
+    pardotCampaignUrl: c.pardotCampaignUrl ?? '',
     hasSenderPreset: !!c.senderPreset,
     preset: c.senderPreset ? { ...c.senderPreset } : { ...EMPTY_PRESET },
     hasContentPreset: !!c.contentPreset,
@@ -122,6 +125,7 @@ function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
     regions: [],
     clientGroups: form.clientGroups,
     channels: form.channels,
+    pardotCampaignUrl: form.pardotCampaignUrl.trim() || undefined,
     senderPreset: form.hasSenderPreset && form.preset.fromName.trim()
       ? { fromName: form.preset.fromName.trim(), fromAddress: form.preset.fromAddress.trim(), replyToEmail: form.preset.replyToEmail.trim() }
       : undefined,
@@ -405,6 +409,24 @@ function CampaignForm({
         onChange={(v) => onChange({ channels: v })}
       />
 
+      {/* Pardot Campaign URL */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+          Pardot Campaign URL
+          <span className="ml-1.5 font-normal text-gray-400">optional</span>
+        </label>
+        <input
+          type="url"
+          value={form.pardotCampaignUrl}
+          onChange={(e) => onChange({ pardotCampaignUrl: e.target.value })}
+          placeholder="https://pi.pardot.com/campaign/read/id/12345"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono placeholder:font-sans"
+        />
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          Paste the Pardot Campaign URL to pull live Campaign Insights &amp; Recommendations data for this campaign.
+        </p>
+      </div>
+
       {/* Sender Preset */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <button
@@ -624,13 +646,28 @@ export function TabCampaigns() {
             ) : (
               <div className="px-4 py-3 flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
                     {c.senderPreset && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#cf6f13]/10 dark:bg-[#cf6f13]/20 text-[#cf6f13] dark:text-[#fcaa28] font-medium shrink-0">Sender</span>
                     )}
                     {c.contentPreset && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-accent font-medium shrink-0">Content</span>
+                    )}
+                    {c.pardotCampaignUrl && (
+                      <a
+                        href={c.pardotCampaignUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title={c.pardotCampaignUrl}
+                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 font-medium shrink-0 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                        </svg>
+                        Pardot
+                      </a>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1">
