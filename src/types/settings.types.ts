@@ -461,6 +461,8 @@ export interface AppSettings {
   headers: HeaderTypeConfig[]
   // Power Automate
   powerAutomate: PowerAutomateConfig
+  // Design Briefing Platform
+  designBriefing: DesignBriefingSettings
 }
 
 // ─── Power Automate ──────────────────────────────────────────
@@ -518,6 +520,29 @@ export interface PowerAutomateConfig {
   fieldMappings: PowerAutomateFieldMapping[]
 }
 
+// ─── Design Briefing Settings ────────────────────────────────
+
+export interface DesignFieldSettings {
+  id: string
+  visible: boolean
+  order: number
+}
+
+export interface DesignAssetTypeSettings {
+  id: string
+  enabled: boolean
+  fields: DesignFieldSettings[]
+}
+
+export interface DesignBriefingSettings {
+  enabled: boolean
+  defaultRequesterName: string
+  defaultRequesterEmail: string
+  allowMockups: boolean
+  maxAttachments: number
+  assetTypes: DesignAssetTypeSettings[]
+}
+
 export type SettingsTab =
   | 'headers'
   | 'general'
@@ -542,3 +567,4 @@ export type SettingsTab =
   | 'greetings'
   | 'notifications'
   | 'power-automate'
+  | 'design-briefing'

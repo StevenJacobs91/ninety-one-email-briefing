@@ -21,7 +21,9 @@ import type {
   RolePermissionConfig,
   RolePermissionKey,
   HeaderTypeConfig,
+  DesignBriefingSettings,
 } from '../types/settings.types'
+import { DESIGN_ASSET_TYPES } from './designConstants'
 import type { ApprovalConfig } from '../types/approval.types'
 import {
   NOTIFICATION_EVENT_META,
@@ -474,6 +476,7 @@ export function createDefaultSettings(): AppSettings {
     userGroups: [],
     headers: DEFAULT_HEADER_TYPES,
     powerAutomate: DEFAULT_POWER_AUTOMATE_CONFIG,
+    designBriefing: createDefaultDesignBriefingSettings(),
   }
 }
 
@@ -613,6 +616,27 @@ export const DEFAULT_ROLE_PERMISSIONS: RolePermissionConfig = {
     canSubmitBriefs: true,
     canViewKanban: true,
   }),
+}
+
+// ─── Default Design Briefing Settings ────────────────────────────────────────
+
+export function createDefaultDesignBriefingSettings(): DesignBriefingSettings {
+  return {
+    enabled: true,
+    defaultRequesterName: '',
+    defaultRequesterEmail: '',
+    allowMockups: true,
+    maxAttachments: 10,
+    assetTypes: DESIGN_ASSET_TYPES.map((assetType) => ({
+      id: assetType.id,
+      enabled: true,
+      fields: assetType.fields.map((field, idx) => ({
+        id: field.id,
+        visible: true,
+        order: idx,
+      })),
+    })),
+  }
 }
 
 // ─── Default Notifications ────────────────────────────────────────────────────

@@ -352,15 +352,15 @@ Claude Code must produce the following files in order:
 
 ## Acceptance Criteria
 
-- [ ] All five form steps render correctly and advance/retreat without data loss
-- [ ] Zod validation blocks advancement on any invalid or missing required field
-- [ ] Character counters update in real time
-- [ ] Draft is written to localStorage on every change and restored on page reload
-- [ ] Theme selector shows colour swatches
-- [ ] Sections can be added (max 4) and removed (min 1) dynamically
-- [ ] `sendDate` cannot be set before `contentApprovalDate` — form-level error shown
-- [ ] `heroImageAlt` becomes required when `heroImageUrl` is entered
-- [ ] Completed brief can be downloaded as `brief-{campaignName}-{date}.json`
-- [ ] Completed brief can be copied to clipboard as JSON
+- [x] All five form steps render correctly and advance/retreat without data loss
+- [x] Zod validation blocks advancement on any invalid or missing required field
+- [x] Character counters update in real time
+- [x] Draft is written to localStorage on every change and restored on page reload
+- [x] Theme selector shows colour swatches
+- [x] Sections can be added (max 4) and removed (min 1) dynamically
+- [x] `sendDate` cannot be set before `contentApprovalDate` — form-level error shown
+- [x] `heroImageAlt` becomes required when `heroImageUrl` is entered
+- [x] Completed brief can be downloaded as `brief-{campaignName}-{date}.json`
+- [x] Completed brief can be copied to clipboard as JSON
 - [ ] No TypeScript errors (`tsc --noEmit` passes clean)
 - [ ] No `any` types in production code

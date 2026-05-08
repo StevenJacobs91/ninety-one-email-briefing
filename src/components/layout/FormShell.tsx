@@ -27,6 +27,7 @@ import { EmailBuilderShell } from '../builder/EmailBuilderShell'
 import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
 import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
 import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
+import { DesignBriefingPlatform } from '../design/DesignBriefingPlatform'
 import type { BriefTemplate } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
@@ -424,6 +425,7 @@ export function FormShell() {
   const { profile, user, signOut } = useAuth()
   const { addCard, cards, loading: kanbanLoading } = useKanban()
   const { pendingCount } = useApprovals()
+  const { log: audit } = useAuditLog()
 
   // Derive visible brief steps from settings, sorted by order
   const visibleBriefSteps = useMemo(
@@ -452,6 +454,17 @@ export function FormShell() {
     teamId: profile?.teamId,
     userId: user?.id,
   }, visibleBriefSteps.length || 3, useCallback((payload: BriefPayload) => {
+    // Add to Kanban board — addCard deduplicates internally so this is safe
+    // even if handleBriefSubmitAndAdvance already called it via the pipeline path
+    addCard(payload as BriefFormData)
+    audit({
+      action: 'Submitted brief to board',
+      category: 'brief',
+      entityType: 'brief',
+      entityId: payload.meta.briefId,
+      details: { campaignName: payload.campaign.campaignName, emailType: payload.campaign.emailType },
+    })
+
     if (settings.notifications) {
       triggerNotification('brief_submitted', {
         briefId: payload.meta.briefId,
@@ -467,12 +480,11 @@ export function FormShell() {
         requesterEmail: user?.email ?? '',
       }, settings.notifications).catch(console.error)
     }
-  }, [settings.notifications, profile?.displayName, user?.email]))
+  }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]))
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
-  const { log: audit } = useAuditLog()
 
   const [pipelineStep, setPipelineStep] = useState<number | null>(null)
   const [highestStep, setHighestStep] = useState(0)
@@ -481,7 +493,7 @@ export function FormShell() {
   )
   const [showBoard, setShowBoard] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
-  const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation'>('email')
+  const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation' | 'design'>('email')
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
   const [showApprovals, setShowApprovals] = useState(false)
@@ -715,6 +727,7 @@ export function FormShell() {
                 {activePlatform === 'web' && 'Web Briefing Platform'}
                 {activePlatform === 'social' && 'Social Media Briefing'}
                 {activePlatform === 'marketing-automation' && 'Marketing Automation'}
+                {activePlatform === 'design' && 'Design Briefing Platform'}
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60 ml-0.5">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -728,6 +741,7 @@ export function FormShell() {
                       { id: 'web' as const, label: 'Web Briefing Platform', desc: 'Website & article publishing', icon: '🌐' },
                       { id: 'social' as const, label: 'Social Media Briefing', desc: 'LinkedIn, X, Instagram & more', icon: '📱' },
                       { id: 'marketing-automation' as const, label: 'Marketing Automation', desc: 'PRD-style automation briefs', icon: '⚙' },
+                      { id: 'design' as const, label: 'Design Briefing Platform', desc: 'Brand asset & design deliverable briefs', icon: '🎨' },
                     ].map((p) => (
                       <button
                         key={p.id}
@@ -982,6 +996,9 @@ export function FormShell() {
       )}
       {activePlatform === 'marketing-automation' && (
         <MarketingAutomationPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'design' && (
+        <DesignBriefingPlatform onClose={() => setActivePlatform('email')} />
       )}
 
       {/* ── Board view — replaces all form content when active ── */}

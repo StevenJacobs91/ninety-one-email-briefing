@@ -25,6 +25,7 @@ import { TabGreetings } from './TabGreetings'
 import { TabNotifications } from './TabNotifications'
 import { TabHeaders } from './TabHeaders'
 import { TabPowerAutomate } from './TabPowerAutomate'
+import { TabDesign } from './TabDesign'
 
 interface TabConfig {
   id: SettingsTab
@@ -81,6 +82,12 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
       { id: 'notifications',  label: 'Notifications',  description: 'Configure Power Automate webhook triggers for email notifications' },
       { id: 'pardot',          label: 'Pardot API',        description: 'Configure Salesforce Account Engagement integration' },
       { id: 'power-automate',  label: 'Power Automate',    description: 'Send brief data to Pardot and other services via Power Automate flows' },
+    ],
+  },
+  {
+    label: 'Platforms',
+    tabs: [
+      { id: 'design-briefing', label: 'Design Briefing', description: 'Configure the Design Briefing Platform — asset types, fields, and defaults' },
     ],
   },
 ]
@@ -442,6 +449,7 @@ export function SettingsPanel() {
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
               {activeTab === 'power-automate' && <TabPowerAutomate />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}
+              {activeTab === 'design-briefing' && <TabDesign />}
             </div>
           </div>
         </div>
