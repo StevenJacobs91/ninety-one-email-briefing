@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { KanbanCard, KanbanColumn } from '../types/kanban.types'
+import type { KanbanCard, KanbanColumn, CampaignComment, ManualCardInput } from '../types/kanban.types'
 import type { BriefFormData } from '../lib/schema'
 import { useAuth } from './AuthContext'
 import { useSettings } from './SettingsContext'
@@ -17,8 +17,11 @@ interface KanbanContextValue {
   cards: KanbanCard[]
   loading: boolean
   addCard: (brief: BriefFormData) => void
+  addManualCard: (data: ManualCardInput) => void
   moveCard: (id: string, column: KanbanColumn) => void
   updateCardNotes: (id: string, notes: string) => void
+  updateCardMeta: (id: string, updates: { assignee?: string; startDate?: string; progress?: number }) => void
+  addComment: (cardId: string, comment: Omit<CampaignComment, 'id'>) => void
   removeCard: (id: string) => void
   getColumnCards: (column: KanbanColumn) => KanbanCard[]
 }
@@ -139,11 +142,62 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     )
   }, [auditCtx, settings.audit, settings.notifications, profile])
 
+  const addManualCard = useCallback((data: ManualCardInput) => {
+    if (!teamId) return
+    const now = new Date().toISOString()
+    const newCard: KanbanCard = {
+      id: uuidv4(),
+      briefId: uuidv4(),
+      emailName: data.emailName,
+      emailType: data.emailType,
+      theme: data.theme,
+      subjectLine: data.subjectLine ?? '',
+      region: data.region ?? [],
+      channel: data.channel ?? [],
+      clientGroup: data.clientGroup ?? [],
+      sendDate: data.sendDate ?? '',
+      contentApprovalDate: data.contentApprovalDate ?? '',
+      urgency: data.urgency,
+      column: data.column,
+      submittedAt: now,
+      columnHistory: [{ column: data.column, at: now }],
+      notes: data.notes ?? '',
+      tags: data.tags ?? '',
+      assignee: data.assignee,
+      startDate: data.startDate,
+      comments: [],
+      progress: 0,
+    }
+    setCards((prev) => [newCard, ...prev])
+    insertKanbanCard(teamId, newCard).catch((err) =>
+      console.error('Failed to insert manual kanban card:', err)
+    )
+  }, [teamId])
+
   const updateCardNotes = useCallback((id: string, notes: string) => {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, notes } : c)))
     updateKanbanCard(id, { notes }).catch((err) =>
       console.error('Failed to update kanban notes:', err)
     )
+  }, [])
+
+  const updateCardMeta = useCallback((id: string, updates: { assignee?: string; startDate?: string; progress?: number }) => {
+    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)))
+    updateKanbanCard(id, updates).catch((err) =>
+      console.error('Failed to update kanban card meta:', err)
+    )
+  }, [])
+
+  const addComment = useCallback((cardId: string, comment: Omit<CampaignComment, 'id'>) => {
+    const newComment: CampaignComment = { ...comment, id: uuidv4() }
+    setCards((prev) => prev.map((c) => {
+      if (c.id !== cardId) return c
+      const updated = { ...c, comments: [...(c.comments ?? []), newComment] }
+      updateKanbanCard(cardId, { comments: updated.comments }).catch((err) =>
+        console.error('Failed to persist comment:', err)
+      )
+      return updated
+    }))
   }, [])
 
   const removeCard = useCallback((id: string) => {
@@ -178,7 +232,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <KanbanContext.Provider value={{ cards, loading, addCard, moveCard, updateCardNotes, removeCard, getColumnCards }}>
+    <KanbanContext.Provider value={{ cards, loading, addCard, addManualCard, moveCard, updateCardNotes, updateCardMeta, addComment, removeCard, getColumnCards }}>
       {children}
     </KanbanContext.Provider>
   )

@@ -28,6 +28,7 @@ import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
 import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
 import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
 import { DesignBriefingPlatform } from '../design/DesignBriefingPlatform'
+import { CampaignPlannerShell } from '../planner/CampaignPlannerShell'
 import type { BriefTemplate } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
@@ -492,6 +493,7 @@ export function FormShell() {
     () => !localStorage.getItem('ni-email-brief-draft')
   )
   const [showBoard, setShowBoard] = useState(false)
+  const [showPlanner, setShowPlanner] = useState(false)
   const [showBuilder, setShowBuilder] = useState(false)
   const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation' | 'design'>('email')
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
@@ -790,6 +792,21 @@ export function FormShell() {
                   </span>
                 )}
               </button>
+              {/* Campaign Planner */}
+              <button
+                type="button"
+                onClick={() => setShowPlanner(!showPlanner)}
+                title="Campaign Planner"
+                aria-label="Campaign Planner"
+                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showPlanner ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </button>
               {/* Email Builder */}
               <button
                 type="button"
@@ -908,6 +925,20 @@ export function FormShell() {
 
             {/* Mobile icon buttons */}
             <div className="flex items-center gap-0.5 md:hidden ml-1">
+              {/* Campaign Planner — mobile */}
+              <button
+                type="button"
+                onClick={() => setShowPlanner(!showPlanner)}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Campaign Planner"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowBuilder(!showBuilder)}
@@ -1004,6 +1035,11 @@ export function FormShell() {
       {/* ── Board view — replaces all form content when active ── */}
       {showBoard && (
         <KanbanBoard onClose={() => setShowBoard(false)} />
+      )}
+
+      {/* ── Campaign Planner — full-screen overlay ── */}
+      {showPlanner && (
+        <CampaignPlannerShell onClose={() => setShowPlanner(false)} />
       )}
 
       {/* ── Hero band — compact on interior steps ── */}

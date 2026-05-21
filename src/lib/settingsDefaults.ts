@@ -477,6 +477,13 @@ export function createDefaultSettings(): AppSettings {
     headers: DEFAULT_HEADER_TYPES,
     powerAutomate: DEFAULT_POWER_AUTOMATE_CONFIG,
     designBriefing: createDefaultDesignBriefingSettings(),
+    campaignPlanner: {
+      defaultView: 'kanban',
+      visibleColumns: ['briefed', 'in-progress', 'distributed'],
+      showAssignee: true,
+      showProgress: true,
+      allowManualCampaigns: true,
+    },
   }
 }
 

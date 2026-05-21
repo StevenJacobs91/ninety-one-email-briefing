@@ -463,6 +463,8 @@ export interface AppSettings {
   powerAutomate: PowerAutomateConfig
   // Design Briefing Platform
   designBriefing: DesignBriefingSettings
+  // Campaign Planner
+  campaignPlanner: CampaignPlannerSettings
 }
 
 // ─── Power Automate ──────────────────────────────────────────
@@ -543,6 +545,21 @@ export interface DesignBriefingSettings {
   assetTypes: DesignAssetTypeSettings[]
 }
 
+// ─── Campaign Planner Settings ───────────────────────────────
+
+export interface CampaignPlannerSettings {
+  /** Default view when opening the planner */
+  defaultView: 'kanban' | 'list' | 'timeline' | 'calendar'
+  /** Which Kanban columns are visible */
+  visibleColumns: ('briefed' | 'in-progress' | 'distributed')[]
+  /** Whether to show the assignee field in card tiles */
+  showAssignee: boolean
+  /** Whether to show progress bars in card tiles */
+  showProgress: boolean
+  /** Allow users to add manual campaigns (not from brief submissions) */
+  allowManualCampaigns: boolean
+}
+
 export type SettingsTab =
   | 'headers'
   | 'general'
@@ -568,3 +585,4 @@ export type SettingsTab =
   | 'notifications'
   | 'power-automate'
   | 'design-briefing'
+  | 'campaign-planner'

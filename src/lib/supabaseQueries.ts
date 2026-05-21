@@ -80,6 +80,11 @@ interface KanbanCardRow {
   column_history: Array<{ column: string; at: string }>
   notes: string
   tags: string
+  // Campaign Planner extension columns (optional — added via migration)
+  assignee?: string | null
+  start_date?: string | null
+  progress?: number | null
+  comments?: Array<{ id: string; authorId: string; authorName: string; text: string; createdAt: string }> | null
 }
 
 function rowToCard(row: KanbanCardRow): KanbanCard {
@@ -101,6 +106,10 @@ function rowToCard(row: KanbanCardRow): KanbanCard {
     columnHistory: (row.column_history ?? []) as KanbanCard['columnHistory'],
     notes: row.notes ?? '',
     tags: row.tags ?? '',
+    assignee: row.assignee ?? undefined,
+    startDate: row.start_date ?? undefined,
+    progress: row.progress ?? undefined,
+    comments: (row.comments ?? []) as KanbanCard['comments'],
   }
 }
 
@@ -124,6 +133,10 @@ function cardToRow(card: KanbanCard, teamId: string): Record<string, unknown> {
     column_history: card.columnHistory,
     notes: card.notes,
     tags: card.tags,
+    assignee: card.assignee ?? null,
+    start_date: card.startDate ?? null,
+    progress: card.progress ?? null,
+    comments: card.comments ?? [],
   }
 }
 
@@ -145,12 +158,16 @@ export async function insertKanbanCard(teamId: string, card: KanbanCard): Promis
 
 export async function updateKanbanCard(
   cardId: string,
-  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes'>>
+  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes' | 'assignee' | 'startDate' | 'progress' | 'comments'>>
 ): Promise<void> {
   const row: Record<string, unknown> = {}
   if (updates.column !== undefined) row.column = updates.column
   if (updates.columnHistory !== undefined) row.column_history = updates.columnHistory
   if (updates.notes !== undefined) row.notes = updates.notes
+  if (updates.assignee !== undefined) row.assignee = updates.assignee
+  if (updates.startDate !== undefined) row.start_date = updates.startDate
+  if (updates.progress !== undefined) row.progress = updates.progress
+  if (updates.comments !== undefined) row.comments = updates.comments
 
   const { error } = await supabase.from('kanban_cards').update(row).eq('id', cardId)
   if (error) throw new Error(`Failed to update kanban card: ${error.message}`)

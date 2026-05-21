@@ -26,6 +26,7 @@ import { TabNotifications } from './TabNotifications'
 import { TabHeaders } from './TabHeaders'
 import { TabPowerAutomate } from './TabPowerAutomate'
 import { TabDesign } from './TabDesign'
+import { TabCampaignPlanner } from './TabCampaignPlanner'
 
 interface TabConfig {
   id: SettingsTab
@@ -88,6 +89,7 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
     label: 'Platforms',
     tabs: [
       { id: 'design-briefing', label: 'Design Briefing', description: 'Configure the Design Briefing Platform — asset types, fields, and defaults' },
+      { id: 'campaign-planner', label: 'Campaign Planner', description: 'Configure views, columns and behaviour for the Campaign Planner' },
     ],
   },
 ]
@@ -449,7 +451,8 @@ export function SettingsPanel() {
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
               {activeTab === 'power-automate' && <TabPowerAutomate />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}
-              {activeTab === 'design-briefing' && <TabDesign />}
+              {activeTab === 'design-briefing'  && <TabDesign />}
+              {activeTab === 'campaign-planner' && <TabCampaignPlanner />}
             </div>
           </div>
         </div>
