@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { v4 as uuidv4 } from 'uuid'
 import type { BriefFormData } from '../../lib/schema'
-import { EMAIL_MODULES, REGION_LEGAL_DISCLAIMERS, BRAND_THEMES, LOGO_VARIANTS } from '../../lib/constants'
+import { REGION_LEGAL_DISCLAIMERS, LOGO_VARIANTS } from '../../lib/constants'
+import { ContentEditorShell } from '../content-editor/ContentEditorShell'
 import { useSettings } from '../../contexts/SettingsContext'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
@@ -281,77 +282,6 @@ function ImageCropper({ src, onCrop, onCancel, overlay }: ImageCropperProps) {
 }
 
 
-// Derive unique categories from module list
-const ALL_CATEGORIES = Array.from(new Set(EMAIL_MODULES.map((m) => m.category)))
-
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'Headers': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="18" height="5" rx="1"/>
-      <rect x="3" y="10" width="18" height="3" rx="1" opacity="0.4"/>
-      <rect x="3" y="15" width="12" height="3" rx="1" opacity="0.4"/>
-    </svg>
-  ),
-  'Content': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="18" height="3" rx="1"/>
-      <rect x="3" y="8" width="18" height="3" rx="1"/>
-      <rect x="3" y="13" width="14" height="3" rx="1"/>
-      <rect x="3" y="18" width="10" height="3" rx="1"/>
-    </svg>
-  ),
-  'CTAs': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="8" width="18" height="8" rx="4"/>
-      <line x1="8" y1="12" x2="16" y2="12"/>
-    </svg>
-  ),
-  'Events': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="4" width="18" height="17" rx="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-  ),
-  'Speakers': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="8" cy="8" r="3"/>
-      <circle cx="16" cy="8" r="3"/>
-      <path d="M2 20c0-3.314 2.686-6 6-6h8c3.314 0 6 2.686 6 6"/>
-    </svg>
-  ),
-  'Articles': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="8" height="8" rx="1"/>
-      <rect x="13" y="3" width="8" height="3" rx="1"/>
-      <rect x="13" y="8" width="8" height="3" rx="1"/>
-      <rect x="3" y="13" width="18" height="3" rx="1"/>
-      <rect x="3" y="18" width="14" height="3" rx="1"/>
-    </svg>
-  ),
-  'Media': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="5" width="18" height="14" rx="2"/>
-      <polygon points="10,9 10,15 15,12" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  'Navigation': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="10" width="18" height="4" rx="2"/>
-      <circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-      <circle cx="16" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  'Footers': (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="18" height="3" rx="1" opacity="0.4"/>
-      <rect x="3" y="8" width="18" height="3" rx="1" opacity="0.4"/>
-      <rect x="3" y="16" width="18" height="5" rx="1"/>
-    </svg>
-  ),
-}
 
 export function StepContent() {
   const { register, watch, control, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
@@ -385,19 +315,18 @@ export function StepContent() {
 
   const headline = watch('content.headline') ?? ''
   const subHeadline = watch('content.subHeadline') ?? ''
+  const greetingId = watch('content.greetingId') ?? ''
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const ctaLabel = watch('content.cta.label') ?? ''
-  const selectedModules = watch('content.modules') ?? []
-  const moduleNotes = watch('content.moduleNotes') ?? {}
   const selectedRegions = watch('audience.region') ?? []
   const legalDisclaimer = watch('content.legalDisclaimer') ?? ''
   const footerSignoffId = watch('content.footerSignoffId') ?? ''
   const selectedTheme = watch('campaign.theme')
   const campaignSubjectLine = watch('campaign.subjectLine') ?? ''
   const accentColour = useMemo(() => {
-    const theme = BRAND_THEMES.find((t) => t.id === selectedTheme)
+    const theme = (settings.brandThemes ?? []).find((t) => t.id === selectedTheme)
     return theme?.accent ?? '#fbaa96'
-  }, [selectedTheme])
+  }, [selectedTheme, settings.brandThemes])
   const themeAssets = useMemo(() => {
     const t = (settings.brandThemes ?? []).find((t) => t.id === selectedTheme)
     return { logoUrl: t?.logoUrl, stripeUrl: t?.stripeUrl }
@@ -413,13 +342,6 @@ export function StepContent() {
     return null
   }, [selectedRegions])
 
-  // Module category filter
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const filteredModules = useMemo(
-    () => activeCategory ? EMAIL_MODULES.filter((m) => m.category === activeCategory) : EMAIL_MODULES,
-    [activeCategory]
-  )
-
   // Collapsed section state — new sections start expanded
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const toggleSection = (id: string) => {
@@ -431,32 +353,6 @@ export function StepContent() {
     })
   }
 
-  function toggleModule(moduleId: string) {
-    const next = selectedModules.includes(moduleId)
-      ? selectedModules.filter((m) => m !== moduleId)
-      : [...selectedModules, moduleId]
-    setValue('content.modules', next, { shouldValidate: true })
-  }
-
-  function moveModuleUp(index: number) {
-    if (index === 0) return
-    const next = [...selectedModules]
-    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
-    setValue('content.modules', next, { shouldValidate: true })
-  }
-
-  function moveModuleDown(index: number) {
-    if (index === selectedModules.length - 1) return
-    const next = [...selectedModules]
-    ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
-    setValue('content.modules', next, { shouldValidate: true })
-  }
-
-  function setModuleNote(moduleId: string, note: string) {
-    const current = getValues('content.moduleNotes') ?? {}
-    setValue('content.moduleNotes', { ...current, [moduleId]: note }, { shouldValidate: false })
-  }
-
   // ── Assets fields ──
   const { fields: assetUrlFields, append: appendAssetUrl, remove: removeAssetUrl } = useFieldArray({
     control,
@@ -464,7 +360,6 @@ export function StepContent() {
   })
 
   const heroImageUrl = watch('assets.heroImageUrl') ?? ''
-  const stripeColour = watch('assets.stripeColour') ?? ''
   const attachments = watch('assets.attachments') ?? []
 
   const [isDragging, setIsDragging] = useState(false)
@@ -520,79 +415,137 @@ export function StepContent() {
     <div>
       <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-8">Content</h2>
 
-      <SubSection title="Assets">
-        {/* Logo variant + Stripe colour — two column */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Logo Variant */}
-          <div>
-            <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Logo Variant<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-            </p>
-            <div className="flex flex-col gap-2" role="radiogroup" aria-labelledby="logo-variant-label">
-              {LOGO_VARIANTS.map((variant) => {
-                const selected = watch('assets.logoVariant') === variant
-                return (
-                  <label
-                    key={variant}
-                    className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-colors ${
-                      selected
-                        ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary dark:ring-brand-accent'
-                        : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <input type="radio" {...register('assets.logoVariant')} value={variant} className="sr-only" />
-                    <LogoPreview variant={variant} />
-                    <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 capitalize">{variant}</span>
-                  </label>
-                )
-              })}
-            </div>
-          </div>
+      <SubSection title="Header type">
+        {/* Header type selector */}
+        {(() => {
+          const currentTheme = watch('campaign.theme') ?? ''
+          const allHeaderTypes = (settings.headers ?? [])
+            .filter((h) => h.enabled)
+            .filter((h) => {
+              const ids = h.themeIds ?? []
+              return ids.length === 0 || ids.includes(currentTheme)
+            })
+          const selectedHeaderType = watch('assets.headerType') ?? 'standard'
+          const activeType = allHeaderTypes.find((h) => h.id === selectedHeaderType) ?? allHeaderTypes[0]
+          const requiresHeroImage = activeType?.requiresHeroImage ?? false
 
-          {/* Stripe Colour */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Stripe / Accent Colour
-            </label>
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="color"
-                value={stripeColour || '#fbaa96'}
-                onChange={(e) => setValue('assets.stripeColour', e.target.value, { shouldValidate: true })}
-                className="w-10 h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600 p-0.5 bg-white dark:bg-gray-800"
-                title="Pick stripe colour"
-              />
-              <input
-                {...register('assets.stripeColour')}
-                placeholder="e.g. #fbaa96"
-                className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-                onChange={(e) => {
-                  const val = e.target.value
-                  register('assets.stripeColour').onChange(e)
-                  if (/^#[0-9A-Fa-f]{6}$/.test(val)) setValue('assets.stripeColour', val)
-                }}
-              />
-            </div>
-            {stripeColour && /^#[0-9A-Fa-f]{6}$/.test(stripeColour) && (
-              <div
-                className="h-5 rounded border border-gray-200 dark:border-gray-700"
-                style={{ backgroundColor: stripeColour }}
-                title={`Preview: ${stripeColour}`}
-              />
-            )}
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              Overrides the selected theme's default accent colour.
-            </p>
-          </div>
-        </div>
+          return (
+            <>
+              {allHeaderTypes.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                  No header types configured. Add types in <strong>Settings → Design Elements → Headers</strong>.
+                </p>
+              ) : (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Choose the header layout for this email. Configure header types and paste HTML snippets in <strong>Settings → Headers</strong>.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {allHeaderTypes.map((ht) => {
+                      const isSelected = selectedHeaderType === ht.id ||
+                        (!selectedHeaderType && ht.isDefault)
+                      return (
+                        <button
+                          key={ht.id}
+                          type="button"
+                          onClick={() => setValue('assets.headerType', ht.id, { shouldValidate: true })}
+                          className={`text-left rounded-xl border-2 p-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                            isSelected
+                              ? 'border-brand-primary dark:border-brand-accent bg-brand-primary/5 dark:bg-brand-primary/10 ring-1 ring-brand-primary dark:ring-brand-accent'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-brand-primary/40 dark:hover:border-brand-accent/40 bg-white dark:bg-gray-800'
+                          }`}
+                        >
+                          {/* Mini header preview */}
+                          <div
+                            className="w-full rounded overflow-hidden mb-2 relative"
+                            style={{
+                              height: ht.id.startsWith('slim') ? 32 : 48,
+                              background: ht.requiresHeroImage
+                                ? 'linear-gradient(135deg, #2d3748 0%, #1a202c 60%, #4a5568 100%)'
+                                : 'var(--brand-primary, #134848)',
+                            }}
+                          >
+                            {ht.requiresHeroImage && (
+                              <div className="absolute inset-0 opacity-20"
+                                style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,.06) 4px, rgba(255,255,255,.06) 8px)' }}
+                              />
+                            )}
+                            {/* Logo area */}
+                            <div className="absolute left-2 top-1.5 flex items-center gap-1">
+                              <div className="w-3.5 h-2.5 bg-white/70 rounded-sm" />
+                              {ht.id.includes('35yr') && (
+                                <div className="w-3.5 h-2.5 rounded-sm flex items-center justify-center" style={{ background: '#fcaa28' }}>
+                                  <span className="text-[4px] font-bold text-white leading-none">35</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Headline/sub-headline */}
+                            <div className="absolute left-2 bottom-1.5 space-y-0.5">
+                              <div className="h-1 rounded-sm w-10" style={{ background: 'var(--brand-accent, #fbaa96)', opacity: 0.9 }} />
+                              <div className="h-0.5 w-7 bg-white/30 rounded-sm" />
+                            </div>
+                            {/* Stripes */}
+                            <div className="absolute right-0 top-0 bottom-0 w-[28%] flex gap-px">
+                              {[0.5, 0.8, 1.0, 0.6].map((op, i) => (
+                                <div key={i} className="flex-1" style={{ background: `rgba(251,170,150,${op})` }} />
+                              ))}
+                            </div>
+                          </div>
 
-        {/* Hero Image */}
-        <div>
-          <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hero Image</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-            Recommended: 640 × 270 px. Select from the library, upload and crop in-browser, or paste a CDN URL.
-          </p>
+                          <p className={`text-xs font-semibold leading-tight mb-0.5 ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-800 dark:text-gray-200'}`}>
+                            {ht.label}
+                          </p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight line-clamp-2">
+                            {ht.description}
+                          </p>
+                          {ht.requiresHeroImage && (
+                            <span className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                              Hero image required
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
+              {/* Logo variant */}
+              <div className="mt-5">
+                <p id="logo-variant-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Logo Variant<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+                </p>
+                <div className="flex gap-3" role="radiogroup" aria-labelledby="logo-variant-label">
+                  {LOGO_VARIANTS.map((variant) => {
+                    const selected = watch('assets.logoVariant') === variant
+                    return (
+                      <label
+                        key={variant}
+                        className={`flex flex-col gap-1.5 p-2 rounded-md border cursor-pointer transition-colors w-24 ${
+                          selected
+                            ? 'bg-brand-primary/5 dark:bg-brand-primary/10 border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary dark:ring-brand-accent'
+                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                        }`}
+                      >
+                        <input type="radio" {...register('assets.logoVariant')} value={variant} className="sr-only" />
+                        <LogoPreview variant={variant} />
+                        <span className="text-xs font-medium text-center text-gray-700 dark:text-gray-300 capitalize">{variant}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Hero Image — only shown when selected header type requires it */}
+              {requiresHeroImage && (
+                <div className="mt-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hero Image</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold uppercase tracking-wider">Required for this header</span>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                    Recommended: 640 × 270 px. Select from the library, upload and crop in-browser, or paste a CDN URL.
+                  </p>
           {/* Header Library */}
           {(() => {
             const allHeaders = (settings.assets ?? []).filter((a) => a.category === 'header')
@@ -601,7 +554,6 @@ export function StepContent() {
             // Theme-colour filter: match colourOverlay to selected theme's primary
             const selectedThemeId = watch('campaign.theme') as string
             const selectedTheme = (settings.brandThemes ?? []).find((t) => t.id === selectedThemeId)
-              ?? BRAND_THEMES.find((t) => t.id === selectedThemeId)
             const themePrimary = selectedTheme?.primary?.toLowerCase() ?? ''
 
             const themeHeaders = themePrimary
@@ -651,6 +603,7 @@ export function StepContent() {
                 {headers.length === 0 ? (
                   <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No headers match your search.</p>
                 ) : (
+                  <div className="overflow-y-auto max-h-[488px] pr-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {headers.map((asset) => {
                       const isSelected = heroImageUrl === asset.url
@@ -701,6 +654,7 @@ export function StepContent() {
                         </button>
                       )
                     })}
+                  </div>
                   </div>
                 )}
 
@@ -854,16 +808,20 @@ export function StepContent() {
               )}
             </div>
           )}
-        </div>
 
-        {/* Hero image alt text */}
-        <FieldText
-          label="Hero Image Alt Text"
-          registration={register('assets.heroImageAlt')}
-          error={errors.assets?.heroImageAlt as never}
-          required={!!heroImageUrl}
-          placeholder={heroImageUrl ? 'Required — describe the image for accessibility' : 'Required once a hero image is set'}
-        />
+          {/* Hero image alt text — inside the conditional */}
+          <FieldText
+            label="Hero Image Alt Text"
+            registration={register('assets.heroImageAlt')}
+            error={errors.assets?.heroImageAlt as never}
+            required={!!heroImageUrl}
+            placeholder={heroImageUrl ? 'Required — describe the image for accessibility' : 'Required once a hero image is set'}
+          />
+        </div>
+      )}
+    </>
+  )
+})()}
       </SubSection>
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
@@ -887,6 +845,32 @@ export function StepContent() {
         currentLength={subHeadline.length}
       />
 
+      {/* Greeting */}
+      <div className="mb-4">
+        <label className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
+          Greeting
+        </label>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">
+          Placed above the body intro in the generated email. Manage options in Settings → Greetings.
+        </p>
+        <select
+          value={greetingId}
+          onChange={(e) => setValue('content.greetingId', e.target.value, { shouldValidate: false })}
+          className="w-full border border-brand-border-field dark:border-gray-600 px-3 py-3 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors"
+        >
+          <option value="">— None —</option>
+          {(settings.greetings ?? []).map((g) => (
+            <option key={g.id} value={g.id}>{g.label}</option>
+          ))}
+        </select>
+        {greetingId && (() => {
+          const selected = (settings.greetings ?? []).find((g) => g.id === greetingId)
+          return selected ? (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 italic">&ldquo;{selected.value}&rdquo;</p>
+          ) : null
+        })()}
+      </div>
+
       <RichTextarea
         label="Body Intro"
         value={bodyIntro}
@@ -901,166 +885,11 @@ export function StepContent() {
 
       {/* Email Modules */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Email Modules
-          </label>
-          {selectedModules.length > 0 && (
-            <span className="text-xs text-brand-primary dark:text-brand-accent font-medium">
-              {selectedModules.length} selected
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Select the template modules to include in your email.
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email Modules</label>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-3">
+          Drag modules from the library to build your email structure. Click a placed module to add notes.
         </p>
-
-        {/* Category filter pills */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <button
-            type="button"
-            onClick={() => setActiveCategory(null)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-              activeCategory === null
-                ? 'bg-brand-primary text-white border-brand-primary'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
-            }`}
-          >
-            All ({EMAIL_MODULES.length})
-          </button>
-          {ALL_CATEGORIES.map((cat) => {
-            const count = EMAIL_MODULES.filter((m) => m.category === cat).length
-            const selectedInCat = EMAIL_MODULES.filter((m) => m.category === cat && selectedModules.includes(m.id)).length
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  activeCategory === cat
-                    ? 'bg-brand-primary text-white border-brand-primary'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                }`}
-              >
-                {cat} ({count}){selectedInCat > 0 && <span className="ml-1 opacity-75">·{selectedInCat}</span>}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg max-h-72 overflow-y-auto">
-          {filteredModules.map((mod) => {
-            const isSelected = selectedModules.includes(mod.id)
-            return (
-              <button
-                key={mod.id}
-                type="button"
-                onClick={() => toggleModule(mod.id)}
-                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors ${
-                  isSelected ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                <span
-                  className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 text-xs ${
-                    isSelected
-                      ? 'bg-brand-primary border-brand-primary text-white'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                >
-                  {isSelected ? '\u2713' : ''}
-                </span>
-                <span className={`mt-0.5 shrink-0 ${isSelected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-400 dark:text-gray-500'}`}>
-                  {CATEGORY_ICONS[mod.category]}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{mod.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{mod.description}</p>
-                </div>
-              </button>
-            )
-          })}
-          {filteredModules.length === 0 && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No modules in this category.</p>
-          )}
-        </div>
-
-        {/* Selected modules editable cards */}
-        {selectedModules.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
-              Selected Modules ({selectedModules.length})
-            </p>
-            <div className="space-y-2">
-              {selectedModules.map((modId, index) => {
-                const mod = EMAIL_MODULES.find((m) => m.id === modId)
-                if (!mod) return null
-                const note = moduleNotes[modId] ?? ''
-                return (
-                  <div
-                    key={modId}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-gray-400 dark:text-gray-500 shrink-0">
-                          {CATEGORY_ICONS[mod.category]}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{mod.label}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">{mod.category}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <button
-                          type="button"
-                          onClick={() => moveModuleUp(index)}
-                          disabled={index === 0}
-                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 transition-colors"
-                          title="Move up"
-                          aria-label="Move module up"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 15l-6-6-6 6"/>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveModuleDown(index)}
-                          disabled={index === selectedModules.length - 1}
-                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 transition-colors"
-                          title="Move down"
-                          aria-label="Move module down"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M6 9l6 6 6-6"/>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleModule(modId)}
-                          className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 transition-colors"
-                          title="Remove module"
-                          aria-label={`Remove ${mod.label}`}
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    </div>
-                    <div className="px-3 py-2">
-                      <textarea
-                        value={note}
-                        onChange={(e) => setModuleNote(modId, e.target.value)}
-                        placeholder="Notes / instructions for this module (optional)"
-                        rows={2}
-                        className="w-full text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-primary/30 focus:border-brand-primary resize-none placeholder-gray-400 dark:placeholder-gray-500"
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        <ContentEditorShell />
       </div>
 
       {/* Dynamic sections */}

@@ -80,6 +80,11 @@ interface KanbanCardRow {
   column_history: Array<{ column: string; at: string }>
   notes: string
   tags: string
+  // Campaign Planner extension columns (optional — added via migration)
+  assignee?: string | null
+  start_date?: string | null
+  progress?: number | null
+  comments?: Array<{ id: string; authorId: string; authorName: string; text: string; createdAt: string }> | null
 }
 
 function rowToCard(row: KanbanCardRow): KanbanCard {
@@ -101,6 +106,10 @@ function rowToCard(row: KanbanCardRow): KanbanCard {
     columnHistory: (row.column_history ?? []) as KanbanCard['columnHistory'],
     notes: row.notes ?? '',
     tags: row.tags ?? '',
+    assignee: row.assignee ?? undefined,
+    startDate: row.start_date ?? undefined,
+    progress: row.progress ?? undefined,
+    comments: (row.comments ?? []) as KanbanCard['comments'],
   }
 }
 
@@ -124,6 +133,10 @@ function cardToRow(card: KanbanCard, teamId: string): Record<string, unknown> {
     column_history: card.columnHistory,
     notes: card.notes,
     tags: card.tags,
+    assignee: card.assignee ?? null,
+    start_date: card.startDate ?? null,
+    progress: card.progress ?? null,
+    comments: card.comments ?? [],
   }
 }
 
@@ -145,12 +158,16 @@ export async function insertKanbanCard(teamId: string, card: KanbanCard): Promis
 
 export async function updateKanbanCard(
   cardId: string,
-  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes'>>
+  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes' | 'assignee' | 'startDate' | 'progress' | 'comments'>>
 ): Promise<void> {
   const row: Record<string, unknown> = {}
   if (updates.column !== undefined) row.column = updates.column
   if (updates.columnHistory !== undefined) row.column_history = updates.columnHistory
   if (updates.notes !== undefined) row.notes = updates.notes
+  if (updates.assignee !== undefined) row.assignee = updates.assignee
+  if (updates.startDate !== undefined) row.start_date = updates.startDate
+  if (updates.progress !== undefined) row.progress = updates.progress
+  if (updates.comments !== undefined) row.comments = updates.comments
 
   const { error } = await supabase.from('kanban_cards').update(row).eq('id', cardId)
   if (error) throw new Error(`Failed to update kanban card: ${error.message}`)
@@ -227,12 +244,14 @@ export interface TeamMember {
   role: UserRole
   teamId: string
   createdAt: string
+  presetClientGroups: string[]
+  presetRegions: string[]
 }
 
 export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from('team_members')
-    .select('id, email, display_name, role, team_id, created_at')
+    .select('id, email, display_name, role, team_id, created_at, preset_client_groups, preset_regions')
     .eq('team_id', teamId)
     .order('created_at', { ascending: true })
 
@@ -244,6 +263,8 @@ export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
     role: row.role as UserRole,
     teamId: row.team_id,
     createdAt: row.created_at,
+    presetClientGroups: row.preset_client_groups ?? [],
+    presetRegions: row.preset_regions ?? [],
   }))
 }
 
@@ -265,6 +286,15 @@ export async function updateMemberDisplayName(userId: string, displayName: strin
   if (error) throw new Error(`Failed to update display name: ${error.message}`)
 }
 
+export async function updateMemberPresets(userId: string, clientGroups: string[], regions: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ preset_client_groups: clientGroups, preset_regions: regions })
+    .eq('id', userId)
+
+  if (error) throw new Error(`Failed to update presets: ${error.message}`)
+}
+
 export async function removeMember(userId: string): Promise<void> {
   const { error } = await supabase
     .from('profiles')
@@ -272,4 +302,27 @@ export async function removeMember(userId: string): Promise<void> {
     .eq('id', userId)
 
   if (error) throw new Error(`Failed to remove member: ${error.message}`)
+}
+
+export async function createTeamMember(
+  email: string,
+  password: string,
+  displayName: string,
+  role: UserRole,
+): Promise<{ userId: string }> {
+  // Explicitly retrieve the session token — functions.invoke() may fall back to
+  // the anon key in some environments, which has no `sub` claim and fails our
+  // admin check in the edge function.
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Not authenticated')
+
+  const { data, error } = await supabase.functions.invoke('create-user', {
+    body: { email, password, displayName, role },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+
+  if (error) throw new Error(error.message ?? 'Failed to create user')
+  if (data?.error) throw new Error(data.error)
+  return { userId: data.userId }
 }

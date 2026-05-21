@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useApprovals } from '../../contexts/ApprovalsContext'
 import { getThemeColours } from '../../lib/themeColours'
+import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
+import { ApprovalHistoryTimeline } from '../approvals/ApprovalHistoryTimeline'
+import { SubmitForApprovalModal } from '../approvals/SubmitForApprovalModal'
+import { fetchBriefById } from '../../lib/approvalsService'
+import type { BriefPayload } from '../../types/brief.types'
 
 const COLUMN_LABELS: Record<KanbanColumn, string> = {
   'briefed': 'Briefed',
@@ -36,8 +43,13 @@ interface KanbanCardDetailProps {
 
 export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
   const { moveCard, updateCardNotes, removeCard } = useKanban()
+  const { settings } = useSettings()
+  const { getApprovalStatusForBrief, getLatestApprovalForBrief, approvals } = useApprovals()
   const [notes, setNotes] = useState(card.notes)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showSubmitApproval, setShowSubmitApproval] = useState(false)
+  const [briefSnapshot, setBriefSnapshot] = useState<BriefPayload | null>(null)
+  const [loadingBrief, setLoadingBrief] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const colours = getThemeColours(card.theme)
 
@@ -72,6 +84,22 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
     removeCard(card.id)
     onClose()
   }
+
+  async function handleOpenSubmitApproval() {
+    setLoadingBrief(true)
+    try {
+      const brief = await fetchBriefById(card.briefId)
+      setBriefSnapshot(brief)
+    } finally {
+      setLoadingBrief(false)
+      setShowSubmitApproval(true)
+    }
+  }
+
+  const approvalStatus = getApprovalStatusForBrief(card.briefId)
+  const latestApproval = getLatestApprovalForBrief(card.briefId)
+  const cardApprovals = approvals.filter((a) => a.briefId === card.briefId)
+  const hasActiveApproval = approvalStatus === 'pending'
 
   const today = new Date()
   const sendDate = new Date(card.sendDate)
@@ -150,6 +178,9 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                   Due soon
                 </span>
+              )}
+              {settings.approvals?.enabled && approvalStatus !== 'none' && (
+                <ApprovalStatusBadge status={approvalStatus} size="sm" />
               )}
               <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{ageLabel} in {COLUMN_LABELS[card.column]}</span>
             </div>
@@ -243,6 +274,67 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
               />
               <p className="text-[11px] text-gray-400 mt-1">Auto-saved on blur</p>
             </section>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
+            {/* Submit for Approval */}
+            {settings.approvals?.enabled && !hasActiveApproval && (
+              <section>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Approval</p>
+                {approvalStatus === 'approved' ? (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Approved by {latestApproval?.decidedByName ?? 'approver'}
+                  </div>
+                ) : approvalStatus === 'rejected' ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-600 dark:text-red-400">This brief was rejected. Address the feedback and resubmit.</p>
+                    <button
+                      type="button"
+                      onClick={handleOpenSubmitApproval}
+                      disabled={loadingBrief}
+                      className="w-full flex items-center justify-center gap-2 text-xs font-medium bg-brand-primary text-white py-2.5 rounded hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {loadingBrief ? 'Loading...' : 'Resubmit for Approval'}
+                    </button>
+                  </div>
+                ) : approvalStatus === 'changes_requested' ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-orange-600 dark:text-orange-400">Changes were requested. Update the brief and resubmit.</p>
+                    <button
+                      type="button"
+                      onClick={handleOpenSubmitApproval}
+                      disabled={loadingBrief}
+                      className="w-full flex items-center justify-center gap-2 text-xs font-medium bg-brand-primary text-white py-2.5 rounded hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {loadingBrief ? 'Loading...' : 'Resubmit for Approval'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleOpenSubmitApproval}
+                    disabled={loadingBrief}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-medium bg-brand-primary text-white py-2.5 rounded hover:bg-brand-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {loadingBrief ? 'Loading brief...' : 'Submit for Approval'}
+                  </button>
+                )}
+              </section>
+            )}
+
+            {/* Approval history */}
+            {settings.approvals?.enabled && cardApprovals.length > 0 && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                <section>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Approval History</p>
+                  <ApprovalHistoryTimeline approvals={cardApprovals} />
+                </section>
+              </>
+            )}
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />
 
@@ -340,6 +432,16 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
           </div>
         </div>
       </div>
+
+      {/* Submit for Approval modal */}
+      {showSubmitApproval && briefSnapshot && (
+        <SubmitForApprovalModal
+          brief={briefSnapshot}
+          emailName={card.emailName}
+          onClose={() => setShowSubmitApproval(false)}
+          onSubmitted={() => setShowSubmitApproval(false)}
+        />
+      )}
     </>
   )
 }

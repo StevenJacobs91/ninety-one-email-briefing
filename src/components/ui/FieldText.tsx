@@ -8,6 +8,7 @@ interface FieldTextProps {
   required?: boolean
   placeholder?: string
   maxLength?: number
+  suggestedLength?: number
   currentLength?: number
   type?: 'text' | 'email' | 'number' | 'date'
   min?: string
@@ -31,6 +32,7 @@ export function FieldText({
   required,
   placeholder,
   maxLength,
+  suggestedLength,
   currentLength,
   type = 'text',
   min,
@@ -52,7 +54,7 @@ export function FieldText({
 
   return (
     <div className="mb-4">
-      <label htmlFor={inputId} className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+      <label htmlFor={inputId} className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
         {label}
         {required && <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>}
         {required && <span className="sr-only"> (required)</span>}
@@ -70,7 +72,7 @@ export function FieldText({
           min={min}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${inputId}-error` : undefined}
-          className={`w-full border px-3 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors ${
+          className={`w-full border px-3 py-3 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors ${
             showUrlFeedback ? 'pr-8' : ''
           } ${
             error ? 'border-red-400' : 'border-brand-border-field dark:border-gray-600'
@@ -99,6 +101,16 @@ export function FieldText({
                 : 'text-gray-500 dark:text-gray-400'
           }`} aria-live="polite">
             {currentLength}/{maxLength}
+          </p>
+        )}
+        {suggestedLength != null && maxLength == null && currentLength != null && (
+          <p className={`text-xs ml-auto ${
+            currentLength > suggestedLength
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-gray-400 dark:text-gray-500'
+          }`} aria-live="polite">
+            {currentLength}
+            <span className="text-gray-300 dark:text-gray-600">/{suggestedLength}</span>
           </p>
         )}
       </div>
