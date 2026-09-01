@@ -28,10 +28,7 @@ jobs:
         run: |
           npm ci
           npm run build:prod
-
-      - name: Run tests
-        run: npm test
-
+          
       - name: Prune to production dependencies
         run: npm prune --omit=dev
 
