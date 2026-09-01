@@ -1,0 +1,55 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+    - main
+    - feat/pipeline
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: 'ny1-linux-internal'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies and build SPA (prod mode)
+        run: |
+          npm ci
+          npm run build:prod
+
+      - name: Run tests
+        run: npm test
+
+      - name: Prune to production dependencies
+        run: npm prune --omit=dev
+
+      # server/ includes the bundled MiniLM model (server/models) and the
+      # canned-actions seed — production never downloads anything.
+      - name: Create deployment package
+        run: zip -r -q deploy.zip dist server node_modules package.json package-lock.json
+        
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # - name: Deploy to Azure Web App
+      #   uses: azure/webapps-deploy@v3
+      #   with:
+      #     app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+      #     slot: "production"
+      #     package: deploy.zip
