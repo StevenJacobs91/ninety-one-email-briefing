@@ -35,7 +35,7 @@ jobs:
       # server/ includes the bundled MiniLM model (server/models) and the
       # canned-actions seed — production never downloads anything.
       - name: Create deployment package
-        run: zip -r -q deploy.zip dist server node_modules package.json package-lock.json
+        run: zip -r -q deploy.zip dist agents node_modules package.json package-lock.json
         
       - name: Azure login (OIDC)
         uses: azure/login@v3
@@ -44,9 +44,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # - name: Deploy to Azure Web App
-      #   uses: azure/webapps-deploy@v3
-      #   with:
-      #     app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-      #     slot: "production"
-      #     package: deploy.zip
+      - name: Deploy to Azure Web App
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          slot-name: "production"
+          package: deploy.zip
+          startup-command: "pm2 serve /home/site/wwwroot/dist --no-daemon --spa"
