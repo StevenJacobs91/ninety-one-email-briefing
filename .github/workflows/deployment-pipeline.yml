@@ -32,10 +32,9 @@ jobs:
       - name: Prune to production dependencies
         run: npm prune --omit=dev
 
-      # server/ includes the bundled MiniLM model (server/models) and the
-      # canned-actions seed — production never downloads anything.
       - name: Create deployment package
-        run: zip -r -q deploy.zip dist agents node_modules package.json package-lock.json
+        run: | 
+          zip -r -q deploy.zip dist agents "Themes and Modules" node_modules package.json package-lock.json
         
       - name: Azure login (OIDC)
         uses: azure/login@v3
