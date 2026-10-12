@@ -7,7 +7,7 @@
     "db:down": "docker compose down -v",
     "migrate": "node migrate.mjs up",
     "verify": "node verify.mjs",
-    "test": "node --test --test-concurrency=1 test/"
+    "test": "node --test --test-concurrency=1 'test/*.test.mjs'"
   },
   "dependencies": { "pg": "^8.13.1" }
 }
