@@ -54,3 +54,22 @@ test('a null tenant id is refused before it reaches the database', async () => {
   await assert.rejects(withTenant(pool, null, (c) => c.query('select 1')),
     /teamId is required/)
 })
+
+test('withTenant scopes the tenant id to its transaction, not just to the checkout', async () => {
+  // A dedicated pool with the belt-and-braces release reset removed, so the
+  // only thing that can clear app.team_id is withTenant using a
+  // transaction-local set_config. Without this, set_config(..., true) and
+  // set_config(..., false) are indistinguishable to the suite and the pool
+  // reset silently carries the whole contract.
+  const bare = createPool(loadConfig(testEnv()))
+  bare.removeAllListeners('release')
+  try {
+    await withTenant(bare, A, (c) => c.query('select 1'))
+    const client = await bare.connect()
+    try {
+      const { rows } = await client.query(`select current_setting('app.team_id', true) as v`)
+      assert.ok(rows[0].v === null || rows[0].v === '',
+        `withTenant left app.team_id on the connection: ${rows[0].v}`)
+    } finally { client.release() }
+  } finally { await bare.end() }
+})
