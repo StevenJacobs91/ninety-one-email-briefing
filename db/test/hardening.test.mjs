@@ -60,8 +60,13 @@ test('I13 re-executing every migration body against a complete schema succeeds',
   await fresh()
   const first = await compareSchema(c, expected)
   await c.query('drop table schema_migrations')
+  const { readdir } = await import('node:fs/promises')
+  const { fileURLToPath } = await import('node:url')
+  const expectedCount = (await readdir(fileURLToPath(new URL('../migrations/', import.meta.url))))
+    .filter((f) => f.endsWith('.sql')).length
   const applied = await runMigrations(c)
-  assert.equal(applied.length, 7, 'expected all 7 bodies to re-execute')
+  assert.equal(applied.length, expectedCount,
+    `expected all ${expectedCount} migration bodies to re-execute`)
   const second = await compareSchema(c, expected)
   assert.deepEqual(second, first, 'schema changed after re-running the bodies')
 })

@@ -1,39 +1,14 @@
 {
   "tables": {
-    "team_members": [
+    "sessions": [
       "created_at",
-      "display_name",
-      "email",
+      "expires_at",
       "id",
-      "preset_client_groups",
-      "preset_regions",
-      "role",
-      "team_id"
-    ],
-    "kanban_cards": [
-      "assignee",
-      "brief_id",
-      "channel",
-      "client_group",
-      "column",
-      "column_history",
-      "comments",
-      "content_approval_date",
-      "created_at",
-      "email_name",
-      "email_type",
-      "id",
-      "notes",
-      "progress",
-      "region",
-      "send_date",
-      "start_date",
-      "subject_line",
-      "submitted_at",
-      "tags",
+      "ip",
+      "profile_id",
+      "revoked_at",
       "team_id",
-      "theme",
-      "urgency"
+      "user_agent"
     ],
     "approvals": [
       "approver_role",
@@ -148,6 +123,16 @@
       "team_id",
       "updated_at"
     ],
+    "team_members": [
+      "created_at",
+      "display_name",
+      "email",
+      "id",
+      "preset_client_groups",
+      "preset_regions",
+      "role",
+      "team_id"
+    ],
     "teams": [
       "created_at",
       "id",
@@ -215,6 +200,31 @@
       "user_email",
       "user_id",
       "user_name"
+    ],
+    "kanban_cards": [
+      "assignee",
+      "brief_id",
+      "channel",
+      "client_group",
+      "column",
+      "column_history",
+      "comments",
+      "content_approval_date",
+      "created_at",
+      "email_name",
+      "email_type",
+      "id",
+      "notes",
+      "progress",
+      "region",
+      "send_date",
+      "start_date",
+      "subject_line",
+      "submitted_at",
+      "tags",
+      "team_id",
+      "theme",
+      "urgency"
     ]
   },
   "constraints": {
@@ -275,6 +285,9 @@
     "send_time_events_hour_of_day_check": "CHECK (((hour_of_day >= 0) AND (hour_of_day <= 23)))",
     "send_time_events_pkey": "PRIMARY KEY (id)",
     "send_time_events_team_id_fkey": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE RESTRICT",
+    "sessions_pkey": "PRIMARY KEY (id)",
+    "sessions_profile_id_fkey": "FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE",
+    "sessions_team_id_fkey": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE RESTRICT",
     "settings_pkey": "PRIMARY KEY (id)",
     "settings_team_id_fkey": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE RESTRICT",
     "settings_team_id_key": "UNIQUE (team_id)",
@@ -315,6 +328,9 @@
     "campaigns_team_idx": "CREATE INDEX campaigns_team_idx ON public.campaigns USING btree (team_id)",
     "campaign_briefs_campaign_idx": "CREATE INDEX campaign_briefs_campaign_idx ON public.campaign_briefs USING btree (campaign_id, display_order)",
     "campaign_briefs_team_campaign_idx": "CREATE INDEX campaign_briefs_team_campaign_idx ON public.campaign_briefs USING btree (team_id, campaign_id)",
-    "planner_settings_pkey": "CREATE UNIQUE INDEX planner_settings_pkey ON public.planner_settings USING btree (team_id)"
+    "planner_settings_pkey": "CREATE UNIQUE INDEX planner_settings_pkey ON public.planner_settings USING btree (team_id)",
+    "sessions_pkey": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (id)",
+    "sessions_team_profile_idx": "CREATE INDEX sessions_team_profile_idx ON public.sessions USING btree (team_id, profile_id)",
+    "sessions_expires_idx": "CREATE INDEX sessions_expires_idx ON public.sessions USING btree (expires_at) WHERE (revoked_at IS NULL)"
   }
 }
