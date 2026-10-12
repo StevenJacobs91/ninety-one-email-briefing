@@ -1,6 +1,6 @@
 import { getMetadata, exchangeCode, verifyIdToken } from '../auth/entra.mjs'
 import { provisionProfile } from '../auth/profiles.mjs'
-import { createSession } from '../auth/sessions.mjs'
+import { createSession, revokeSession } from '../auth/sessions.mjs'
 import { createVerifier, challengeFor, randomToken } from '../auth/pkce.mjs'
 
 export const AUTH_COOKIE = 'ni_auth'
@@ -82,5 +82,18 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
     })
 
     return reply.redirect(config.appOrigin, 302)
+  })
+
+  app.get('/auth/me', { preHandler: app.authenticate }, async (req) => ({
+    profileId: req.user.profileId, teamId: req.user.teamId,
+    role: req.user.role, displayName: req.user.displayName, email: req.user.email,
+  }))
+
+  app.post('/auth/logout', async (req, reply) => {
+    const raw = req.cookies[SESSION_COOKIE]
+    const unsigned = raw ? req.unsignCookie(raw) : { valid: false }
+    if (unsigned.valid) await revokeSession(pool, unsigned.value)
+    reply.clearCookie(SESSION_COOKIE, { path: '/' })
+    return reply.code(204).send()
   })
 }
