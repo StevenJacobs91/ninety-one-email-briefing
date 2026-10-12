@@ -70,4 +70,10 @@ $$;
 -- The view is security_invoker (001), so RLS on profiles still applies to it.
 grant select on public.team_members to app_user;
 
-revoke all on public.schema_migrations from app_user;
+-- schema_migrations is created by the runner, not by a migration, so it may
+-- not exist when these files are applied directly (e.g. by a test harness).
+do $$ begin
+  if to_regclass('public.schema_migrations') is not null then
+    revoke all on public.schema_migrations from app_user;
+  end if;
+end $$;
