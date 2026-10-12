@@ -33,11 +33,18 @@ create table if not exists public.campaign_briefs (
   added_at      timestamptz not null default now()
 );
 
+create index if not exists campaigns_team_idx on public.campaigns (team_id);
 create index if not exists campaign_briefs_campaign_idx
   on public.campaign_briefs (campaign_id, display_order);
+create index if not exists campaign_briefs_team_campaign_idx
+  on public.campaign_briefs (team_id, campaign_id);
 
 create table if not exists public.planner_settings (
   team_id    uuid primary key references public.teams (id) on delete cascade,
   config     jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+drop trigger if exists planner_settings_updated_at on public.planner_settings;
+create trigger planner_settings_updated_at before update on public.planner_settings
+  for each row execute function public.set_updated_at();

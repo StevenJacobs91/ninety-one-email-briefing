@@ -44,6 +44,8 @@ create trigger benchmark_entries_updated_at
   before update on public.benchmark_entries
   for each row execute function public.set_updated_at();
 
+create index if not exists benchmark_entries_team_idx on public.benchmark_entries (team_id);
+
 create table if not exists public.audience_health_snapshots (
   id            uuid primary key default gen_random_uuid(),
   team_id       uuid not null references public.teams (id) on delete restrict,

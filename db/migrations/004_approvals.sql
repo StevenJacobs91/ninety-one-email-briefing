@@ -53,6 +53,10 @@ create table if not exists public.approval_comments (
 create index if not exists approval_comments_approval_idx
   on public.approval_comments (approval_id, created_at);
 
+-- team_id leads: it is the RLS policy predicate on every query.
+create index if not exists approval_comments_team_approval_idx
+  on public.approval_comments (team_id, approval_id);
+
 drop trigger if exists approvals_updated_at on public.approvals;
 create trigger approvals_updated_at
   before update on public.approvals

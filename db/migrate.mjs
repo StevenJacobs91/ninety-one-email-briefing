@@ -5,7 +5,21 @@ import { withClient } from './lib/connect.mjs'
 
 const DEFAULT_DIR = join(dirname(fileURLToPath(import.meta.url)), 'migrations')
 
+// Serialises concurrent runners (a CI deploy and an operator, or two Container
+// App replicas). DDL takes ACCESS EXCLUSIVE locks, so without this two runs
+// race on catalogue indexes and deadlock or half-apply.
+const LOCK_KEY = 'ni-briefing-migrations'
+
 export async function runMigrations(client, dir = DEFAULT_DIR) {
+  await client.query('select pg_advisory_lock(hashtext($1))', [LOCK_KEY])
+  try {
+    return await applyPending(client, dir)
+  } finally {
+    await client.query('select pg_advisory_unlock(hashtext($1))', [LOCK_KEY])
+  }
+}
+
+async function applyPending(client, dir) {
   await client.query(`
     create table if not exists schema_migrations (
       filename   text primary key,
