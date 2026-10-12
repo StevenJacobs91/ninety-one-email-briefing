@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch src/server.mjs",
     "start": "node src/server.mjs",
-    "test": "node --test --test-concurrency=1 'test/**/*.test.mjs'"
+    "test": "LOG_LEVEL=silent node --test --test-concurrency=1 'test/**/*.test.mjs'"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.3",

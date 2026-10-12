@@ -1,4 +1,6 @@
-import { getMetadata } from '../auth/entra.mjs'
+import { getMetadata, exchangeCode, verifyIdToken } from '../auth/entra.mjs'
+import { provisionProfile } from '../auth/profiles.mjs'
+import { createSession } from '../auth/sessions.mjs'
 import { createVerifier, challengeFor, randomToken } from '../auth/pkce.mjs'
 
 export const AUTH_COOKIE = 'ni_auth'
@@ -33,5 +35,52 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
     url.searchParams.set('code_challenge_method', 'S256')
 
     return reply.redirect(url.toString(), 302)
+  })
+
+  app.get('/auth/callback', async (req, reply) => {
+    const raw = req.cookies[AUTH_COOKIE]
+    const unsigned = raw ? reply.unsignCookie(raw) : { valid: false }
+    reply.clearCookie(AUTH_COOKIE, { path: '/auth' })
+
+    if (!unsigned.valid) {
+      return reply.code(400).send({ error: 'sign-in has expired; please start again' })
+    }
+
+    let state, nonce, verifier
+    try { ({ state, nonce, verifier } = JSON.parse(unsigned.value)) }
+    catch { return reply.code(400).send({ error: 'sign-in has expired; please start again' }) }
+
+    if (!req.query.code || !req.query.state || req.query.state !== state) {
+      return reply.code(400).send({ error: 'sign-in has expired; please start again' })
+    }
+
+    const metadata = await metadataFor()
+    let claims
+    try {
+      const tokens = await exchangeCode(
+        { config, metadata, code: req.query.code, codeVerifier: verifier })
+      claims = await verifyIdToken(tokens.id_token, { config, metadata, nonce })
+    } catch (err) {
+      req.log.warn({ reason: err.message }, 'sign-in failed')
+      return reply.code(401).send({ error: 'sign-in failed; please try again' })
+    }
+
+    const profile = await provisionProfile(pool, {
+      oid: claims.oid, email: claims.email, name: claims.name,
+      defaultTeamId: config.defaultTeamId,
+    })
+
+    const sessionId = await createSession(pool, {
+      profileId: profile.id, teamId: profile.teamId,
+      ttlSeconds: config.sessionTtlSeconds,
+      userAgent: req.headers['user-agent'], ip: req.ip,
+    })
+
+    reply.setCookie(SESSION_COOKIE, sessionId, {
+      path: '/', httpOnly: true, secure, sameSite: 'lax',
+      signed: true, maxAge: config.sessionTtlSeconds,
+    })
+
+    return reply.redirect(config.appOrigin, 302)
   })
 }
