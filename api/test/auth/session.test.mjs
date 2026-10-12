@@ -2,10 +2,10 @@ import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildApp } from '../../src/app.mjs'
 import { loadConfig } from '../../src/config.mjs'
-import { createPool, withoutTenant } from '../../src/db.mjs'
+import { createPool } from '../../src/db.mjs'
 import { testEnv } from '../helpers/env.mjs'
 import { startFakeEntra } from '../helpers/fake-entra.mjs'
-import { resetSchema, seedTeam } from '../helpers/db.mjs'
+import { resetSchema, seedTeam, asOwner } from '../helpers/db.mjs'
 
 const ISSUER = 'https://login.microsoftonline.com/test-tenant/v2.0'
 const TEAM = '11111111-1111-1111-1111-111111111111'
@@ -62,7 +62,7 @@ test('a revoked session stops working immediately', async () => {
 
 test('an expired session is 401', async () => {
   const session = await signIn()
-  await withoutTenant(pool, (c) =>
+  await asOwner(pool, (c) =>
     c.query(`update sessions set expires_at = now() - interval '1 minute'`))
   const res = await app.inject({ method: 'GET', url: '/auth/me', cookies: { ni_session: session } })
   assert.equal(res.statusCode, 401)
@@ -70,14 +70,14 @@ test('an expired session is 401', async () => {
 
 test('removing the profile invalidates the session', async () => {
   const session = await signIn()
-  await withoutTenant(pool, (c) => c.query('delete from profiles'))
+  await asOwner(pool, (c) => c.query('delete from profiles'))
   const res = await app.inject({ method: 'GET', url: '/auth/me', cookies: { ni_session: session } })
   assert.equal(res.statusCode, 401)
 })
 
 test('a role change takes effect on the next request without re-signing in', async () => {
   const session = await signIn()
-  await withoutTenant(pool, (c) => c.query(`update profiles set role = 'admin'`))
+  await asOwner(pool, (c) => c.query(`update profiles set role = 'admin'`))
   const res = await app.inject({ method: 'GET', url: '/auth/me', cookies: { ni_session: session } })
   assert.equal(res.json().role, 'admin')
 })

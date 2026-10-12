@@ -1,14 +1,9 @@
 {
   "tables": {
-    "sessions": [
+    "teams": [
       "created_at",
-      "expires_at",
       "id",
-      "ip",
-      "profile_id",
-      "revoked_at",
-      "team_id",
-      "user_agent"
+      "name"
     ],
     "approvals": [
       "approver_role",
@@ -133,10 +128,19 @@
       "role",
       "team_id"
     ],
-    "teams": [
+    "sessions": [
       "created_at",
+      "expires_at",
       "id",
-      "name"
+      "ip",
+      "profile_id",
+      "revoked_at",
+      "team_id",
+      "user_agent"
+    ],
+    "auth_requests": [
+      "created_at",
+      "state_hash"
     ],
     "kanban_columns": [
       "colour",
@@ -250,6 +254,7 @@
     "audit_log_pkey": "PRIMARY KEY (id)",
     "audit_log_team_id_fkey": "FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE RESTRICT",
     "audit_log_user_id_fkey": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE",
+    "auth_requests_pkey": "PRIMARY KEY (state_hash)",
     "benchmark_entries_created_by_fkey": "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL",
     "benchmark_entries_pkey": "PRIMARY KEY (id)",
     "benchmark_entries_source_check": "CHECK ((source = ANY (ARRAY['manual'::text, 'import'::text, 'litmus'::text, 'mailchimp'::text, 'other'::text])))",
@@ -295,42 +300,44 @@
   },
   "indexes": {
     "teams_pkey": "CREATE UNIQUE INDEX teams_pkey ON public.teams USING btree (id)",
-    "profiles_pkey": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)",
-    "profiles_team_id_idx": "CREATE INDEX profiles_team_id_idx ON public.profiles USING btree (team_id)",
-    "settings_pkey": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)",
-    "briefs_pkey": "CREATE UNIQUE INDEX briefs_pkey ON public.briefs USING btree (id)",
-    "drafts_pkey": "CREATE UNIQUE INDEX drafts_pkey ON public.drafts USING btree (id)",
-    "audit_log_pkey": "CREATE UNIQUE INDEX audit_log_pkey ON public.audit_log USING btree (id)",
-    "settings_team_id_key": "CREATE UNIQUE INDEX settings_team_id_key ON public.settings USING btree (team_id)",
-    "briefs_team_brief_key": "CREATE UNIQUE INDEX briefs_team_brief_key ON public.briefs USING btree (team_id, brief_id)",
-    "drafts_team_user_name_key": "CREATE UNIQUE INDEX drafts_team_user_name_key ON public.drafts USING btree (team_id, user_id, name)",
-    "audit_log_team_created_idx": "CREATE INDEX audit_log_team_created_idx ON public.audit_log USING btree (team_id, created_at DESC)",
-    "kanban_columns_pkey": "CREATE UNIQUE INDEX kanban_columns_pkey ON public.kanban_columns USING btree (id, team_id)",
-    "kanban_cards_pkey": "CREATE UNIQUE INDEX kanban_cards_pkey ON public.kanban_cards USING btree (id)",
     "kanban_columns_team_id_idx": "CREATE INDEX kanban_columns_team_id_idx ON public.kanban_columns USING btree (team_id)",
-    "kanban_cards_team_brief_key": "CREATE UNIQUE INDEX kanban_cards_team_brief_key ON public.kanban_cards USING btree (team_id, brief_id)",
-    "kanban_cards_team_column_idx": "CREATE INDEX kanban_cards_team_column_idx ON public.kanban_cards USING btree (team_id, \"column\")",
-    "kanban_cards_assignee_idx": "CREATE INDEX kanban_cards_assignee_idx ON public.kanban_cards USING btree (team_id, assignee) WHERE (assignee IS NOT NULL)",
+    "kanban_columns_pkey": "CREATE UNIQUE INDEX kanban_columns_pkey ON public.kanban_columns USING btree (id, team_id)",
+    "profiles_team_id_idx": "CREATE INDEX profiles_team_id_idx ON public.profiles USING btree (team_id)",
+    "profiles_pkey": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)",
+    "settings_team_id_key": "CREATE UNIQUE INDEX settings_team_id_key ON public.settings USING btree (team_id)",
+    "settings_pkey": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)",
+    "briefs_team_brief_key": "CREATE UNIQUE INDEX briefs_team_brief_key ON public.briefs USING btree (team_id, brief_id)",
+    "briefs_pkey": "CREATE UNIQUE INDEX briefs_pkey ON public.briefs USING btree (id)",
+    "drafts_team_user_name_key": "CREATE UNIQUE INDEX drafts_team_user_name_key ON public.drafts USING btree (team_id, user_id, name)",
+    "drafts_pkey": "CREATE UNIQUE INDEX drafts_pkey ON public.drafts USING btree (id)",
+    "audit_log_team_created_idx": "CREATE INDEX audit_log_team_created_idx ON public.audit_log USING btree (team_id, created_at DESC)",
+    "audit_log_pkey": "CREATE UNIQUE INDEX audit_log_pkey ON public.audit_log USING btree (id)",
     "kanban_cards_comments_gin_idx": "CREATE INDEX kanban_cards_comments_gin_idx ON public.kanban_cards USING gin (comments)",
-    "approvals_pkey": "CREATE UNIQUE INDEX approvals_pkey ON public.approvals USING btree (id)",
+    "kanban_cards_assignee_idx": "CREATE INDEX kanban_cards_assignee_idx ON public.kanban_cards USING btree (team_id, assignee) WHERE (assignee IS NOT NULL)",
+    "kanban_cards_team_column_idx": "CREATE INDEX kanban_cards_team_column_idx ON public.kanban_cards USING btree (team_id, \"column\")",
+    "kanban_cards_team_brief_key": "CREATE UNIQUE INDEX kanban_cards_team_brief_key ON public.kanban_cards USING btree (team_id, brief_id)",
+    "kanban_cards_pkey": "CREATE UNIQUE INDEX kanban_cards_pkey ON public.kanban_cards USING btree (id)",
     "approvals_team_brief_idx": "CREATE INDEX approvals_team_brief_idx ON public.approvals USING btree (team_id, brief_id)",
-    "approval_comments_pkey": "CREATE UNIQUE INDEX approval_comments_pkey ON public.approval_comments USING btree (id)",
-    "approval_comments_approval_idx": "CREATE INDEX approval_comments_approval_idx ON public.approval_comments USING btree (approval_id, created_at)",
+    "approvals_pkey": "CREATE UNIQUE INDEX approvals_pkey ON public.approvals USING btree (id)",
     "approval_comments_team_approval_idx": "CREATE INDEX approval_comments_team_approval_idx ON public.approval_comments USING btree (team_id, approval_id)",
-    "send_time_events_pkey": "CREATE UNIQUE INDEX send_time_events_pkey ON public.send_time_events USING btree (id)",
+    "approval_comments_approval_idx": "CREATE INDEX approval_comments_approval_idx ON public.approval_comments USING btree (approval_id, created_at)",
+    "approval_comments_pkey": "CREATE UNIQUE INDEX approval_comments_pkey ON public.approval_comments USING btree (id)",
     "send_time_events_team_sent_idx": "CREATE INDEX send_time_events_team_sent_idx ON public.send_time_events USING btree (team_id, sent_at DESC)",
-    "benchmark_entries_pkey": "CREATE UNIQUE INDEX benchmark_entries_pkey ON public.benchmark_entries USING btree (id)",
+    "send_time_events_pkey": "CREATE UNIQUE INDEX send_time_events_pkey ON public.send_time_events USING btree (id)",
     "benchmark_entries_team_idx": "CREATE INDEX benchmark_entries_team_idx ON public.benchmark_entries USING btree (team_id)",
-    "audience_health_snapshots_pkey": "CREATE UNIQUE INDEX audience_health_snapshots_pkey ON public.audience_health_snapshots USING btree (id)",
+    "benchmark_entries_pkey": "CREATE UNIQUE INDEX benchmark_entries_pkey ON public.benchmark_entries USING btree (id)",
     "audience_health_snapshots_team_date_idx": "CREATE INDEX audience_health_snapshots_team_date_idx ON public.audience_health_snapshots USING btree (team_id, snapshot_date DESC)",
-    "campaigns_pkey": "CREATE UNIQUE INDEX campaigns_pkey ON public.campaigns USING btree (id)",
-    "campaign_briefs_pkey": "CREATE UNIQUE INDEX campaign_briefs_pkey ON public.campaign_briefs USING btree (id)",
+    "audience_health_snapshots_pkey": "CREATE UNIQUE INDEX audience_health_snapshots_pkey ON public.audience_health_snapshots USING btree (id)",
     "campaigns_team_idx": "CREATE INDEX campaigns_team_idx ON public.campaigns USING btree (team_id)",
-    "campaign_briefs_campaign_idx": "CREATE INDEX campaign_briefs_campaign_idx ON public.campaign_briefs USING btree (campaign_id, display_order)",
+    "campaigns_pkey": "CREATE UNIQUE INDEX campaigns_pkey ON public.campaigns USING btree (id)",
     "campaign_briefs_team_campaign_idx": "CREATE INDEX campaign_briefs_team_campaign_idx ON public.campaign_briefs USING btree (team_id, campaign_id)",
+    "campaign_briefs_campaign_idx": "CREATE INDEX campaign_briefs_campaign_idx ON public.campaign_briefs USING btree (campaign_id, display_order)",
+    "campaign_briefs_pkey": "CREATE UNIQUE INDEX campaign_briefs_pkey ON public.campaign_briefs USING btree (id)",
     "planner_settings_pkey": "CREATE UNIQUE INDEX planner_settings_pkey ON public.planner_settings USING btree (team_id)",
-    "sessions_pkey": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (id)",
+    "sessions_expires_idx": "CREATE INDEX sessions_expires_idx ON public.sessions USING btree (expires_at) WHERE (revoked_at IS NULL)",
     "sessions_team_profile_idx": "CREATE INDEX sessions_team_profile_idx ON public.sessions USING btree (team_id, profile_id)",
-    "sessions_expires_idx": "CREATE INDEX sessions_expires_idx ON public.sessions USING btree (expires_at) WHERE (revoked_at IS NULL)"
+    "sessions_pkey": "CREATE UNIQUE INDEX sessions_pkey ON public.sessions USING btree (id)",
+    "auth_requests_created_idx": "CREATE INDEX auth_requests_created_idx ON public.auth_requests USING btree (created_at)",
+    "auth_requests_pkey": "CREATE UNIQUE INDEX auth_requests_pkey ON public.auth_requests USING btree (state_hash)"
   }
 }

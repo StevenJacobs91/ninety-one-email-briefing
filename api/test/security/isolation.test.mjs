@@ -1,9 +1,9 @@
 import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { createPool, withTenant, withoutTenant } from '../../src/db.mjs'
+import { createPool, withTenant } from '../../src/db.mjs'
 import { loadConfig } from '../../src/config.mjs'
 import { testEnv } from '../helpers/env.mjs'
-import { resetSchema, seedTeam } from '../helpers/db.mjs'
+import { resetSchema, seedTeam, asOwner } from '../helpers/db.mjs'
 
 const A = '11111111-1111-1111-1111-111111111111'
 const B = '44444444-4444-4444-4444-444444444444'
@@ -15,7 +15,7 @@ beforeEach(async () => {
   await resetSchema(pool)
   await seedTeam(pool, A, 'Team A')
   await seedTeam(pool, B, 'Team B')
-  await withoutTenant(pool, async (c) => {
+  await asOwner(pool, async (c) => {
     await c.query(`insert into profiles (id, team_id, display_name) values
       ('aaaaaaaa-0000-0000-0000-000000000001', $1, 'A'),
       ('bbbbbbbb-0000-0000-0000-000000000002', $2, 'B')`, [A, B])

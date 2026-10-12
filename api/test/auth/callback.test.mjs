@@ -2,10 +2,10 @@ import { test, before, after, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildApp } from '../../src/app.mjs'
 import { loadConfig } from '../../src/config.mjs'
-import { createPool, withoutTenant } from '../../src/db.mjs'
+import { createPool } from '../../src/db.mjs'
 import { testEnv } from '../helpers/env.mjs'
 import { startFakeEntra } from '../helpers/fake-entra.mjs'
-import { resetSchema, seedTeam } from '../helpers/db.mjs'
+import { resetSchema, seedTeam, asOwner } from '../helpers/db.mjs'
 
 const ISSUER = 'https://login.microsoftonline.com/test-tenant/v2.0'
 const TEAM = '11111111-1111-1111-1111-111111111111'
@@ -43,7 +43,7 @@ test('a valid callback provisions a profile and sets a session cookie', async ()
   assert.ok(session)
   assert.equal(session.httpOnly, true)
 
-  const rows = await withoutTenant(pool, async (c) =>
+  const rows = await asOwner(pool, async (c) =>
     (await c.query('select id, team_id, role from profiles')).rows)
   assert.equal(rows.length, 1)
   assert.equal(rows[0].id, '99999999-9999-9999-9999-999999999999')
@@ -58,7 +58,7 @@ test('signing in twice does not create a second profile', async () => {
     await app.inject({ method: 'GET', url: `/auth/callback?code=abc&state=${state}`,
       cookies: { ni_auth: cookie } })
   }
-  const rows = await withoutTenant(pool, async (c) =>
+  const rows = await asOwner(pool, async (c) =>
     (await c.query('select count(*)::int n from profiles')).rows)
   assert.equal(rows[0].n, 1)
 })
@@ -68,14 +68,14 @@ test('an existing profile keeps its role; sign-in does not reset it to requester
   entra.setTokenResponse({ status: 200, body: { id_token: await entra.mintIdToken({ nonce: first.nonce }) } })
   await app.inject({ method: 'GET', url: `/auth/callback?code=abc&state=${first.state}`,
     cookies: { ni_auth: first.cookie } })
-  await withoutTenant(pool, (c) => c.query(`update profiles set role = 'admin'`))
+  await asOwner(pool, (c) => c.query(`update profiles set role = 'admin'`))
 
   const second = await startLogin()
   entra.setTokenResponse({ status: 200, body: { id_token: await entra.mintIdToken({ nonce: second.nonce }) } })
   await app.inject({ method: 'GET', url: `/auth/callback?code=abc&state=${second.state}`,
     cookies: { ni_auth: second.cookie } })
 
-  const rows = await withoutTenant(pool, async (c) =>
+  const rows = await asOwner(pool, async (c) =>
     (await c.query('select role from profiles')).rows)
   assert.equal(rows[0].role, 'admin')
 })
@@ -117,7 +117,7 @@ test('an error from Entra does not create a session', async () => {
   const res = await app.inject({ method: 'GET', url: `/auth/callback?code=abc&state=${state}`,
     cookies: { ni_auth: cookie } })
   assert.equal(res.statusCode, 401)
-  const rows = await withoutTenant(pool, async (c) =>
+  const rows = await asOwner(pool, async (c) =>
     (await c.query('select count(*)::int n from sessions')).rows)
   assert.equal(rows[0].n, 0)
 })

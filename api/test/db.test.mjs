@@ -1,9 +1,9 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { createPool, withTenant, withoutTenant } from '../src/db.mjs'
+import { createPool, withTenant } from '../src/db.mjs'
 import { loadConfig } from '../src/config.mjs'
 import { testEnv } from './helpers/env.mjs'
-import { resetSchema, seedTeam } from './helpers/db.mjs'
+import { resetSchema, seedTeam, asOwner } from './helpers/db.mjs'
 
 const A = '11111111-1111-1111-1111-111111111111'
 const B = '44444444-4444-4444-4444-444444444444'
@@ -14,7 +14,7 @@ before(async () => {
   await resetSchema(pool)
   await seedTeam(pool, A, 'Team A')
   await seedTeam(pool, B, 'Team B')
-  await withoutTenant(pool, (c) => c.query(
+  await asOwner(pool, (c) => c.query(
     `insert into kanban_cards (team_id, brief_id, email_name)
      values ($1, 'a-1', 'A card'), ($2, 'b-1', 'B card')`, [A, B]))
 })
@@ -28,7 +28,7 @@ test('a tenant sees only its own rows', async () => {
 
 test('the tenant id does not survive onto the next checkout of the same connection', async () => {
   await withTenant(pool, A, (c) => c.query('select 1'))
-  const leaked = await withoutTenant(pool, async (c) =>
+  const leaked = await asOwner(pool, async (c) =>
     (await c.query(`select current_setting('app.team_id', true) as v`)).rows[0].v)
   assert.ok(leaked === null || leaked === '', `app.team_id leaked across checkouts: ${leaked}`)
 })

@@ -35,11 +35,15 @@ test('removing a profile removes its sessions', async () => {
   assert.equal(rows[0].n, 0)
 })
 
-test('sessions is covered by the tenant policy like every other table', async () => {
+test('sessions is covered by the tenant policy, and not forced', async () => {
+  // ENABLE constrains app_user, which is the role the API runs as. FORCE is
+  // deliberately off (migration 009): it would also constrain the definer of
+  // lookup_session, and on Azure the owning role is not a superuser, so every
+  // sign-in would fail. 007 makes the same trade for teams.
   const { rows } = await c.query(
     `select relrowsecurity, relforcerowsecurity from pg_class where oid='public.sessions'::regclass`)
   assert.equal(rows[0].relrowsecurity, true)
-  assert.equal(rows[0].relforcerowsecurity, true)
+  assert.equal(rows[0].relforcerowsecurity, false)
   const { rows: p } = await c.query(
     `select policyname from pg_policies where schemaname='public' and tablename='sessions'`)
   assert.deepEqual(p.map((r) => r.policyname), ['sessions_tenant'])

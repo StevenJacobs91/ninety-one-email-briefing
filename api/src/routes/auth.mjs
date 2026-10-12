@@ -1,6 +1,8 @@
 import { getMetadata, exchangeCode, verifyIdToken } from '../auth/entra.mjs'
 import { provisionProfile } from '../auth/profiles.mjs'
-import { createSession, revokeSession } from '../auth/sessions.mjs'
+import { createSession, revokeSession, openAuthRequest, claimAuthRequest }
+  from '../auth/sessions.mjs'
+import { isIP } from 'node:net'
 import { createVerifier, challengeFor, randomToken } from '../auth/pkce.mjs'
 
 export const AUTH_COOKIE = 'ni_auth'
@@ -12,11 +14,18 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
   const metadataFor = async () => injectedMetadata ?? getMetadata(config)
   const secure = config.appOrigin.startsWith('https')
 
-  app.get('/auth/login', async (req, reply) => {
+  // /auth/login mints cookies for free; /auth/callback makes an outbound POST
+  // to Entra for every request, which is a request-amplification primitive
+  // pointed at Ninety One's own tenant.
+  const signInLimit = { rateLimit: { max: 20, timeWindow: '1 minute' } }
+
+  app.get('/auth/login', { config: signInLimit }, async (req, reply) => {
     const metadata = await metadataFor()
     const state = randomToken()
     const nonce = randomToken()
     const verifier = createVerifier()
+
+    await openAuthRequest(pool, state)
 
     reply.setCookie(AUTH_COOKIE, JSON.stringify({ state, nonce, verifier }), {
       path: '/auth', httpOnly: true, secure, sameSite: 'lax',
@@ -37,7 +46,7 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
     return reply.redirect(url.toString(), 302)
   })
 
-  app.get('/auth/callback', async (req, reply) => {
+  app.get('/auth/callback', { config: signInLimit }, async (req, reply) => {
     const raw = req.cookies[AUTH_COOKIE]
     const unsigned = raw ? reply.unsignCookie(raw) : { valid: false }
     reply.clearCookie(AUTH_COOKIE, { path: '/auth' })
@@ -51,7 +60,17 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
     catch { return reply.code(400).send({ error: 'sign-in has expired; please start again' }) }
 
     if (!req.query.code || !req.query.state || req.query.state !== state) {
+      if (req.query.error) {
+        req.log.warn({ entraError: req.query.error, detail: req.query.error_description },
+          'Entra returned an error instead of a code')
+      }
       return reply.code(400).send({ error: 'sign-in has expired; please start again' })
+    }
+
+    // Single use. The code travels in a URL (history, proxy logs, Referer), so
+    // possession of the code plus the cookie must not mint a second session.
+    if (!(await claimAuthRequest(pool, state))) {
+      return reply.code(400).send({ error: 'this sign-in link has already been used' })
     }
 
     const metadata = await metadataFor()
@@ -65,15 +84,24 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
       return reply.code(401).send({ error: 'sign-in failed; please try again' })
     }
 
-    const profile = await provisionProfile(pool, {
-      oid: claims.oid, email: claims.email, name: claims.name,
-      defaultTeamId: config.defaultTeamId,
-    })
+    let profile
+    try {
+      profile = await provisionProfile(pool, {
+        oid: claims.oid, email: claims.email, name: claims.name,
+        defaultTeamId: config.defaultTeamId,
+      })
+    } catch (err) {
+      req.log.error({ err }, 'could not provision a profile')
+      return reply.code(503).send({ error: 'sign-in is unavailable; please try again shortly' })
+    }
 
     const sessionId = await createSession(pool, {
       profileId: profile.id, teamId: profile.teamId,
       ttlSeconds: config.sessionTtlSeconds,
-      userAgent: req.headers['user-agent'], ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      // req.ip is client-influenced via X-Forwarded-For; an unparseable value
+      // is a 500 from the inet column and junk in the only forensic record.
+      ip: isIP(req.ip) ? req.ip : null,
     })
 
     reply.setCookie(SESSION_COOKIE, sessionId, {
@@ -84,10 +112,13 @@ export async function authRoutes(app, { metadata: injectedMetadata, pool } = {})
     return reply.redirect(config.appOrigin, 302)
   })
 
-  app.get('/auth/me', { preHandler: app.authenticate }, async (req) => ({
-    profileId: req.user.profileId, teamId: req.user.teamId,
-    role: req.user.role, displayName: req.user.displayName, email: req.user.email,
-  }))
+  app.get('/auth/me', { preHandler: app.authenticate }, async (req, reply) => {
+    reply.header('cache-control', 'no-store')
+    return {
+      profileId: req.user.profileId, teamId: req.user.teamId,
+      role: req.user.role, displayName: req.user.displayName, email: req.user.email,
+    }
+  })
 
   app.post('/auth/logout', async (req, reply) => {
     const raw = req.cookies[SESSION_COOKIE]

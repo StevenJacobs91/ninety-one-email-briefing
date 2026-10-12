@@ -8,7 +8,8 @@ let metadataCache = null
 
 export async function getMetadata(config, fetchImpl = fetch) {
   if (metadataCache) return metadataCache
-  const res = await fetchImpl(discoveryUrl(config.entra.tenantId))
+  const res = await fetchImpl(discoveryUrl(config.entra.tenantId),
+    { signal: AbortSignal.timeout(5_000) })
   if (!res.ok) throw new Error(`Entra discovery failed: HTTP ${res.status}`)
   metadataCache = await res.json()
   return metadataCache
@@ -62,10 +63,13 @@ export async function exchangeCode({ config, metadata, code, codeVerifier }, fet
     code_verifier: codeVerifier,
   })
 
+  // Unbounded, a slow token endpoint holds the request, the socket and
+  // eventually a pool slot.
   const res = await fetchImpl(metadata.token_endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body,
+    signal: AbortSignal.timeout(5_000),
   })
   const json = await res.json().catch(() => ({}))
 
