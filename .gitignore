@@ -5,3 +5,6 @@ dist
 .env
 .env.*
 .vercel
+db/.env
+!*.env.example
+api/.env

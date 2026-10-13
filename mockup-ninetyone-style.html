@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<!--
+  Visual Mockup — Ninety One Email Briefing Platform
+  Not for production · Design reference only · 2026-03-28
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Briefing Platform — Ninety One · Visual Mockup</title>
+
+  <!-- Ninety One Brand Fonts -->
+  <style>
+    @font-face {
+      font-family: 'Ninety One Visuelt Display';
+      src: url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Ninety One Visuelt';
+      src: url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+      font-weight: 200;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Ninety One Visuelt Light';
+      src: url('https://weare.ninetyone.com/l/28902/2020-10-19/8zs4jq/28902/1603114661MAzRiC9E/NinetyOneVisuelt_Light.woff') format('woff');
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Ninety One Visuelt Medium';
+      src: url('https://weare.ninetyone.com/l/28902/2020-07-13/8x6784/28902/249453/NinetyOneVisuelt_Medium.woff') format('woff');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+
+  <style>
+    /* =====================================================
+       RESET & BASE
+       ===================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+      background-color: #f0ece4;
+      color: #1a1a1a;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* =====================================================
+       DESIGN TOKEN LAYER
+       ===================================================== */
+    :root {
+      --ni-leatherback:    #134848;
+      --ni-leatherback-dk: #0d3232;
+      --ni-marula:         #0a3323;
+      --ni-coral:          #fbaa96;
+      --ni-gold:           #cf6f13;
+      --ni-teal:           #009d80;
+      --ni-burgundy:       #591739;
+      --ni-cream:          #e8e5ce;
+      --ni-off-white:      #f8f5ee;
+      --ni-warm-bg:        #f0ece4;
+      --ni-border:         #d4cfc6;
+      --ni-border-light:   #e5e0d8;
+      --ni-text-body:      #4a4a4a;
+      --ni-text-muted:     #6b6660;
+      --ni-text-faint:     #9ca3af;
+      --ni-surface:        #ffffff;
+
+      --transition-border: border-color 200ms ease;
+      --font-display:  'Ninety One Visuelt Display', arial, helvetica, sans-serif;
+      --font-heading:  'Ninety One Visuelt', arial, helvetica, sans-serif;
+      --font-light:    'Ninety One Visuelt Light', arial, helvetica, sans-serif;
+      --font-medium:   'Ninety One Visuelt Medium', arial, helvetica, sans-serif;
+    }
+
+    /* =====================================================
+       MOCKUP BADGE
+       ===================================================== */
+    .mockup-badge {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 9999;
+      background: #591739;
+      color: #fff;
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 2px;
+      opacity: 0.92;
+      pointer-events: none;
+    }
+
+    /* =====================================================
+       TOP NAVIGATION
+       ===================================================== */
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: var(--ni-leatherback);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 80px;
+      border-bottom: 1px solid rgba(251, 170, 150, 0.35);
+    }
+
+    /* Coral accent line under nav */
+    .nav-bar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--ni-coral) 0%, rgba(251,170,150,0.4) 60%, transparent 100%);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-mark {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* SVG wordmark */
+    .nav-logo-svg {
+      height: 22px;
+      width: auto;
+    }
+
+    .nav-logo-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255,255,255,0.25);
+      margin: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .nav-platform-label {
+      font-family: var(--font-light);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-left: auto;
+      list-style: none;
+    }
+
+    .nav-links li {
+      position: relative;
+    }
+
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      height: 60px;
+      padding: 0 18px;
+      font-family: var(--font-light);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      transition: color 200ms ease;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 18px;
+      right: 18px;
+      height: 2px;
+      background: var(--ni-coral);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 200ms ease;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a.active::after {
+      transform: scaleX(1);
+    }
+
+    .nav-links a.active {
+      color: #fff;
+    }
+
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 24px;
+      padding-left: 24px;
+      border-left: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .nav-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(251,170,150,0.25);
+      border: 1px solid rgba(251,170,150,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-medium);
+      font-size: 11px;
+      color: var(--ni-coral);
+      letter-spacing: 0.04em;
+    }
+
+    .nav-user-name {
+      font-family: var(--font-light);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* =====================================================
+       HERO / PAGE HEADER
+       ===================================================== */
+    .page-hero {
+      background-color: var(--ni-leatherback);
+      padding: 0 80px;
+      height: 168px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle texture pattern — diagonal lines */
+    .page-hero::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 45%;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255,255,255,0.02) 0px,
+        rgba(255,255,255,0.02) 1px,
+        transparent 1px,
+        transparent 12px
+      );
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-light);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ni-coral);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--ni-coral);
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 46px;
+      font-weight: normal;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-light);
+      font-size: 15px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.01em;
+      max-width: 480px;
+      line-height: 1.55;
+    }
+
+    .hero-step-indicator {
+      position: relative;
+      z-index: 1;
+      text-align: right;
+    }
+
+    .hero-step-label {
+      font-family: var(--font-light);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: 6px;
+    }
+
+    .hero-step-value {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: normal;
+      color: var(--ni-coral);
+      letter-spacing: -0.01em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .hero-step-name {
+      font-family: var(--font-light);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* =====================================================
+       STEP PROGRESS TABS
+       ===================================================== */
+    .step-tabs-band {
+      background: #fff;
+      border-bottom: 1px solid var(--ni-border-light);
+      padding: 0 80px;
+    }
+
+    .step-tabs {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      list-style: none;
+      height: 52px;
+    }
+
+    .step-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 22px 0 0;
+      margin-right: 6px;
+      height: 52px;
+      font-family: var(--font-light);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      color: var(--ni-text-faint);
+      text-decoration: none;
+      position: relative;
+      cursor: default;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      transition: color 200ms ease, border-color 200ms ease;
+    }
+
+    .step-tab.completed {
+      color: rgba(19, 72, 72, 0.55);
+      cursor: pointer;
+    }
+
+    .step-tab.completed:hover {
+      color: var(--ni-leatherback);
+    }
+
+    .step-tab.active {
+      color: var(--ni-leatherback);
+      border-bottom-color: var(--ni-leatherback);
+      font-family: var(--font-medium);
+    }
+
+    .step-tab-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 10px;
+      letter-spacing: 0;
+      flex-shrink: 0;
+    }
+
+    .step-tab.active .step-tab-number {
+      background: var(--ni-leatherback);
+      color: #fff;
+    }
+
+    .step-tab.completed .step-tab-number {
+      background: var(--ni-teal);
+      color: #fff;
+    }
+
+    .step-tab .step-tab-number svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .step-tab.upcoming .step-tab-number {
+      background: var(--ni-border-light);
+      color: var(--ni-text-faint);
+    }
+
+    /* =====================================================
+       MAIN LAYOUT WRAPPER
+       ===================================================== */
+    .page-body {
+      display: flex;
+      min-height: calc(100vh - 60px - 168px - 52px - 72px);
+      background: var(--ni-warm-bg);
+      padding: 0 80px;
+      gap: 0;
+    }
+
+    /* =====================================================
+       FORM CARD (left column)
+       ===================================================== */
+    .form-column {
+      flex: 0 0 65%;
+      max-width: 65%;
+      padding: 44px 52px 44px 0;
+    }
+
+    .form-card {
+      background: #fff;
+      border: 1px solid #ddd8cf;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .form-card-inner {
+      padding: 40px 44px;
+    }
+
+    /* Section header with thin rule */
+    .form-section {
+      margin-bottom: 36px;
+    }
+
+    .form-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ni-leatherback);
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--ni-border-light);
+    }
+
+    .section-label-icon {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    /* =====================================================
+       DISTRIBUTION LIST CARD
+       ===================================================== */
+    .list-card {
+      border: 1px solid var(--ni-border);
+      border-radius: 6px;
+      padding: 18px 20px;
+      background: #fff;
+      transition: var(--transition-border);
+      margin-bottom: 10px;
+    }
+
+    .list-card:hover {
+      border-color: var(--ni-leatherback);
+    }
+
+    .list-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .list-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .list-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 4px;
+      background: rgba(19,72,72,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .list-icon svg {
+      width: 16px;
+      height: 16px;
+      color: var(--ni-leatherback);
+    }
+
+    .list-filename {
+      font-family: var(--font-medium);
+      font-size: 13px;
+      color: #1a1a1a;
+      letter-spacing: 0.01em;
+      margin-bottom: 2px;
+    }
+
+    .list-contacts {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--ni-leatherback);
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+
+    .list-contacts span {
+      font-family: var(--font-light);
+      font-size: 12px;
+      color: var(--ni-text-muted);
+      letter-spacing: 0.04em;
+      margin-left: 4px;
+    }
+
+    .list-timestamp {
+      font-family: var(--font-light);
+      font-size: 11px;
+      color: var(--ni-text-faint);
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 2px;
+    }
+
+    .badge-processed {
+      background: rgba(0,157,128,0.12);
+      color: var(--ni-teal);
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .list-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding-top: 12px;
+      border-top: 1px solid var(--ni-border-light);
+      font-family: var(--font-light);
+      font-size: 11px;
+      color: var(--ni-text-muted);
+      letter-spacing: 0.03em;
+    }
+
+    .list-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 14px;
+      border-right: 1px solid var(--ni-border-light);
+    }
+
+    .list-stat-item:first-child {
+      padding-left: 0;
+    }
+
+    .list-stat-item:last-child {
+      border-right: none;
+    }
+
+    .list-stat-item strong {
+      font-family: var(--font-medium);
+      color: #1a1a1a;
+    }
+
+    .list-stat-removed {
+      color: #c0392b;
+    }
+
+    .add-list-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-light);
+      font-size: 13px;
+      color: var(--ni-leatherback);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      padding: 8px 0;
+      border-bottom: 1px solid transparent;
+      transition: border-color 200ms ease;
+      cursor: pointer;
+    }
+
+    .add-list-link:hover {
+      border-bottom-color: var(--ni-leatherback);
+    }
+
+    .add-list-icon {
+      width: 18px;
+      height: 18px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* =====================================================
+       PILL MULTI-SELECT
+       ===================================================== */
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 16px;
+      border-radius: 2px;
+      font-family: var(--font-light);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+      user-select: none;
+    }
+
+    .pill-selected {
+      background: var(--ni-leatherback);
+      color: #fff;
+      border: 1px solid var(--ni-leatherback);
+    }
+
+    .pill-unselected {
+      background: #fff;
+      color: #4a4a4a;
+      border: 1px solid var(--ni-border);
+    }
+
+    .pill-unselected:hover {
+      border-color: var(--ni-leatherback);
+      color: var(--ni-leatherback);
+    }
+
+    .pill-check {
+      width: 12px;
+      height: 12px;
+      opacity: 0.75;
+    }
+
+    /* =====================================================
+       FORM INPUTS
+       ===================================================== */
+    .field-group {
+      margin-bottom: 20px;
+    }
+
+    .field-label {
+      display: block;
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ni-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .field-input {
+      display: block;
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--ni-border);
+      border-radius: 3px;
+      font-family: var(--font-light);
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      outline: none;
+      transition: border-color 200ms ease;
+      letter-spacing: 0.02em;
+    }
+
+    .field-input:focus {
+      border-color: var(--ni-leatherback);
+      box-shadow: 0 0 0 3px rgba(19,72,72,0.07);
+    }
+
+    .field-input::placeholder {
+      color: var(--ni-text-faint);
+      font-family: var(--font-light);
+    }
+
+    /* =====================================================
+       PARDOT CARD
+       ===================================================== */
+    .pardot-card {
+      border: 1px solid var(--ni-border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+      transition: border-color 200ms ease;
+    }
+
+    .pardot-card:hover {
+      border-color: var(--ni-leatherback);
+    }
+
+    .pardot-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: rgba(19,72,72,0.04);
+      border-bottom: 1px solid var(--ni-border-light);
+    }
+
+    .pardot-card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pardot-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      background: var(--ni-leatherback);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pardot-icon svg {
+      width: 14px;
+      height: 14px;
+      color: #fff;
+    }
+
+    .pardot-list-name {
+      font-family: var(--font-medium);
+      font-size: 13px;
+      color: #1a1a1a;
+      letter-spacing: 0.01em;
+    }
+
+    .pardot-list-id {
+      font-family: var(--font-light);
+      font-size: 11px;
+      color: var(--ni-text-muted);
+      letter-spacing: 0.04em;
+      margin-top: 1px;
+    }
+
+    .pardot-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-light);
+      font-size: 11px;
+      color: var(--ni-teal);
+      letter-spacing: 0.04em;
+    }
+
+    .sync-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ni-teal);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .pardot-stats {
+      display: flex;
+      align-items: stretch;
+    }
+
+    .pardot-stat {
+      flex: 1;
+      padding: 16px 18px;
+      border-right: 1px solid var(--ni-border-light);
+      text-align: center;
+    }
+
+    .pardot-stat:last-child {
+      border-right: none;
+    }
+
+    .pardot-stat-value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .pardot-stat-value.positive { color: var(--ni-leatherback); }
+    .pardot-stat-value.neutral  { color: var(--ni-gold); }
+    .pardot-stat-value.warn     { color: #c0392b; }
+
+    .pardot-stat-label {
+      font-family: var(--font-light);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ni-text-faint);
+    }
+
+    /* =====================================================
+       HELP / CONTEXT PANEL (right column)
+       ===================================================== */
+    .help-column {
+      flex: 0 0 35%;
+      max-width: 35%;
+      padding: 44px 0 44px 32px;
+    }
+
+    .help-panel {
+      background: var(--ni-off-white);
+      border: 1px solid var(--ni-border-light);
+      border-radius: 2px;
+      padding: 32px 30px;
+      position: sticky;
+      top: 80px;
+    }
+
+    .help-eyebrow {
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ni-leatherback);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .help-eyebrow::before {
+      content: '';
+      display: block;
+      width: 16px;
+      height: 1px;
+      background: var(--ni-leatherback);
+    }
+
+    .help-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: normal;
+      color: var(--ni-leatherback);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    .help-body {
+      font-family: var(--font-light);
+      font-size: 13.5px;
+      color: var(--ni-text-body);
+      line-height: 1.65;
+      letter-spacing: 0.01em;
+    }
+
+    .help-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--ni-border);
+      margin: 24px 0;
+    }
+
+    .help-tips {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .help-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-family: var(--font-light);
+      font-size: 12.5px;
+      color: var(--ni-text-body);
+      line-height: 1.55;
+    }
+
+    .help-tip-bullet {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--ni-coral);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+
+    /* Theme swatch section */
+    .theme-swatch-section {
+      margin-top: 0;
+    }
+
+    .theme-swatch-label {
+      font-family: var(--font-medium);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ni-text-muted);
+      margin-bottom: 12px;
+    }
+
+    .theme-swatch-card {
+      border: 1px solid var(--ni-border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: border-color 200ms ease;
+    }
+
+    .theme-swatch-card:hover {
+      border-color: var(--ni-leatherback);
+    }
+
+    .theme-swatches {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .swatch-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,0,0,0.06);
+    }
+
+    .swatch-circle.secondary {
+      margin-left: -8px;
+    }
+
+    .theme-swatch-name {
+      font-family: var(--font-medium);
+      font-size: 12px;
+      color: #1a1a1a;
+      letter-spacing: 0.02em;
+      margin-bottom: 2px;
+    }
+
+    .theme-swatch-hex {
+      font-family: var(--font-light);
+      font-size: 10px;
+      color: var(--ni-text-faint);
+      letter-spacing: 0.06em;
+    }
+
+    /* Help action link */
+    .help-action-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-light);
+      font-size: 12px;
+      color: var(--ni-leatherback);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      margin-top: 18px;
+      border-bottom: 1px solid rgba(19,72,72,0.3);
+      padding-bottom: 1px;
+      transition: border-color 200ms ease;
+    }
+
+    .help-action-link:hover {
+      border-bottom-color: var(--ni-leatherback);
+    }
+
+    /* =====================================================
+       FOOTER NAVIGATION
+       ===================================================== */
+    .page-footer {
+      background: #fff;
+      border-top: 1px solid var(--ni-border-light);
+      padding: 0 80px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      bottom: 0;
+      z-index: 50;
+    }
+
+    .footer-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-light);
+      font-size: 13px;
+      color: var(--ni-leatherback);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 1px;
+      transition: border-color 200ms ease;
+    }
+
+    .footer-back:hover {
+      border-bottom-color: var(--ni-leatherback);
+    }
+
+    .footer-step-text {
+      font-family: var(--font-light);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: var(--ni-text-faint);
+      text-align: center;
+    }
+
+    .footer-step-text strong {
+      font-family: var(--font-medium);
+      color: var(--ni-leatherback);
+    }
+
+    .footer-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--ni-leatherback);
+      color: #fff;
+      font-family: var(--font-medium);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 0 28px;
+      height: 44px;
+      border-radius: 2px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 200ms ease;
+      white-space: nowrap;
+    }
+
+    .footer-cta:hover {
+      background-color: var(--ni-leatherback-dk);
+    }
+
+    .footer-cta svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* =====================================================
+       UTILITY
+       ===================================================== */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mockup badge -->
+  <div class="mockup-badge">Visual Mockup · Not for Production</div>
+
+  <!-- ===================================================
+       1. TOP NAVIGATION BAR
+       =================================================== -->
+  <nav class="nav-bar" role="navigation" aria-label="Primary navigation">
+
+    <!-- Logo wordmark -->
+    <a href="#" class="nav-logo" aria-label="Ninety One home">
+      <div class="nav-logo-mark">
+        <svg class="nav-logo-svg" viewBox="0 0 160 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Stylised "91" logomark -->
+          <rect x="0" y="4" width="3" height="20" fill="#fbaa96"/>
+          <rect x="5" y="0" width="3" height="24" fill="#fbaa96"/>
+          <!-- "Ninety One" wordmark -->
+          <text x="14" y="20" font-family="'Ninety One Visuelt Display', arial" font-size="16" fill="#ffffff" letter-spacing="0.5">Ninety One</text>
+        </svg>
+      </div>
+    </a>
+
+    <div class="nav-logo-divider" aria-hidden="true"></div>
+    <span class="nav-platform-label">Email Briefing Platform</span>
+
+    <!-- Nav links -->
+    <ul class="nav-links" role="list">
+      <li><a href="#" class="active" aria-current="page">Email Briefing</a></li>
+      <li><a href="#">Drafts</a></li>
+      <li><a href="#">Settings</a></li>
+    </ul>
+
+    <!-- User area -->
+    <div class="nav-user">
+      <div class="nav-avatar" aria-label="User initials: SA">SA</div>
+      <span class="nav-user-name">Sarah A.</span>
+    </div>
+
+  </nav>
+
+  <!-- ===================================================
+       2. HERO / PAGE HEADER
+       =================================================== -->
+  <header class="page-hero" role="banner">
+    <div class="hero-content">
+      <div class="hero-eyebrow" aria-hidden="true">Marketing Operations</div>
+      <h1 class="hero-title">Email Briefing</h1>
+      <p class="hero-subtitle">
+        Create brand-compliant HTML emails for Ninety One marketing campaigns
+      </p>
+    </div>
+    <div class="hero-step-indicator" aria-label="Current step: Step 2 of 5, Audience">
+      <div class="hero-step-label">Current Step</div>
+      <div class="hero-step-value">2 / 5</div>
+      <div class="hero-step-name">Audience</div>
+    </div>
+  </header>
+
+  <!-- ===================================================
+       3. STEP PROGRESS TABS
+       =================================================== -->
+  <nav class="step-tabs-band" aria-label="Form steps">
+    <ol class="step-tabs" role="list">
+
+      <li>
+        <a href="#" class="step-tab completed" aria-label="Step 1: Campaign — completed">
+          <div class="step-tab-number" aria-hidden="true">
+            <!-- Checkmark icon -->
+            <svg viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 5l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          Campaign
+        </a>
+      </li>
+
+      <li>
+        <a href="#" class="step-tab active" aria-label="Step 2: Audience — current step" aria-current="step">
+          <div class="step-tab-number" aria-hidden="true">2</div>
+          Audience
+        </a>
+      </li>
+
+      <li>
+        <span class="step-tab upcoming" aria-label="Step 3: Content — not yet reached">
+          <div class="step-tab-number" aria-hidden="true">3</div>
+          Content
+        </span>
+      </li>
+
+      <li>
+        <span class="step-tab upcoming" aria-label="Step 4: Assets — not yet reached">
+          <div class="step-tab-number" aria-hidden="true">4</div>
+          Assets
+        </span>
+      </li>
+
+      <li>
+        <span class="step-tab upcoming" aria-label="Step 5: Deadlines — not yet reached">
+          <div class="step-tab-number" aria-hidden="true">5</div>
+          Deadlines &amp; Review
+        </span>
+      </li>
+
+    </ol>
+  </nav>
+
+  <!-- ===================================================
+       4. MAIN CONTENT — TWO COLUMN LAYOUT
+       =================================================== -->
+  <main class="page-body" id="main-content">
+
+    <!-- LEFT COLUMN: Form Step -->
+    <div class="form-column">
+      <div class="form-card">
+        <div class="form-card-inner">
+
+          <!-- SECTION: Distribution Lists -->
+          <section class="form-section" aria-labelledby="section-lists">
+            <div class="section-label" id="section-lists">
+              <!-- List icon -->
+              <svg class="section-label-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="1" y="1" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1"/>
+                <path d="M4 5h6M4 7h6M4 9h4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+              </svg>
+              Distribution Lists
+            </div>
+
+            <!-- Uploaded list card -->
+            <div class="list-card" role="region" aria-label="Uploaded distribution list">
+              <div class="list-card-header">
+                <div class="list-card-meta">
+                  <div class="list-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                      <path d="M10 2v4h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                      <path d="M5 8h6M5 10.5h4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="list-filename">EMEA_Intermediaries_Q1_2026.csv</div>
+                    <div class="list-contacts">
+                      3,847 <span>contacts</span>
+                    </div>
+                    <div class="list-timestamp">Uploaded 2 minutes ago</div>
+                  </div>
+                </div>
+                <div>
+                  <span class="badge badge-processed" role="status">
+                    <span class="badge-dot" aria-hidden="true"></span>
+                    Processed
+                  </span>
+                </div>
+              </div>
+
+              <!-- Stats row -->
+              <div class="list-stats-row" role="group" aria-label="Processing statistics">
+                <div class="list-stat-item">
+                  <strong>3,921</strong>&nbsp;raw contacts
+                </div>
+                <div class="list-stat-item">
+                  <strong>3,847</strong>&nbsp;clean
+                </div>
+                <div class="list-stat-item list-stat-removed">
+                  <strong>42</strong>&nbsp;duplicates removed
+                </div>
+                <div class="list-stat-item list-stat-removed">
+                  <strong>32</strong>&nbsp;invalid emails removed
+                </div>
+              </div>
+            </div>
+
+            <!-- Add another list -->
+            <a href="#" class="add-list-link" role="button" aria-label="Add another distribution list">
+              <span class="add-list-icon" aria-hidden="true">+</span>
+              Add another list
+            </a>
+          </section>
+
+          <!-- SECTION: Regions -->
+          <section class="form-section" aria-labelledby="section-regions">
+            <div class="section-label" id="section-regions">
+              <!-- Globe icon -->
+              <svg class="section-label-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1"/>
+                <path d="M7 1.5C7 1.5 5 4 5 7s2 5.5 2 5.5M7 1.5C7 1.5 9 4 9 7s-2 5.5-2 5.5M1.5 7h11" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+              </svg>
+              Target Regions
+            </div>
+
+            <div class="pill-group" role="group" aria-label="Select target regions">
+              <button class="pill pill-selected" aria-pressed="true" aria-label="United Kingdom — selected">
+                <svg class="pill-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                UK
+              </button>
+              <button class="pill pill-selected" aria-pressed="true" aria-label="European Union — selected">
+                <svg class="pill-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                EU
+              </button>
+              <button class="pill pill-unselected" aria-pressed="false" aria-label="South Africa — not selected">ZA</button>
+              <button class="pill pill-unselected" aria-pressed="false" aria-label="Asia — not selected">Asia</button>
+              <button class="pill pill-unselected" aria-pressed="false" aria-label="Global — not selected">Global</button>
+            </div>
+          </section>
+
+          <!-- SECTION: Channels -->
+          <section class="form-section" aria-labelledby="section-channels">
+            <div class="section-label" id="section-channels">
+              <!-- People icon -->
+              <svg class="section-label-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="5" cy="4" r="2" stroke="currentColor" stroke-width="1"/>
+                <path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="10" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1"/>
+                <path d="M12.5 12c0-1.65-1.12-3-2.5-3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+              </svg>
+              Audience Channels
+            </div>
+
+            <div class="pill-group" role="group" aria-label="Select audience channels">
+              <button class="pill pill-selected" aria-pressed="true" aria-label="Intermediary — selected">
+                <svg class="pill-check" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2.5 6l2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Intermediary
+              </button>
+              <button class="pill pill-unselected" aria-pressed="false" aria-label="Institutional — not selected">Institutional</button>
+              <button class="pill pill-unselected" aria-pressed="false" aria-label="Retail — not selected">Retail</button>
+            </div>
+          </section>
+
+          <!-- SECTION: Pardot Integration -->
+          <section class="form-section" aria-labelledby="section-pardot">
+            <div class="section-label" id="section-pardot">
+              <!-- Integration icon -->
+              <svg class="section-label-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Pardot Integration
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="pardot-list-id">
+                List ID or URL
+              </label>
+              <input
+                class="field-input"
+                type="text"
+                id="pardot-list-id"
+                name="pardotListId"
+                placeholder="e.g. NI-EMEA-INT-2026 or https://pi.pardot.com/list/..."
+                value="NI-EMEA-INT-2026"
+                aria-describedby="pardot-hint"
+              />
+              <div id="pardot-hint" style="margin-top:6px; font-family: var(--font-light); font-size:11px; color: var(--ni-text-faint); letter-spacing:0.03em;">
+                Optional — used to trigger the n8n Pardot send workflow
+              </div>
+            </div>
+
+            <!-- Pardot analysis card -->
+            <div class="pardot-card" role="region" aria-label="Pardot list information">
+              <div class="pardot-card-header">
+                <div class="pardot-card-title-group">
+                  <div class="pardot-icon" aria-hidden="true">
+                    <!-- Salesforce / Pardot-style "P" -->
+                    <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <text x="3" y="11" font-family="arial" font-size="11" fill="white" font-weight="bold">P</text>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="pardot-list-name">NI-EMEA-INT-2026</div>
+                    <div class="pardot-list-id">Pardot List · 4,200 members</div>
+                  </div>
+                </div>
+                <div class="pardot-sync-badge" role="status">
+                  <span class="sync-dot" aria-hidden="true"></span>
+                  Synced 2 hours ago
+                </div>
+              </div>
+
+              <div class="pardot-stats" role="group" aria-label="Pardot engagement statistics">
+                <div class="pardot-stat">
+                  <div class="pardot-stat-value positive" aria-label="Open rate: 24.3 percent">24.3%</div>
+                  <div class="pardot-stat-label">Open Rate</div>
+                </div>
+                <div class="pardot-stat">
+                  <div class="pardot-stat-value neutral" aria-label="Click rate: 8.1 percent">8.1%</div>
+                  <div class="pardot-stat-label">Click Rate</div>
+                </div>
+                <div class="pardot-stat">
+                  <div class="pardot-stat-value warn" aria-label="Bounce rate: 1.2 percent">1.2%</div>
+                  <div class="pardot-stat-label">Bounced</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- /form-card-inner -->
+      </div><!-- /form-card -->
+    </div><!-- /form-column -->
+
+    <!-- RIGHT COLUMN: Help Panel -->
+    <aside class="help-column" aria-label="Step guidance">
+      <div class="help-panel">
+
+        <div class="help-eyebrow">Step Guide</div>
+        <h2 class="help-title">Building your audience</h2>
+
+        <p class="help-body">
+          Define who will receive this email. Upload a distribution list, select the regions and channels, and optionally link a Pardot list for automated send workflows.
+        </p>
+
+        <ul class="help-tips" aria-label="Audience tips">
+          <li class="help-tip">
+            <span class="help-tip-bullet" aria-hidden="true"></span>
+            <span>Upload a clean CSV with at minimum an <strong>email</strong> column. First and last name improve personalisation.</span>
+          </li>
+          <li class="help-tip">
+            <span class="help-tip-bullet" aria-hidden="true"></span>
+            <span>Select all regions that apply — legal disclaimers will be applied per-region automatically.</span>
+          </li>
+          <li class="help-tip">
+            <span class="help-tip-bullet" aria-hidden="true"></span>
+            <span>Intermediary audiences require COBS-compliant footer language. This is applied automatically.</span>
+          </li>
+          <li class="help-tip">
+            <span class="help-tip-bullet" aria-hidden="true"></span>
+            <span>A Pardot List ID is only required for automated sends via the n8n workflow integration.</span>
+          </li>
+        </ul>
+
+        <div class="help-divider" aria-hidden="true"></div>
+
+        <!-- Brand theme swatch -->
+        <div class="theme-swatch-section">
+          <div class="theme-swatch-label">Active Brand Theme</div>
+          <div class="theme-swatch-card" role="img" aria-label="Active theme: Leatherback Green with Cape Coral accent. Primary colour #134848, accent colour #fbaa96">
+            <div class="theme-swatches" aria-hidden="true">
+              <div class="swatch-circle" style="background:#134848;" title="Leatherback Green #134848"></div>
+              <div class="swatch-circle secondary" style="background:#fbaa96;" title="Cape Coral #fbaa96"></div>
+            </div>
+            <div>
+              <div class="theme-swatch-name">Leatherback Green / Cape Coral</div>
+              <div class="theme-swatch-hex">#134848 &nbsp;·&nbsp; #fbaa96</div>
+            </div>
+          </div>
+
+          <a href="#" class="help-action-link" aria-label="Change brand theme (opens step 1 — Campaign)">
+            <!-- Arrow icon -->
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Change theme in Step 1
+          </a>
+        </div>
+
+        <div class="help-divider" aria-hidden="true"></div>
+
+        <!-- Draft status -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M6 1v5l3 2" stroke="#009d80" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="6" cy="6" r="5" stroke="#009d80" stroke-width="1"/>
+          </svg>
+          <span style="font-family: var(--font-light); font-size:11px; color: var(--ni-teal); letter-spacing:0.04em;">
+            Draft saved automatically
+          </span>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ===================================================
+       5. FOOTER NAVIGATION
+       =================================================== -->
+  <footer class="page-footer" role="contentinfo" aria-label="Form navigation">
+
+    <a href="#" class="footer-back" aria-label="Go back to Step 1: Campaign">
+      <!-- Left arrow -->
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Campaign
+    </a>
+
+    <div class="footer-step-text" aria-label="Step 2 of 5">
+      Step <strong>2</strong> of <strong>5</strong>
+    </div>
+
+    <a href="#" class="footer-cta" role="button" aria-label="Continue to Step 3: Content">
+      Continue to Content
+      <!-- Right arrow -->
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+
+  </footer>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { AssetEntry, AssetCategory } from '../../types/settings.types'
 import { v4 as uuidv4 } from 'uuid'
@@ -147,12 +147,35 @@ function AssetForm({ initial, onSave, onCancel, title }: AssetFormProps) {
   )
 }
 
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let field = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { field += '"'; i++ }
+      else inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      result.push(field.trim())
+      field = ''
+    } else {
+      field += ch
+    }
+  }
+  result.push(field.trim())
+  return result
+}
+
 export function TabAssets() {
   const { settings, updateSettings } = useSettings()
   const [activeCategory, setActiveCategory] = useState<AssetCategory | 'all'>('all')
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [csvImportCount, setCsvImportCount] = useState<number | null>(null)
+  const [csvImportError, setCsvImportError] = useState<string | null>(null)
+  const csvInputRef = useRef<HTMLInputElement>(null)
 
   const assets = settings.assets ?? []
 
@@ -177,8 +200,129 @@ export function TabAssets() {
     setDeleteConfirmId(null)
   }
 
+  function handleCsvFile(file: File) {
+    setCsvImportError(null)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text.split(/\r?\n/).filter((l) => l.trim())
+        if (lines.length < 2) {
+          setCsvImportError('CSV must have a header row and at least one data row.')
+          return
+        }
+        const dataLines = lines.slice(1) // skip header row
+        const newAssets: AssetEntry[] = []
+        for (const line of dataLines) {
+          const cols = parseCSVLine(line)
+          const [name, url, category, colourOverlay, altText] = cols
+          if (!name || !url) continue
+          try { new URL(url) } catch { continue }
+          const validCat = CATEGORIES.find(
+            (c) => c.value === (category ?? '').toLowerCase().trim()
+          )?.value ?? 'graphics'
+          newAssets.push({
+            id: uuidv4(),
+            name,
+            url,
+            category: validCat,
+            colourOverlay: colourOverlay ?? '',
+            altText: altText ?? '',
+          })
+        }
+        if (newAssets.length === 0) {
+          setCsvImportError('No valid assets found. Check that each row has a name and a valid URL.')
+          return
+        }
+        const existingUrls = new Set(assets.map((a) => a.url))
+        const unique = newAssets.filter((a) => !existingUrls.has(a.url))
+        updateSettings({ assets: [...assets, ...unique] })
+        setCsvImportCount(unique.length)
+        setTimeout(() => setCsvImportCount(null), 4000)
+      } catch {
+        setCsvImportError('Failed to parse CSV. Please check the file format.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Top toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {assets.length} asset{assets.length !== 1 ? 's' : ''} in library
+        </p>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Hidden CSV file input */}
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleCsvFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Import Assets via CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsAdding(true); setEditingId(null) }}
+            disabled={isAdding}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-primary text-white rounded-md hover:bg-brand-primary-dark transition-colors disabled:opacity-50"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Asset
+          </button>
+        </div>
+      </div>
+
+      {/* CSV import feedback */}
+      {csvImportCount !== null && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span className="text-xs text-green-700 dark:text-green-400 font-medium">
+            {csvImportCount} asset{csvImportCount !== 1 ? 's' : ''} imported successfully.
+          </span>
+        </div>
+      )}
+      {csvImportError && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          <span className="text-xs text-red-600 dark:text-red-400">{csvImportError}</span>
+          <button type="button" onClick={() => setCsvImportError(null)} className="text-red-400 hover:text-red-600 text-sm leading-none">×</button>
+        </div>
+      )}
+
+      {/* CSV format hint — shown when no assets yet */}
+      {assets.length === 0 && !isAdding && (
+        <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-md border border-gray-100 dark:border-gray-800">
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">CSV format</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">
+            Each row: <code className="font-mono bg-white dark:bg-gray-700 px-1 rounded border border-gray-200 dark:border-gray-600">name,url,category,colourOverlay,altText</code>
+          </p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500">
+            Valid categories: <span className="font-mono">header</span>, <span className="font-mono">profile</span>, <span className="font-mono">stripes</span>, <span className="font-mono">logos</span>, <span className="font-mono">graphics</span>
+          </p>
+        </div>
+      )}
+
       {/* Category filter tabs */}
       <div className="flex items-center gap-1 flex-wrap">
         <button
@@ -293,17 +437,6 @@ export function TabAssets() {
             </div>
           ))}
         </div>
-      )}
-
-      {/* Add button — shown when not already adding */}
-      {!isAdding && filtered.length > 0 && (
-        <button
-          type="button"
-          onClick={() => { setIsAdding(true); setEditingId(null) }}
-          className="text-xs font-medium text-brand-primary dark:text-brand-accent border border-brand-primary/30 dark:border-brand-accent/30 px-3 py-1.5 rounded-md hover:bg-brand-primary/5 dark:hover:bg-brand-accent/5 transition-colors"
-        >
-          + Add Asset
-        </button>
       )}
     </div>
   )

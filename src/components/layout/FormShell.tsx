@@ -20,14 +20,24 @@ import { StepBrandReview } from '../steps/StepBrandReview'
 import { StepHtmlReview } from '../steps/StepHtmlReview'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { KanbanBoard } from '../kanban/KanbanBoard'
+import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
+import { useApprovals } from '../../contexts/ApprovalsContext'
+import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
+import { EmailBuilderShell } from '../builder/EmailBuilderShell'
+import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
+import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
+import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
+import { DesignBriefingPlatform } from '../design/DesignBriefingPlatform'
+import { CampaignPlannerShell } from '../planner/CampaignPlannerShell'
 import type { BriefTemplate } from '../../lib/constants'
-import { BRAND_THEMES } from '../../lib/constants'
 import type { BriefFormData } from '../../lib/schema'
 import { useDrafts } from '../../hooks/useDrafts'
 import type { SavedDraft } from '../../hooks/useDrafts'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { buildEmailName } from '../../lib/emailName'
 import { getStepFields } from '../../lib/validateStep'
+import { triggerNotification } from '../../lib/notificationService'
+import type { BriefPayload } from '../../types/brief.types'
 
 
 const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: string[] }> = {
@@ -71,6 +81,32 @@ const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: strin
   },
 }
 
+interface DistributionListSummary {
+  name: string
+  rowCount?: number
+  analysis?: {
+    cleanRowCount: number
+    blankEmailCount: number
+    unknownEmailCount: number
+  }
+}
+
+interface BriefSummaryData {
+  campaignName: string
+  sendDate: string
+  subjectLine: string
+  previewText: string
+  fromName: string
+  fromAddress: string
+  replyToEmail: string
+  utmCampaign: string
+  ctaUrl: string
+  ctaLabel: string
+  bodyIntroLinks: string[]
+  distributionLists: DistributionListSummary[]
+  pardotListId: string
+}
+
 interface HelpPanelProps {
   stepId: string
   currentStepIndex: number
@@ -79,12 +115,13 @@ interface HelpPanelProps {
   onChangeTemplate?: () => void
   campaignName?: string
   onOpenInsights?: () => void
+  briefSummary?: BriefSummaryData
 }
 
-function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights }: HelpPanelProps) {
+function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary }: HelpPanelProps) {
   const { settings } = useSettings()
   const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
-  const theme = BRAND_THEMES.find((t) => t.id === currentTheme)
+  const theme = (settings.brandThemes ?? []).find((t) => t.id === currentTheme)
   const isPipeline = stepId === 'brand-review' || stepId === 'html-email'
   const eyebrow = isPipeline
     ? `Pipeline · ${stepId === 'brand-review' ? 'Brand Review' : 'HTML Email'}`
@@ -115,6 +152,180 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
           </>
         )}
       </div>
+
+      {/* Checklist details — only on HTML Email pipeline step */}
+      {stepId === 'html-email' && briefSummary && (
+        <div className="bg-brand-bg-panel dark:bg-brand-bg-panel-dark border border-brand-border-warm dark:border-gray-700 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
+            <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">Checklist details</p>
+          </div>
+          <dl className="space-y-3.5">
+            {/* Campaign + Send Date */}
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Campaign</dt>
+              <dd className="text-sm font-medium text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.campaignName || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Send Date</dt>
+              <dd className="text-sm text-brand-primary dark:text-gray-200">
+                {briefSummary.sendDate
+                  ? new Date(briefSummary.sendDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '—'}
+              </dd>
+            </div>
+
+            <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+
+            {/* Subject + Preview */}
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Subject Line</dt>
+              <dd className="text-sm text-brand-primary dark:text-gray-200 leading-snug">{briefSummary.subjectLine || '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Preview Text</dt>
+              <dd className="text-sm text-brand-text-body dark:text-gray-300 leading-snug">{briefSummary.previewText || '—'}</dd>
+            </div>
+
+            <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+
+            {/* Sender */}
+            <div>
+              <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Sender</dt>
+              <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">{briefSummary.fromName || '—'}</dd>
+              {briefSummary.fromAddress && (
+                <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.fromAddress}>
+                  {briefSummary.fromAddress}
+                </dd>
+              )}
+              {briefSummary.replyToEmail && (
+                <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.replyToEmail}>
+                  Reply: {briefSummary.replyToEmail}
+                </dd>
+              )}
+            </div>
+
+            {/* UTM Campaign */}
+            {briefSummary.utmCampaign && (
+              <>
+                <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                <div>
+                  <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">UTM Campaign</dt>
+                  <dd className="text-sm font-mono text-brand-primary dark:text-gray-200 break-all">{briefSummary.utmCampaign}</dd>
+                </div>
+              </>
+            )}
+
+            {/* Links list */}
+            {(() => {
+              const links = [
+                briefSummary.ctaUrl ? { label: briefSummary.ctaLabel || 'CTA', url: briefSummary.ctaUrl } : null,
+                ...briefSummary.bodyIntroLinks.map((url) => ({ label: url, url })),
+              ].filter(Boolean) as { label: string; url: string }[]
+              return links.length > 0 ? (
+                <>
+                  <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                  <div>
+                    <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-1.5">Links</dt>
+                    <dd className="space-y-1">
+                      {links.map((link, i) => (
+                        <div key={i} className="flex items-start gap-1.5">
+                          <span className="mt-1.5 w-1 h-1 rounded-full bg-brand-accent shrink-0" />
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-brand-primary dark:text-brand-accent hover:underline break-all leading-snug"
+                            title={link.url}
+                          >
+                            {link.label !== link.url && link.label
+                              ? <><span className="font-medium">{link.label}</span><span className="text-brand-text-muted dark:text-gray-500 ml-1 font-mono">↗</span></>
+                              : <span className="font-mono">{link.url.length > 42 ? link.url.slice(0, 42) + '…' : link.url}</span>
+                            }
+                          </a>
+                        </div>
+                      ))}
+                    </dd>
+                  </div>
+                </>
+              ) : null
+            })()}
+
+            {/* Audience */}
+            {(briefSummary.pardotListId || briefSummary.distributionLists.length > 0) && (
+              <>
+                <div className="h-px bg-brand-border-warm dark:bg-gray-700" />
+                <div>
+                  <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-2">Audience</dt>
+                  <dd className="space-y-2.5">
+                    {briefSummary.distributionLists.map((dl, i) => {
+                      const total = dl.analysis?.cleanRowCount ?? dl.rowCount ?? 0
+                      const unmailable = (dl.analysis?.blankEmailCount ?? 0) + (dl.analysis?.unknownEmailCount ?? 0)
+                      const mailable = total - unmailable
+                      const mailablePct = total > 0 ? Math.round((mailable / total) * 100) : null
+                      const mailableColor =
+                        mailablePct === null ? '' :
+                        mailablePct >= 90 ? 'text-[#009d80]' :
+                        mailablePct >= 80 ? 'text-[#cf6f13]' :
+                        'text-[#d83949]'
+
+                      return (
+                        <div key={i} className="text-xs space-y-1">
+                          {/* List name + Pardot link */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="font-medium text-brand-primary dark:text-gray-200">{dl.name || '—'}</span>
+                            {briefSummary.pardotListId && (
+                              <span className="text-brand-text-muted dark:text-gray-500">
+                                ·{' '}
+                                <a
+                                  href={`https://pi.pardot.com/list/read?id=${briefSummary.pardotListId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-brand-primary dark:text-brand-accent hover:underline font-mono"
+                                  title={`Pardot list ID: ${briefSummary.pardotListId}`}
+                                >
+                                  #{briefSummary.pardotListId}
+                                </a>
+                              </span>
+                            )}
+                          </div>
+                          {/* Stats */}
+                          {total > 0 && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 pl-0">
+                              <span className="text-brand-text-muted dark:text-gray-500">Total</span>
+                              <span className="font-medium text-brand-primary dark:text-gray-200 tabular-nums">{total.toLocaleString()}</span>
+                              <span className="text-brand-text-muted dark:text-gray-500">Mailable</span>
+                              <span className={`font-medium tabular-nums ${mailableColor}`}>
+                                {mailable.toLocaleString()}{mailablePct !== null && <span className="font-normal text-[10px] ml-1">({mailablePct}%)</span>}
+                              </span>
+                              <span className="text-brand-text-muted dark:text-gray-500">Unmailable</span>
+                              <span className="font-medium text-brand-primary dark:text-gray-200 tabular-nums">{unmailable.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {/* If no dist lists but pardot ID provided */}
+                    {briefSummary.distributionLists.length === 0 && briefSummary.pardotListId && (
+                      <div className="text-xs">
+                        <a
+                          href={`https://pi.pardot.com/list/read?id=${briefSummary.pardotListId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-primary dark:text-brand-accent hover:underline font-mono"
+                          title={`Pardot list ID: ${briefSummary.pardotListId}`}
+                        >
+                          Pardot List #{briefSummary.pardotListId}
+                        </a>
+                      </div>
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+        </div>
+      )}
 
       {/* Active brand theme swatch */}
       {theme && !isPipeline && (
@@ -214,6 +425,8 @@ export function FormShell() {
   const { senderDefaults, formDefaults } = settings
   const { profile, user, signOut } = useAuth()
   const { addCard, cards, loading: kanbanLoading } = useKanban()
+  const { pendingCount } = useApprovals()
+  const { log: audit } = useAuditLog()
 
   // Derive visible brief steps from settings, sorted by order
   const visibleBriefSteps = useMemo(
@@ -241,12 +454,38 @@ export function FormShell() {
   }, {
     teamId: profile?.teamId,
     userId: user?.id,
-  }, visibleBriefSteps.length || 3)
+  }, visibleBriefSteps.length || 3, useCallback((payload: BriefPayload) => {
+    // Add to Kanban board — addCard deduplicates internally so this is safe
+    // even if handleBriefSubmitAndAdvance already called it via the pipeline path
+    addCard(payload as BriefFormData)
+    audit({
+      action: 'Submitted brief to board',
+      category: 'brief',
+      entityType: 'brief',
+      entityId: payload.meta.briefId,
+      details: { campaignName: payload.campaign.campaignName, emailType: payload.campaign.emailType },
+    })
+
+    if (settings.notifications) {
+      triggerNotification('brief_submitted', {
+        briefId: payload.meta.briefId,
+        campaignName: payload.campaign.campaignName,
+        emailType: payload.campaign.emailType,
+        subjectLine: payload.campaign.subjectLine,
+        sendDate: payload.deadlines.sendDate,
+        contentApprovalDate: payload.deadlines.contentApprovalDate,
+        urgency: payload.deadlines.urgency,
+        regions: (payload.audience.region ?? []).join(', '),
+        channels: (payload.audience.channel ?? []).join(', '),
+        requesterName: profile?.displayName ?? '',
+        requesterEmail: user?.email ?? '',
+      }, settings.notifications).catch(console.error)
+    }
+  }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]))
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
-  const { log: audit } = useAuditLog()
 
   const [pipelineStep, setPipelineStep] = useState<number | null>(null)
   const [highestStep, setHighestStep] = useState(0)
@@ -254,7 +493,13 @@ export function FormShell() {
     () => !localStorage.getItem('ni-email-brief-draft')
   )
   const [showBoard, setShowBoard] = useState(false)
+  const [showPlanner, setShowPlanner] = useState(false)
+  const [showBuilder, setShowBuilder] = useState(false)
+  const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation' | 'design'>('email')
+  const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
+  const [showApprovals, setShowApprovals] = useState(false)
+  const [showAudienceHealth, setShowAudienceHealth] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
@@ -419,6 +664,39 @@ export function FormShell() {
   const watchedRegions = form.watch('audience.region') ?? []
   const watchedChannels = form.watch('audience.channel') ?? []
   const watchedDescription = form.watch('campaign.emailDescription') ?? ''
+  const watchedSubjectLine = form.watch('campaign.subjectLine') ?? ''
+  const watchedPreviewText = form.watch('campaign.previewText') ?? ''
+  const watchedFromName = form.watch('campaign.fromName') ?? ''
+  const watchedFromAddress = (form.watch('campaign') as Record<string, string>)?.fromAddress ?? ''
+  const watchedReplyToEmail = form.watch('campaign.replyToEmail') ?? ''
+  const watchedSendDate = form.watch('deadlines.sendDate') ?? ''
+  const watchedUtmCampaign = form.watch('campaign.utmCampaign') ?? ''
+  const watchedCtaUrl = form.watch('content.cta.url') ?? ''
+  const watchedCtaLabel = form.watch('content.cta.label') ?? ''
+  const watchedBodyIntro = form.watch('content.bodyIntro') ?? ''
+  const watchedDistLists = form.watch('audience.distributionLists') ?? []
+  const watchedPardotListId = form.watch('audience.pardotListId') ?? ''
+
+  // Extract href links from rich-text HTML (body intro), excluding common header/footer/social/disclaimer domains
+  const bodyIntroLinks = useMemo(() => {
+    if (!watchedBodyIntro) return []
+    const matches = [...watchedBodyIntro.matchAll(/href="(https?:\/\/[^"]+)"/gi)]
+    const EXCLUDED_PATTERNS = [
+      /ninetyone\.com\/l\//i,           // Pardot tracking links (header/footer logos)
+      /weare\.ninetyone\.com\/l\//i,
+      /linkedin\.com/i,
+      /twitter\.com/i,
+      /x\.com/i,
+      /facebook\.com/i,
+      /instagram\.com/i,
+      /youtube\.com/i,
+      /unsubscribe/i,
+      /privacy/i,
+    ]
+    return matches
+      .map((m) => m[1])
+      .filter((url) => !EXCLUDED_PATTERNS.some((re) => re.test(url)))
+  }, [watchedBodyIntro])
 
   if (settingsLoading || kanbanLoading) {
     return (
@@ -436,11 +714,58 @@ export function FormShell() {
       {/* ── Sticky navigation bar ── */}
       <header className="sticky top-0 z-40 bg-brand-primary dark:bg-brand-primary-dark">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          {/* Logo + platform label */}
+          {/* Logo + platform dropdown */}
           <div className="flex items-center gap-0 shrink-0">
             <img src="https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png" alt="Ninety One" className="h-5 w-auto" />
-            <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block">
-              <span className="text-white/70 text-xs tracking-[0.2em] uppercase font-ni-heading">Email Briefing Platform</span>
+            <div className="ml-4 pl-4 border-l border-white/20 hidden sm:block relative">
+              <button
+                type="button"
+                onClick={() => setShowPlatformDropdown((v) => !v)}
+                className="flex items-center gap-1.5 text-white/70 hover:text-white text-xs tracking-[0.2em] uppercase font-ni-heading transition-colors"
+                aria-haspopup="true"
+                aria-expanded={showPlatformDropdown}
+              >
+                {activePlatform === 'email' && 'Email Briefing Platform'}
+                {activePlatform === 'web' && 'Web Briefing Platform'}
+                {activePlatform === 'social' && 'Social Media Briefing'}
+                {activePlatform === 'marketing-automation' && 'Marketing Automation'}
+                {activePlatform === 'design' && 'Design Briefing Platform'}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="opacity-60 ml-0.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {showPlatformDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPlatformDropdown(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                    {[
+                      { id: 'email' as const, label: 'Email Briefing Platform', desc: 'HTML email production briefs', icon: '✉' },
+                      { id: 'web' as const, label: 'Web Briefing Platform', desc: 'Website & article publishing', icon: '🌐' },
+                      { id: 'social' as const, label: 'Social Media Briefing', desc: 'LinkedIn, X, Instagram & more', icon: '📱' },
+                      { id: 'marketing-automation' as const, label: 'Marketing Automation', desc: 'PRD-style automation briefs', icon: '⚙' },
+                      { id: 'design' as const, label: 'Design Briefing Platform', desc: 'Brand asset & design deliverable briefs', icon: '🎨' },
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setActivePlatform(p.id); setShowPlatformDropdown(false) }}
+                        className={`w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${activePlatform === p.id ? 'bg-brand-primary/5 dark:bg-brand-primary/10' : ''}`}
+                      >
+                        <span className="text-base mt-0.5 shrink-0">{p.icon}</span>
+                        <div>
+                          <p className={`text-sm font-medium ${activePlatform === p.id ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-800 dark:text-gray-200'}`}>{p.label}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{p.desc}</p>
+                        </div>
+                        {activePlatform === p.id && (
+                          <svg className="ml-auto mt-1 shrink-0 text-brand-primary dark:text-brand-accent" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -467,6 +792,68 @@ export function FormShell() {
                   </span>
                 )}
               </button>
+              {/* Campaign Planner */}
+              <button
+                type="button"
+                onClick={() => setShowPlanner(!showPlanner)}
+                title="Campaign Planner"
+                aria-label="Campaign Planner"
+                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showPlanner ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </button>
+              {/* Email Builder */}
+              <button
+                type="button"
+                onClick={() => setShowBuilder(!showBuilder)}
+                title="Email Builder"
+                aria-label="Email Builder"
+                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showBuilder ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              {/* Approvals */}
+              {settings.approvals?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setShowApprovals(!showApprovals)}
+                  title="Approvals"
+                  aria-label="Approvals"
+                  className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showApprovals ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-400 text-gray-900 text-[8px] font-bold rounded-full flex items-center justify-center" aria-hidden="true">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              )}
+              {/* Audience Health */}
+              {settings.audienceHealth?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => setShowAudienceHealth(!showAudienceHealth)}
+                  title="Audience Health"
+                  aria-label="Audience Health"
+                  className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showAudienceHealth ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                </button>
+              )}
               {/* Drafts */}
               <button
                 type="button"
@@ -538,6 +925,31 @@ export function FormShell() {
 
             {/* Mobile icon buttons */}
             <div className="flex items-center gap-0.5 md:hidden ml-1">
+              {/* Campaign Planner — mobile */}
+              <button
+                type="button"
+                onClick={() => setShowPlanner(!showPlanner)}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Campaign Planner"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBuilder(!showBuilder)}
+                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                aria-label="Email Builder"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowBoard(!showBoard)}
@@ -601,9 +1013,33 @@ export function FormShell() {
         <div className="h-[2px] bg-brand-accent/50" aria-hidden="true" />
       </header>
 
+      {/* ── Email Builder — full-screen overlay ── */}
+      {showBuilder && (
+        <EmailBuilderShell onClose={() => setShowBuilder(false)} />
+      )}
+
+      {/* ── Platform overlays ── */}
+      {activePlatform === 'web' && (
+        <WebBriefingPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'social' && (
+        <SocialMediaPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'marketing-automation' && (
+        <MarketingAutomationPlatform onClose={() => setActivePlatform('email')} />
+      )}
+      {activePlatform === 'design' && (
+        <DesignBriefingPlatform onClose={() => setActivePlatform('email')} />
+      )}
+
       {/* ── Board view — replaces all form content when active ── */}
       {showBoard && (
         <KanbanBoard onClose={() => setShowBoard(false)} />
+      )}
+
+      {/* ── Campaign Planner — full-screen overlay ── */}
+      {showPlanner && (
+        <CampaignPlannerShell onClose={() => setShowPlanner(false)} />
       )}
 
       {/* ── Hero band — compact on interior steps ── */}
@@ -721,6 +1157,21 @@ export function FormShell() {
                     onChangeTemplate={!isPipelineStep && currentBriefStepId === 'campaign' ? handleChangeTemplate : undefined}
                     campaignName={watchedCampaignName || undefined}
                     onOpenInsights={watchedCampaignName ? () => setShowInsights(true) : undefined}
+                    briefSummary={pipelineStep === 4 ? {
+                      campaignName: watchedCampaignName,
+                      sendDate: watchedSendDate,
+                      subjectLine: watchedSubjectLine,
+                      previewText: watchedPreviewText,
+                      fromName: watchedFromName,
+                      fromAddress: watchedFromAddress,
+                      replyToEmail: watchedReplyToEmail,
+                      utmCampaign: watchedUtmCampaign,
+                      ctaUrl: watchedCtaUrl,
+                      ctaLabel: watchedCtaLabel,
+                      bodyIntroLinks,
+                      distributionLists: (watchedDistLists as unknown as DistributionListSummary[]),
+                      pardotListId: watchedPardotListId,
+                    } : undefined}
                   />
                 </div>
               </div>
@@ -807,6 +1258,17 @@ export function FormShell() {
 
       {/* Drawers */}
       <SettingsPanel />
+      <ApprovalsPanel
+        isOpen={showApprovals}
+        onClose={() => setShowApprovals(false)}
+      />
+      {settings.audienceHealth?.enabled && profile?.teamId && (
+        <AudienceHealthDashboard
+          isOpen={showAudienceHealth}
+          onClose={() => setShowAudienceHealth(false)}
+          teamId={profile.teamId}
+        />
+      )}
       <CampaignInsightsSlideOver
         isOpen={showInsights}
         onClose={() => setShowInsights(false)}

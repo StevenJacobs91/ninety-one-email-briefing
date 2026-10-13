@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
-import { CLIENT_GROUPS, CHANNELS, BRAND_THEMES } from '../../lib/constants'
+import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
+import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
 
 const CHANNEL_LABELS: Record<string, string> = {
   Advisor: 'Advisor',
@@ -62,6 +63,7 @@ interface CampaignFormState {
   name: string
   clientGroups: string[]
   channels: string[]
+  pardotCampaignId: string
   hasSenderPreset: boolean
   preset: CampaignSenderPreset
   hasContentPreset: boolean
@@ -80,11 +82,13 @@ const EMPTY_CONTENT_PRESET: CampaignContentPreset = {
   disclaimerId: '',
   distributionList: '',
   pardotListId: '',
+  greetingId: undefined,
 }
 const EMPTY_FORM: CampaignFormState = {
   name: '',
   clientGroups: [],
   channels: [],
+  pardotCampaignId: '',
   hasSenderPreset: false,
   preset: EMPTY_PRESET,
   hasContentPreset: false,
@@ -96,11 +100,21 @@ function formFromEntry(c: CampaignEntry): CampaignFormState {
     name: c.name,
     clientGroups: [...(c.clientGroups ?? [])],
     channels: [...c.channels],
+    pardotCampaignId: c.pardotCampaignId ?? '',
     hasSenderPreset: !!c.senderPreset,
     preset: c.senderPreset ? { ...c.senderPreset } : { ...EMPTY_PRESET },
     hasContentPreset: !!c.contentPreset,
     contentPreset: c.contentPreset ? { ...c.contentPreset } : { ...EMPTY_CONTENT_PRESET },
   }
+}
+
+/** Pulls a numeric campaign ID out of a Pardot URL, or returns the raw string if already an ID. */
+function extractCampaignId(input: string): string {
+  const trimmed = input.trim()
+  const urlMatch = trimmed.match(/\/campaign\/(?:read\/id\/)?(\d+)/i)
+  if (urlMatch) return urlMatch[1]
+  if (/^\d+$/.test(trimmed)) return trimmed
+  return ''
 }
 
 function hasAnyContentPresetValue(cp: CampaignContentPreset): boolean {
@@ -120,6 +134,7 @@ function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
     regions: [],
     clientGroups: form.clientGroups,
     channels: form.channels,
+    pardotCampaignId: extractCampaignId(form.pardotCampaignId) || undefined,
     senderPreset: form.hasSenderPreset && form.preset.fromName.trim()
       ? { fromName: form.preset.fromName.trim(), fromAddress: form.preset.fromAddress.trim(), replyToEmail: form.preset.replyToEmail.trim() }
       : undefined,
@@ -181,6 +196,8 @@ function ContentPresetFields({
   signoffs: { id: string; name: string }[]
   disclaimers: { id: string; label: string }[]
 }) {
+  const { settings } = useSettings()
+  const greetings = settings.greetings ?? []
   return (
     <div className="space-y-3 pt-1">
       {/* Brand Theme */}
@@ -192,12 +209,12 @@ function ContentPresetFields({
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         >
           <option value="">— None —</option>
-          {BRAND_THEMES.map((t) => (
+          {(settings.brandThemes ?? []).map((t) => (
             <option key={t.id} value={t.id}>{t.label}</option>
           ))}
         </select>
         {contentPreset.theme && (() => {
-          const t = BRAND_THEMES.find((bt) => bt.id === contentPreset.theme)
+          const t = (settings.brandThemes ?? []).find((bt) => bt.id === contentPreset.theme)
           return t ? (
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: t.primary }} />
@@ -275,6 +292,25 @@ function ContentPresetFields({
           placeholder="e.g. Insights from our investment team"
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
+      </div>
+
+      {/* Greeting */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Default Greeting</label>
+        <select
+          value={contentPreset.greetingId ?? ''}
+          onChange={(e) => onChange({ greetingId: e.target.value })}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        >
+          <option value="">— None —</option>
+          {greetings.map((g) => (
+            <option key={g.id} value={g.id}>{g.label}</option>
+          ))}
+        </select>
+        {contentPreset.greetingId && (() => {
+          const g = greetings.find((gr) => gr.id === contentPreset.greetingId)
+          return g ? <p className="text-[10px] text-gray-400 mt-0.5 italic">&ldquo;{g.value}&rdquo;</p> : null
+        })()}
       </div>
 
       {/* Two-column: Signature + Disclaimer */}
@@ -382,6 +418,52 @@ function CampaignForm({
         onChange={(v) => onChange({ channels: v })}
       />
 
+      {/* Pardot Campaign URL */}
+      <div>
+        <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+          Pardot Campaign URL
+          <span className="ml-1.5 font-normal text-gray-400">optional</span>
+        </label>
+        <input
+          type="text"
+          value={form.pardotCampaignId}
+          onChange={(e) => onChange({ pardotCampaignId: e.target.value })}
+          placeholder="12345  or  https://pi.pardot.com/campaign/read/id/12345"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono placeholder:font-sans placeholder:text-xs"
+        />
+        {(() => {
+          const raw = form.pardotCampaignId.trim()
+          if (!raw) return (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              Paste a Campaign ID or full Pardot Campaign URL — the ID will be extracted automatically.
+            </p>
+          )
+          const extracted = extractCampaignId(raw)
+          const isUrl = raw.startsWith('http')
+          if (isUrl && extracted) return (
+            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+              Campaign ID extracted: <span className="font-mono font-semibold">{extracted}</span>
+            </p>
+          )
+          if (isUrl && !extracted) return (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+              ⚠ Couldn't extract a numeric ID from this URL — check the format.
+            </p>
+          )
+          if (extracted) return (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              Campaign ID: <span className="font-mono">{extracted}</span>
+            </p>
+          )
+          return (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+              ⚠ Enter a numeric ID or a valid Pardot Campaign URL.
+            </p>
+          )
+        })()}
+      </div>
+
       {/* Sender Preset */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <button
@@ -466,6 +548,20 @@ export function TabCampaigns() {
   const [newForm, setNewForm] = useState<CampaignFormState>(EMPTY_FORM)
   const [editForm, setEditForm] = useState<CampaignFormState>(EMPTY_FORM)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [importDone, setImportDone] = useState(false)
+  const [importConfirm, setImportConfirm] = useState(false)
+
+  function handleImportPresets() {
+    const existingNames = new Set(campaigns.map((c) => c.name))
+    const newCampaigns: CampaignEntry[] = PRESET_CAMPAIGNS
+      .filter((p) => !existingNames.has(p.name))
+      .map((p) => ({ ...p, id: uuidv4() }))
+    if (newCampaigns.length === 0) { setImportConfirm(false); return }
+    saveCampaigns([...campaigns, ...newCampaigns])
+    setImportConfirm(false)
+    setImportDone(true)
+    setTimeout(() => setImportDone(false), 3000)
+  }
 
   function saveCampaigns(next: CampaignEntry[]) {
     updateSettings({ campaigns: next })
@@ -500,15 +596,40 @@ export function TabCampaigns() {
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Campaigns appear in the brief form filtered by client group and audience. Leave filters empty to show a campaign for all. Add a sender preset to auto-fill the From Name, From Email and Reply-to fields when this campaign is selected.
         </p>
-        {!addingNew && (
-          <button
-            type="button"
-            onClick={() => { setAddingNew(true); setNewForm(EMPTY_FORM) }}
-            className="text-xs font-medium text-brand-primary dark:text-brand-accent px-3 py-1.5 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors shrink-0"
-          >
-            + Add Campaign
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {!addingNew && (
+            <>
+              {importConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Import {PRESET_CAMPAIGNS.filter(p => !campaigns.some(c => c.name === p.name)).length} new campaigns?
+                  </span>
+                  <button type="button" onClick={handleImportPresets}
+                    className="text-xs px-2.5 py-1 bg-brand-primary text-white rounded-md hover:bg-brand-primary-hover transition-colors">
+                    Import
+                  </button>
+                  <button type="button" onClick={() => setImportConfirm(false)}
+                    className="text-xs px-2.5 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setImportConfirm(true)}
+                  className="text-xs font-medium text-gray-500 dark:text-gray-400 px-3 py-1.5 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Import Presets
+                </button>
+              )}
+              {importDone && <span className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Imported</span>}
+              <button
+                type="button"
+                onClick={() => { setAddingNew(true); setNewForm(EMPTY_FORM) }}
+                className="text-xs font-medium text-brand-primary dark:text-brand-accent px-3 py-1.5 rounded border border-brand-primary/30 dark:border-brand-accent/30 hover:bg-brand-primary/5 transition-colors"
+              >
+                + Add Campaign
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* New campaign form */}
@@ -562,13 +683,28 @@ export function TabCampaigns() {
             ) : (
               <div className="px-4 py-3 flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{c.name}</p>
                     {c.senderPreset && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#cf6f13]/10 dark:bg-[#cf6f13]/20 text-[#cf6f13] dark:text-[#fcaa28] font-medium shrink-0">Sender</span>
                     )}
                     {c.contentPreset && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 text-brand-primary dark:text-brand-accent font-medium shrink-0">Content</span>
+                    )}
+                    {c.pardotCampaignId && (
+                      <a
+                        href={`${settings.pardot?.instanceUrl ?? 'https://pi.pardot.com'}/campaign/read/id/${c.pardotCampaignId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`Pardot Campaign ID: ${c.pardotCampaignId}`}
+                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 font-medium shrink-0 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                        </svg>
+                        #{c.pardotCampaignId}
+                      </a>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -590,7 +726,7 @@ export function TabCampaigns() {
                   {c.contentPreset && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {[
-                        c.contentPreset.theme && BRAND_THEMES.find((t) => t.id === c.contentPreset!.theme)?.label,
+                        c.contentPreset.theme && (settings.brandThemes ?? []).find((t) => t.id === c.contentPreset!.theme)?.label,
                         c.contentPreset.subjectLine && `"${c.contentPreset.subjectLine}"`,
                         c.contentPreset.headline,
                       ].filter(Boolean).join(' · ') || 'Content preset configured'}

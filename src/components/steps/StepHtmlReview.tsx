@@ -7,6 +7,8 @@ import { generateBriefHtml } from '../../lib/generateBriefHtml'
 import { generateTextEmail } from '../../lib/generateTextEmail'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
+import { submitBriefToPardot } from '../../lib/pardotApi'
+import type { PardotSubmitResult } from '../../lib/pardotApi'
 
 type ViewportMode = 'desktop' | 'mobile'
 type ViewMode = 'preview' | 'source' | 'text'
@@ -28,6 +30,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   )
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [pardotStatus, setPardotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [pardotResult, setPardotResult] = useState<PardotSubmitResult | null>(null)
   const [testRecipient, setTestRecipient] = useState('')
   const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [testError, setTestError] = useState('')
@@ -179,6 +183,28 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       setTestError(err instanceof Error ? err.message : 'Send failed — check your n8n webhook configuration.')
       setTestStatus('error')
       setTimeout(() => { setTestStatus('idle'); setTestError('') }, 4000)
+    }
+  }
+
+  const handleSubmitToPardot = async () => {
+    setPardotStatus('sending')
+    setPardotResult(null)
+    try {
+      const result = await submitBriefToPardot(settings.pardot, data, html, textEmail, emailName)
+      if (result.success) {
+        setPardotStatus('sent')
+        setPardotResult(result)
+        setTimeout(() => { setPardotStatus('idle'); setPardotResult(null) }, 8000)
+      } else {
+        setPardotStatus('error')
+        setPardotResult(result)
+        setTimeout(() => { setPardotStatus('idle'); setPardotResult(null) }, 6000)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setPardotStatus('error')
+      setPardotResult({ success: false, error: 'Unexpected error', details: message })
+      setTimeout(() => { setPardotStatus('idle'); setPardotResult(null) }, 6000)
     }
   }
 
@@ -459,28 +485,75 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       {/* Divider */}
       <div className="border-t border-gray-100 dark:border-gray-800 mb-4" />
 
-      {/* Primary submission action */}
-      <button
-        type="button"
-        onClick={handleSubmitBriefAndTemplate}
-        disabled={submitStatus === 'sending'}
-        className="w-full bg-brand-secondary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-secondary-hover transition-colors disabled:opacity-50"
-      >
-        {submitStatus === 'sending'
-          ? 'Opening email client…'
-          : submitStatus === 'sent'
-            ? 'Files downloaded — attach to email before sending'
-            : submitStatus === 'error'
-              ? 'Error — try again'
-              : 'Submit Brief & Template'}
-      </button>
-      {submitStatus !== 'sent' && submitStatus !== 'error' && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-          {settings.n8nWebhookUrl?.trim()
-            ? 'Sends brief JSON and HTML directly to your n8n workflow'
-            : 'Downloads both files and opens your email client with a pre-filled message'}
-        </p>
-      )}
+      {/* Primary submission actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Submit to Pardot */}
+        <div>
+          <button
+            type="button"
+            onClick={handleSubmitToPardot}
+            disabled={pardotStatus === 'sending'}
+            className="w-full bg-brand-primary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50"
+          >
+            {pardotStatus === 'sending'
+              ? 'Sending to Pardot…'
+              : pardotStatus === 'sent'
+                ? '✓ Sent to Pardot'
+                : pardotStatus === 'error'
+                  ? 'Pardot Error — try again'
+                  : 'Submit to Pardot'}
+          </button>
+          {pardotStatus === 'sent' && pardotResult?.emailId && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+              Draft created in Pardot — ID: {pardotResult.emailId}
+            </p>
+          )}
+          {pardotStatus === 'sent' && !pardotResult?.emailId && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+              {pardotResult?.emailName ?? 'Draft'} created in Pardot
+            </p>
+          )}
+          {pardotStatus === 'error' && pardotResult && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
+              {pardotResult.error}{pardotResult.details ? ` — ${pardotResult.details.slice(0, 80)}` : ''}
+            </p>
+          )}
+          {pardotStatus === 'idle' && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+              {settings.pardot?.useMockData
+                ? 'Mock mode — no real API call'
+                : settings.pardot?.apiProxyUrl?.trim()
+                  ? 'Creates a draft in Pardot Account Engagement'
+                  : 'Configure Pardot in Settings to enable'}
+            </p>
+          )}
+        </div>
+
+        {/* Submit Brief & Template */}
+        <div>
+          <button
+            type="button"
+            onClick={handleSubmitBriefAndTemplate}
+            disabled={submitStatus === 'sending'}
+            className="w-full bg-brand-secondary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-secondary-hover transition-colors disabled:opacity-50"
+          >
+            {submitStatus === 'sending'
+              ? 'Submitting…'
+              : submitStatus === 'sent'
+                ? '✓ Brief submitted'
+                : submitStatus === 'error'
+                  ? 'Error — try again'
+                  : 'Submit Brief & Template'}
+          </button>
+          {submitStatus === 'idle' && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+              {settings.n8nWebhookUrl?.trim()
+                ? 'Sends brief JSON and HTML to your n8n workflow'
+                : 'Downloads files and opens your email client'}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

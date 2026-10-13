@@ -11,13 +11,29 @@ import type {
   FormDefaults,
   LegalDisclaimerConfig,
   PardotConfig,
-  PardotFieldMapping,
   CampaignEntry,
   SignoffEntry,
   AssetEntry,
   CampaignInsightsConfig,
+  BenchmarksConfig,
+  AudienceHealthConfig,
+  GreetingConfig,
+  RolePermissionConfig,
+  RolePermissionKey,
+  HeaderTypeConfig,
+  DesignBriefingSettings,
 } from '../types/settings.types'
+import { DESIGN_ASSET_TYPES } from './designConstants'
+import type { ApprovalConfig } from '../types/approval.types'
+import {
+  NOTIFICATION_EVENT_META,
+  type NotificationsSettings,
+  type NotificationEventConfig,
+  type NotificationEventType,
+} from '../types/notifications.types'
 import { REGION_LEGAL_DISCLAIMERS, REGIONS } from './constants'
+import { PRESET_CAMPAIGNS } from './campaignPresets'
+import { PRESET_PROFILE_ASSETS, PRESET_HEADER_ASSETS } from './assetLibraryData'
 
 // ─── Default Brand Themes ───────────────────────────────────
 
@@ -62,21 +78,32 @@ function tints(hex: string): { tint01: string; tint02: string; tint03: string } 
 }
 
 export const DEFAULT_BRAND_THEMES: BrandThemeConfig[] = [
-  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', ...tints('#134848'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', ...tints('#134848'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
-  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', ...tints('#0a3323'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
-  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', ...tints('#0a3323'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', ...tints('#591739'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
-  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
-  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#591739', logoUrl: LOGO_PINOTAGE,     stripeUrl: STRIPE_PINOTAGE,     footerLogoUrl: FOOTER_PINOTAGE     },
-  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', ...tints('#221b3b'), accent: '#cf6f13', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
-  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', ...tints('#221b3b'), accent: '#009d80', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
-  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', ...tints('#221b3b'), accent: '#d83949', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
-  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', ...tints('#221b3b'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', ...tints('#221b3b'), accent: '#fcaa28', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
-  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', ...tints('#74908d'), accent: '#fbaa96', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
-  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', ...tints('#74908d'), accent: '#134848', logoUrl: LOGO_LEATHERBACK,  stripeUrl: STRIPE_LEATHERBACK,  footerLogoUrl: FOOTER_LEATHERBACK  },
+  // ── Dark primary backgrounds — cream text ────────────────────────────────
+  { id: 'leatherback-coral',    label: 'Leatherback Green / Cape Coral',        primary: '#134848', ...tints('#134848'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'leatherback-yellowood',label: 'Leatherback Green / Warm Yellowwood',   primary: '#134848', ...tints('#134848'), accent: '#fcaa28', defaultTextColour: '#e8e5ce', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  { id: 'marula-gold',          label: 'Marula Green / Gazania Gold',           primary: '#0a3323', ...tints('#0a3323'), accent: '#cf6f13', defaultTextColour: '#e8e5ce', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'marula-coral',         label: 'Marula Green / Cape Coral',             primary: '#0a3323', ...tints('#0a3323'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'pinotage-coral',       label: 'Pinotage Burgundy / Cape Coral',        primary: '#591739', ...tints('#591739'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  // ── Light primary backgrounds — charcoal text ────────────────────────────
+  { id: 'springbok-red',        label: 'Springbok Cream / Protea Red',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#d83949', defaultTextColour: '#424242', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'springbok-teal',       label: 'Springbok Cream / Ocean Teal',          primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#009d80', defaultTextColour: '#424242', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'springbok-burgundy',   label: 'Springbok Cream / Pinotage Burgundy',   primary: '#e8e5ce', ...tints('#e8e5ce'), accent: '#591739', defaultTextColour: '#424242', logoUrl: LOGO_PINOTAGE,     stripeUrl: STRIPE_PINOTAGE,     footerLogoUrl: FOOTER_PINOTAGE     },
+  // ── Deep indigo backgrounds — cream text ────────────────────────────────
+  { id: 'agulhas-gold',         label: 'Agulhas Indigo / Gazania Gold',         primary: '#221b3b', ...tints('#221b3b'), accent: '#cf6f13', defaultTextColour: '#e8e5ce', logoUrl: LOGO_GAZANIA_GOLD, stripeUrl: STRIPE_GAZANIA_GOLD, footerLogoUrl: FOOTER_GAZANIA_GOLD },
+  { id: 'agulhas-teal',         label: 'Agulhas Indigo / Ocean Teal',           primary: '#221b3b', ...tints('#221b3b'), accent: '#009d80', defaultTextColour: '#e8e5ce', logoUrl: LOGO_OCEAN_TEAL,   stripeUrl: STRIPE_OCEAN_TEAL,   footerLogoUrl: FOOTER_OCEAN_TEAL   },
+  { id: 'agulhas-red',          label: 'Agulhas Indigo / Protea Red',           primary: '#221b3b', ...tints('#221b3b'), accent: '#d83949', defaultTextColour: '#e8e5ce', logoUrl: LOGO_PROTEA_RED,   stripeUrl: STRIPE_PROTEA_RED,   footerLogoUrl: FOOTER_PROTEA_RED   },
+  { id: 'agulhas-coral',        label: 'Agulhas Indigo / Cape Coral',           primary: '#221b3b', ...tints('#221b3b'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'agulhas-yellowwood',   label: 'Agulhas Indigo / Warm Yellowwood',      primary: '#221b3b', ...tints('#221b3b'), accent: '#fcaa28', defaultTextColour: '#e8e5ce', logoUrl: LOGO_WARM_YELLOW,  stripeUrl: STRIPE_WARM_YELLOW,  footerLogoUrl: FOOTER_WARM_YELLOW  },
+  // ── Mid-tone backgrounds — cream text ───────────────────────────────────
+  { id: 'galjoen-coral',        label: 'Galjoen Gray / Cape Coral',             primary: '#74908d', ...tints('#74908d'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: LOGO_CAPE_CORAL,   stripeUrl: STRIPE_CAPE_CORAL,   footerLogoUrl: FOOTER_CAPE_CORAL   },
+  { id: 'galjoen-green',        label: 'Galjoen Gray / Leatherback Green',      primary: '#74908d', ...tints('#74908d'), accent: '#134848', defaultTextColour: '#e8e5ce', logoUrl: LOGO_LEATHERBACK,  stripeUrl: STRIPE_LEATHERBACK,  footerLogoUrl: FOOTER_LEATHERBACK  },
+  // ── White + Accent colour — charcoal text ───────────────────────────────
+  { id: 'white-coral',          label: 'White / Cape Coral',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#fbaa96', defaultTextColour: '#424242' },
+  { id: 'white-yellowwood',     label: 'White / Warm Yellowwood',              primary: '#ffffff', ...tints('#ffffff'), accent: '#fcaa28', defaultTextColour: '#424242' },
+  { id: 'white-gold',           label: 'White / Gazania Gold',                 primary: '#ffffff', ...tints('#ffffff'), accent: '#cf6f13', defaultTextColour: '#424242' },
+  { id: 'white-red',            label: 'White / Protea Red',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#d83949', defaultTextColour: '#424242' },
+  { id: 'white-teal',           label: 'White / Ocean Teal',                   primary: '#ffffff', ...tints('#ffffff'), accent: '#009d80', defaultTextColour: '#424242' },
+  { id: 'white-pinotage',       label: 'White / Pinotage Burgundy',            primary: '#ffffff', ...tints('#ffffff'), accent: '#591739', defaultTextColour: '#424242' },
 ]
 
 // ─── Default HTML Templates ─────────────────────────────────
@@ -253,6 +280,7 @@ export const DEFAULT_FORM_DEFAULTS: FormDefaults = {
   urgency: 'standard',
   emailType: 'campaign',
   includeUnsubscribe: true,
+  showTagsSection: true,
 }
 
 // ─── Default Legal Disclaimers ──────────────────────────────
@@ -310,13 +338,7 @@ export const DEFAULT_PARDOT_CONFIG: PardotConfig = {
 
 // ─── Default Campaigns ──────────────────────────────────────
 
-export const DEFAULT_CAMPAIGNS: CampaignEntry[] = [
-  { id: 'camp-global-all', name: 'Quarterly Market Update', regions: [], channels: [], clientGroups: [] },
-  { id: 'camp-za-int', name: 'SA Intermediary Newsletter', regions: ['South Africa'], channels: ['Advisor'], clientGroups: ['Southern Africa'] },
-  { id: 'camp-uk-inst', name: 'UK Institutional Webinar Series', regions: ['United Kingdom'], channels: ['Institutional'], clientGroups: ['United Kingdom'] },
-  { id: 'camp-global-inst', name: 'Global Institutional Outlook', regions: [], channels: ['Institutional'], clientGroups: [] },
-  { id: 'camp-eu-ret', name: 'EU Retail Fund Update', regions: [], channels: ['Individual Investor'], clientGroups: ['Europe'] },
-]
+export const DEFAULT_CAMPAIGNS: CampaignEntry[] = PRESET_CAMPAIGNS
 
 // ─── Default Sign-off Signatures ────────────────────────────
 
@@ -356,7 +378,40 @@ export const DEFAULT_ASSETS: AssetEntry[] = [
     colourOverlay: '#221b3b',
     altText: 'Ninety One header 1044498000',
   },
+  ...PRESET_HEADER_ASSETS,
+  ...PRESET_PROFILE_ASSETS,
 ]
+
+// ─── Default Greetings ──────────────────────────────────────
+
+export const DEFAULT_GREETINGS: GreetingConfig[] = [
+  { id: 'greeting-internal',        label: 'Internal — Dear Colleague',     value: 'Dear Colleague,',                                          isDefault: false },
+  { id: 'greeting-investor',        label: 'Investor — Dear Investor',       value: 'Dear Investor,',                                           isDefault: false },
+  { id: 'greeting-hello',           label: 'Hello',                          value: 'Hello,',                                                   isDefault: false },
+  { id: 'greeting-standard-sa',     label: 'Standard SA — Dear Adviser',     value: 'Dear Financial Adviser,',                                  isDefault: false },
+  { id: 'greeting-standard-global', label: 'Standard Global',                value: 'Dear {{Recipient.FirstName}},',                            isDefault: false },
+  { id: 'greeting-broker-preferred',label: 'Broker — Preferred Name',        value: 'Dear {{Recipient.FirstName}},',                            isDefault: false },
+  { id: 'greeting-dear-last-name',  label: 'Dear Last Name',                 value: 'Dear {{Recipient.LastName}},',                             isDefault: false },
+  { id: 'greeting-korea',           label: 'Korea',                          value: '{{Recipient.FirstName}}님, 안녕하세요.',                  isDefault: false },
+  { id: 'greeting-japan',           label: 'Japan',                          value: '{{Recipient.LastName}}様',                                  isDefault: false },
+]
+
+// ─── Send Time Optimisation Defaults ────────────────────────
+
+const DEFAULT_SEND_TIME_OPTIMISATION = {
+  enabled: false,
+  minEventsRequired: 5,
+}
+
+// ─── Approvals Defaults ─────────────────────────────────────
+
+const DEFAULT_APPROVALS: ApprovalConfig = {
+  enabled: false,
+  defaultStages: [],
+  emailTypeConfigs: [],
+  selfServiceRequest: true,
+  blockDistributionWithoutApproval: false,
+}
 
 // ─── Campaign Insights Defaults ─────────────────────────────
 
@@ -371,6 +426,9 @@ const DEFAULT_CAMPAIGN_INSIGHTS: CampaignInsightsConfig = {
   showKeyInsights: true,
   showRecommendations: true,
 }
+
+const DEFAULT_BENCHMARKS: BenchmarksConfig = { enabled: false }
+const DEFAULT_AUDIENCE_HEALTH: AudienceHealthConfig = { enabled: false }
 
 // ─── Full Default Settings ──────────────────────────────────
 
@@ -408,5 +466,207 @@ export function createDefaultSettings(): AppSettings {
       },
     },
     campaignInsights: DEFAULT_CAMPAIGN_INSIGHTS,
+    approvals: DEFAULT_APPROVALS,
+    sendTimeOptimisation: DEFAULT_SEND_TIME_OPTIMISATION,
+    benchmarks: DEFAULT_BENCHMARKS,
+    audienceHealth: DEFAULT_AUDIENCE_HEALTH,
+    greetings: DEFAULT_GREETINGS,
+    notifications: DEFAULT_NOTIFICATIONS,
+    rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+    userGroups: [],
+    headers: DEFAULT_HEADER_TYPES,
+    powerAutomate: DEFAULT_POWER_AUTOMATE_CONFIG,
+    designBriefing: createDefaultDesignBriefingSettings(),
+    campaignPlanner: {
+      defaultView: 'kanban',
+      visibleColumns: ['briefed', 'in-progress', 'distributed'],
+      showAssignee: true,
+      showProgress: true,
+      allowManualCampaigns: true,
+    },
   }
+}
+
+// ─── Default Power Automate Config ──────────────────────────
+
+export const DEFAULT_POWER_AUTOMATE_CONFIG = {
+  enabled: false,
+  briefSubmissionFlow:  { webhookUrl: '', enabled: false },
+  listAnalysisFlow:     { webhookUrl: '', enabled: false },
+  campaignInsightsFlow: { webhookUrl: '', enabled: false },
+  secretHeaderName:  'x-api-key',
+  secretHeaderValue: '',
+  includeFullBrief:      true,
+  includeCampaignConfig: false,
+  includeKanbanData:     false,
+  retryOnFailure:   true,
+  timeoutSeconds:   30,
+  fieldMappings:    [] as import('../types/settings.types').PowerAutomateFieldMapping[],
+}
+
+// ─── Default Header Types ────────────────────────────────────
+
+export const DEFAULT_HEADER_TYPES: HeaderTypeConfig[] = [
+  {
+    id: 'standard',
+    label: 'Standard',
+    description: 'Logo, standard-height stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: true,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: '',
+    themeIds: [],
+  },
+  {
+    id: 'standard-bg-image',
+    label: 'Standard with Background Image',
+    description: 'Full photo background with dark overlay — logo, stripes, headline, and sub-headline over the image',
+    requiresHeroImage: true,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires a hero image (640 × 270 px recommended). The image is used as the header background with a dark overlay.',
+    themeIds: [],
+  },
+  {
+    id: 'slim',
+    label: 'Slim',
+    description: 'Logo, smaller-height stripes, headline, and sub-headline in a compact header',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: '',
+    themeIds: [],
+  },
+  {
+    id: 'standard-35yr',
+    label: 'Standard with 35-Year Logo',
+    description: 'Logo, 35-year anniversary graphic, standard stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires the 35-year graphic asset URL to be configured below.',
+    themeIds: [],
+  },
+  {
+    id: 'slim-35yr',
+    label: 'Slim with 35-Year Logo',
+    description: 'Logo, 35-year anniversary graphic, smaller stripes, headline, and sub-headline',
+    requiresHeroImage: false,
+    isDefault: false,
+    builtIn: true,
+    enabled: true,
+    htmlSnippet: '',
+    assets: {},
+    notes: 'Requires the 35-year graphic asset URL to be configured below.',
+    themeIds: [],
+  },
+]
+
+// ─── Default Role Permissions ────────────────────────────────
+
+const ALL_PERMISSION_KEYS: RolePermissionKey[] = [
+  'canSubmitBriefs',
+  'canViewAllBriefs',
+  'canEditAnyBrief',
+  'canDeleteBriefs',
+  'canViewKanban',
+  'canMoveKanbanCards',
+  'canDeleteKanbanCards',
+  'canViewAnalytics',
+  'canManageAssets',
+  'canManageTemplates',
+  'canExportData',
+  'canAccessSettings',
+  'canConfigureNotifications',
+  'canManageApprovals',
+  'canManageUsers',
+]
+
+function makePermissions(defaults: Partial<Record<RolePermissionKey, boolean>>): Record<RolePermissionKey, boolean> {
+  return Object.fromEntries(
+    ALL_PERMISSION_KEYS.map((k) => [k, defaults[k] ?? false])
+  ) as Record<RolePermissionKey, boolean>
+}
+
+export const DEFAULT_ROLE_PERMISSIONS: RolePermissionConfig = {
+  admin: makePermissions(Object.fromEntries(ALL_PERMISSION_KEYS.map((k) => [k, true]))),
+  producer: makePermissions({
+    canSubmitBriefs: true,
+    canViewAllBriefs: true,
+    canEditAnyBrief: true,
+    canDeleteBriefs: false,
+    canViewKanban: true,
+    canMoveKanbanCards: true,
+    canDeleteKanbanCards: true,
+    canViewAnalytics: true,
+    canManageAssets: true,
+    canManageTemplates: true,
+    canExportData: true,
+    canAccessSettings: true,
+    canConfigureNotifications: true,
+    canManageApprovals: true,
+    canManageUsers: false,
+  }),
+  requester: makePermissions({
+    canSubmitBriefs: true,
+    canViewKanban: true,
+  }),
+}
+
+// ─── Default Design Briefing Settings ────────────────────────────────────────
+
+export function createDefaultDesignBriefingSettings(): DesignBriefingSettings {
+  return {
+    enabled: true,
+    defaultRequesterName: '',
+    defaultRequesterEmail: '',
+    allowMockups: true,
+    maxAttachments: 10,
+    assetTypes: DESIGN_ASSET_TYPES.map((assetType) => ({
+      id: assetType.id,
+      enabled: true,
+      fields: assetType.fields.map((field, idx) => ({
+        id: field.id,
+        visible: true,
+        order: idx,
+      })),
+    })),
+  }
+}
+
+// ─── Default Notifications ────────────────────────────────────────────────────
+
+const DEFAULT_NOTIFICATION_EVENTS: NotificationEventConfig[] = (
+  Object.keys(NOTIFICATION_EVENT_META) as NotificationEventType[]
+).map((eventType) => ({
+  eventType,
+  enabled: false,
+  webhookUrl: '',
+  subjectTemplate: NOTIFICATION_EVENT_META[eventType].defaultSubject,
+  sendToRequester: true,
+  sendToTeam: false,
+  additionalRecipients: '',
+  includeFullPayload: true,
+}))
+
+export const DEFAULT_NOTIFICATIONS: NotificationsSettings = {
+  enabled: false,
+  globalWebhookUrl: '',
+  retryOnFailure: true,
+  maxRetries: 3,
+  logDelivery: true,
+  deadlineWarningHours: 48,
+  events: DEFAULT_NOTIFICATION_EVENTS,
 }

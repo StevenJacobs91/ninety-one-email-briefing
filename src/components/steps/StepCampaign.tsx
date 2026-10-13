@@ -2,16 +2,18 @@ import { useState, useEffect, useMemo } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import {
-  EMAIL_TYPES, EMAIL_TYPE_LABELS, BRAND_THEMES, CLIENT_GROUPS, CHANNELS,
-  CLIENT_GROUP_REGIONS, URGENCY_OPTIONS,
+  EMAIL_TYPES, EMAIL_TYPE_LABELS, CLIENT_GROUPS, CHANNELS,
+  CLIENT_GROUP_REGIONS,
 } from '../../lib/constants'
+import type { BrandThemeConfig } from '../../types/settings.types'
 import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { SubSection } from '../ui/SubSection'
-import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { StepAudience } from './StepAudience'
+import { SendTimeSuggestion } from './SendTimeSuggestion'
 
 // Merge built-in array with custom settings items, deduplicating by value
 function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
@@ -21,7 +23,7 @@ function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
 }
 
 // ─── Tags builder ──────────────────────────────────────────────────────────────
-function buildTags(data: BriefFormData): string {
+function buildTags(data: BriefFormData, themes: BrandThemeConfig[] = []): string {
   const now = new Date()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const yy = String(now.getFullYear()).slice(-2)
@@ -30,7 +32,7 @@ function buildTags(data: BriefFormData): string {
   const namePart = data.campaign.campaignName || 'untitled'
   const emailName = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
 
-  const themeLabel = BRAND_THEMES.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
+  const themeLabel = themes.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
 
   return [
     `parent - ${emailName}`,
@@ -48,6 +50,7 @@ function buildTags(data: BriefFormData): string {
 export function StepCampaign() {
   const { register, watch, formState: { errors }, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
+  const { profile } = useAuth()
 
   // ── Campaign fields ──
   const emailDescription = watch('campaign.emailDescription') ?? ''
@@ -58,11 +61,6 @@ export function StepCampaign() {
   const selectedClientGroups = watch('audience.clientGroup') ?? []
   const selectedRegions = watch('audience.region') ?? []
   const selectedChannels = watch('audience.channel') ?? []
-
-  const emailName = useMemo(
-    () => buildEmailName(campaignName, selectedRegions, selectedChannels, emailDescription),
-    [campaignName, selectedRegions, selectedChannels, emailDescription]
-  )
 
   const allCampaigns = settings.campaigns ?? []
 
@@ -150,6 +148,7 @@ export function StepCampaign() {
       if (cp.heroImageUrl) set('assets.heroImageUrl', cp.heroImageUrl)
       if (cp.signatureId) set('content.footerSignoffId', cp.signatureId)
       if (cp.pardotListId) set('audience.pardotListId', cp.pardotListId)
+      if (cp.greetingId) set('content.greetingId', cp.greetingId)
       if (cp.disclaimerId) {
         const disclaimerEntry = (settings.legalDisclaimers ?? []).find((d) => d.id === cp.disclaimerId)
         if (disclaimerEntry) set('content.legalDisclaimer', disclaimerEntry.text)
@@ -178,13 +177,26 @@ export function StepCampaign() {
     }
   }
 
+  // ── Auto-apply user presets on first load if fields are empty ──
+  useEffect(() => {
+    if (!profile) return
+    const cgs = profile.presetClientGroups ?? []
+    const regs = profile.presetRegions ?? []
+    if (cgs.length > 0 && selectedClientGroups.length === 0) {
+      setValue('audience.clientGroup', cgs as never, { shouldValidate: false })
+    }
+    if (regs.length > 0 && selectedRegions.length === 0) {
+      setValue('audience.region', regs as never, { shouldValidate: false })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
+
   // ── Deadlines fields ──
   const notes = watch('deadlines.notes') ?? ''
-  const contentApprovalDate = watch('deadlines.contentApprovalDate') ?? ''
   const today = new Date().toISOString().split('T')[0]
   const data = watch()
 
-  const tags = useMemo(() => buildTags(data as BriefFormData), [data])
+  const tags = useMemo(() => buildTags(data as BriefFormData, settings.brandThemes ?? []), [data, settings.brandThemes])
 
   useEffect(() => {
     setValue('deadlines.tags', tags)
@@ -204,103 +216,59 @@ export function StepCampaign() {
 
   return (
     <div>
-      <h2 className="font-ni-display text-brand-primary dark:text-gray-100 text-2xl mb-1">
-        {emailName && emailName !== `${new Date().toLocaleString('en-US', { month: '2-digit' }).padStart(2, '0')}${String(new Date().getFullYear()).slice(-2)} TBD TBD Untitled`
-          ? emailName
-          : 'New Email Brief'}
-      </h2>
-      {campaignName ? (
-        <p className="text-sm text-brand-text-muted dark:text-gray-400 mb-8">Campaign Details</p>
-      ) : (
-        <p className="text-sm text-brand-text-muted dark:text-gray-400 mb-8">Fill in the fields below to begin your email brief.</p>
-      )}
-
       {/* Sub-section: Deadlines */}
       <SubSection title="Deadlines">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldText
-            label="Content Approval Date"
-            registration={register('deadlines.contentApprovalDate')}
-            error={errors.deadlines?.contentApprovalDate}
-            required
-            type="date"
-            min={today}
+        {settings.sendTimeOptimisation?.enabled && profile?.teamId && (
+          <SendTimeSuggestion
+            teamId={profile.teamId}
+            emailType={watch('campaign.emailType') ?? ''}
+            enabled={settings.sendTimeOptimisation.enabled}
+            onApply={(isoDate) => {
+              const dateOnly = isoDate.split('T')[0]
+              setValue('deadlines.sendDate', dateOnly, { shouldValidate: true })
+            }}
           />
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
           <FieldText
             label="Send Date"
             registration={register('deadlines.sendDate')}
             error={errors.deadlines?.sendDate}
             required
             type="date"
-            min={contentApprovalDate || today}
+            min={today}
           />
-        </div>
-
-        {/* Urgency */}
-        <div>
-          <p id="urgency-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Urgency<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-          </p>
-          <div className="flex gap-3" role="radiogroup" aria-labelledby="urgency-label">
-            {URGENCY_OPTIONS.map((opt) => {
-              const selected = watch('deadlines.urgency') === opt
-              return (
-                <label
-                  key={opt}
-                  className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
-                    selected
-                      ? opt === 'urgent'
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-brand-primary text-white border-brand-primary'
-                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    {...register('deadlines.urgency')}
-                    value={opt}
-                    className="sr-only"
-                  />
-                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                </label>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 1-1 Required */}
-        <div>
-          <p id="one-on-one-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            1-1 Required?
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Does this email require a personalised one-to-one send (e.g. individual adviser targeting)?
-          </p>
-          <div className="flex gap-3" role="radiogroup" aria-labelledby="one-on-one-label">
-            {(['yes', 'no'] as const).map((opt) => {
-              const isYes = opt === 'yes'
-              const selected = isYes
-                ? watch('deadlines.oneOnOneRequired') === true
-                : watch('deadlines.oneOnOneRequired') === false
-              return (
-                <label
-                  key={opt}
-                  className={`flex-1 text-center py-2 rounded-md border text-sm font-medium cursor-pointer transition-colors ${
-                    selected
-                      ? 'bg-brand-primary text-white border-brand-primary'
-                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    checked={selected}
-                    onChange={() => setValue('deadlines.oneOnOneRequired', isYes, { shouldValidate: true })}
-                    className="sr-only"
-                  />
-                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                </label>
-              )
-            })}
+          {/* 1-1 Required — two-segment Yes / No control */}
+          <div className="mb-4">
+            <p className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
+              1-1 Required?
+            </p>
+            <div className="flex w-full border border-brand-border-field dark:border-gray-600 overflow-hidden" role="group" aria-label="1-1 required">
+              <button
+                type="button"
+                onClick={() => setValue('deadlines.oneOnOneRequired', false, { shouldValidate: true })}
+                aria-pressed={watch('deadlines.oneOnOneRequired') === false}
+                className={`flex-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
+                  watch('deadlines.oneOnOneRequired') === false
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue('deadlines.oneOnOneRequired', true, { shouldValidate: true })}
+                aria-pressed={watch('deadlines.oneOnOneRequired') === true}
+                className={`flex-1 py-3 text-sm font-medium transition-colors border-l border-brand-border-field dark:border-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
+                  watch('deadlines.oneOnOneRequired') === true
+                    ? 'bg-brand-primary text-white border-brand-primary'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                Yes
+              </button>
+            </div>
           </div>
         </div>
 
@@ -470,99 +438,102 @@ export function StepCampaign() {
           )}
         </div>
 
-        {/* Campaign selector — filtered by region + channel */}
-        <div>
-          <p id="campaign-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Campaign<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-          </p>
-          {allCampaigns.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-              No campaigns configured. Add campaigns in <strong>Settings → Campaigns</strong>.
+        {/* Campaign + Theme — 2-column side-by-side layout */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Campaign selector — filtered by region + channel */}
+          <div>
+            <p id="campaign-label" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+              Campaign<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </p>
-          ) : availableCampaigns.length === 0 ? (
-            <div className="px-3 py-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 italic">
-              No campaigns match the selected region and audience. Adjust your Targeting selection or add campaigns in Settings.
-            </div>
-          ) : (
+            {allCampaigns.length === 0 ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                No campaigns configured. Add campaigns in <strong>Settings → Campaigns</strong>.
+              </p>
+            ) : availableCampaigns.length === 0 ? (
+              <div className="px-3 py-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 italic">
+                No campaigns match the selected targeting. Adjust Targeting or add campaigns in Settings.
+              </div>
+            ) : (
+              <div className="relative">
+                <div
+                  className="grid grid-cols-1 gap-1.5 max-h-52 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
+                  role="radiogroup"
+                  aria-labelledby="campaign-label"
+                >
+                  {availableCampaigns.map((c) => (
+                    <label
+                      key={c.id}
+                      role="radio"
+                      aria-checked={campaignName === c.name}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
+                        campaignName === c.name
+                          ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        value={c.name}
+                        checked={campaignName === c.name}
+                        onChange={() => handleCampaignSelect(c.name)}
+                        className="sr-only"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-tight">{c.name}</p>
+                        {(c.regions.length > 0 || c.channels.length > 0) && (
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                            {[...c.regions, ...c.channels].join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
+              </div>
+            )}
+            {errors.campaign?.campaignName && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.campaignName.message}</p>
+            )}
+          </div>
+
+          {/* Theme selector */}
+          <div>
+            <p id="theme-label" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+              Brand Theme<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+            </p>
             <div className="relative">
               <div
-                className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
+                className="grid grid-cols-1 gap-1.5 max-h-52 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
                 role="radiogroup"
-                aria-labelledby="campaign-label"
+                aria-labelledby="theme-label"
               >
-                {availableCampaigns.map((c) => (
+                {(settings.brandThemes ?? []).map((theme) => (
                   <label
-                    key={c.id}
+                    key={theme.id}
                     role="radio"
-                    aria-checked={campaignName === c.name}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors ${
-                      campaignName === c.name
+                    aria-checked={selectedTheme === theme.id}
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
+                      selectedTheme === theme.id
                         ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      value={c.name}
-                      checked={campaignName === c.name}
-                      onChange={() => handleCampaignSelect(c.name)}
-                      className="sr-only"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">{c.name}</p>
-                      {(c.regions.length > 0 || c.channels.length > 0) && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                          {[...c.regions, ...c.channels].join(' · ')}
-                        </p>
-                      )}
+                    <input type="radio" {...register('campaign.theme')} value={theme.id} className="sr-only" />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
+                      <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
                     </div>
+                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">{theme.label}</span>
                   </label>
                 ))}
               </div>
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
             </div>
-          )}
-          {errors.campaign?.campaignName && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.campaignName.message}</p>
-          )}
-        </div>
-
-        {/* Theme selector */}
-        <div className="mb-4">
-          <p id="theme-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Brand Theme<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-          </p>
-          <div className="relative">
-            <div
-              className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
-              role="radiogroup"
-              aria-labelledby="theme-label"
-            >
-              {BRAND_THEMES.map((theme) => (
-                <label
-                  key={theme.id}
-                  role="radio"
-                  aria-checked={selectedTheme === theme.id}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors ${
-                    selectedTheme === theme.id
-                      ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  <input type="radio" {...register('campaign.theme')} value={theme.id} className="sr-only" />
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-5 h-5 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
-                    <span className="w-3.5 h-3.5 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
-                  </div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{theme.label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
+            {errors.campaign?.theme && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.theme.message}</p>
+            )}
           </div>
-          {errors.campaign?.theme && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.theme.message}</p>
-          )}
         </div>
       </SubSection>
 
@@ -575,8 +546,8 @@ export function StepCampaign() {
           registration={register('campaign.subjectLine')}
           error={errors.campaign?.subjectLine}
           required
-          placeholder="Max 60 characters"
-          maxLength={60}
+          placeholder="Suggested: up to 60 characters"
+          suggestedLength={60}
           currentLength={subjectLine.length}
         />
 
@@ -585,8 +556,8 @@ export function StepCampaign() {
           registration={register('campaign.previewText')}
           error={errors.campaign?.previewText}
           required
-          placeholder="Max 90 characters"
-          maxLength={90}
+          placeholder="Suggested: up to 90 characters"
+          suggestedLength={90}
           currentLength={previewText.length}
         />
       </SubSection>
@@ -619,12 +590,19 @@ export function StepCampaign() {
           type="email"
           placeholder="Optional — reply@ninetyone.com"
         />
+
+        <FieldText
+          label="UTM Campaign"
+          registration={register('campaign.utmCampaign')}
+          placeholder="e.g. taking-stock-sa-q2-2026"
+          hint="Applied as utm_campaign= on all links in the generated email"
+        />
       </SubSection>
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
-      {/* Auto-generated Tags */}
-      <SubSection title="Tags">
+      {/* Auto-generated Tags — visibility controlled by Settings → General → Show Tags section */}
+      {(settings.formDefaults.showTagsSection ?? true) && <SubSection title="Tags">
         <div className="flex items-center justify-between mb-1">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Auto-generated Tags
@@ -658,7 +636,7 @@ export function StepCampaign() {
         <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
           {tags || '—'}
         </div>
-      </SubSection>
+      </SubSection>}
 
       <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 

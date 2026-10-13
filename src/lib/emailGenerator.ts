@@ -55,6 +55,8 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): 
   const sections = brief.content.sections
   const cta = brief.content.cta
   const campaignName = brief.campaign.campaignName ?? ''
+  // Use explicit UTM campaign value if provided, otherwise fall back to campaign name
+  const utmValue = brief.campaign.utmCampaign?.trim() || campaignName
 
   // Generate HTML for selected modules
   const selectedModules = brief.content.modules ?? []
@@ -85,7 +87,7 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): 
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(s.body, campaignName)}</p>
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(s.body, utmValue)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -213,7 +215,7 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): 
             </td>
           </tr>`
 
-  const ctaUrl = appendUtm(cta.url, campaignName)
+  const ctaUrl = appendUtm(cta.url, utmValue)
   const ctaTarget = cta.openInNewTab ? ' target="_blank"' : ''
   const ctaBlock = `
           <!-- Primary CTA -->
@@ -243,15 +245,38 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): 
             </td>
           </tr>`
 
-  const bodyIntroBlock = `
-          <!-- Body Intro -->
+  // Resolve greeting text from settings
+  const greetingText = brief.content.greetingId
+    ? (settings?.greetings ?? []).find((g) => g.id === brief.content.greetingId)?.value
+    : undefined
+
+  const greetingBlock = greetingText
+    ? `
+          <!-- Greeting -->
           <tr>
-            <td bgcolor="" class="stack-mobile-none darkmode" style="padding: 30px 40px 30px 40px;">
+            <td bgcolor="" class="stack-mobile-none darkmode" style="padding: 30px 40px 0px 40px;">
               <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
                 <tbody>
                   <tr>
                     <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
-                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(brief.content.bodyIntro, campaignName)}</p>
+                      <p pardot-region="greeting" style="margin: 0px 0 0px;">${escapeHtml(greetingText)}</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>`
+    : ''
+
+  const bodyIntroBlock = `
+          <!-- Body Intro -->
+          <tr>
+            <td bgcolor="" class="stack-mobile-none darkmode" style="padding: ${greetingText ? '10px' : '30px'} 40px 30px 40px;">
+              <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                <tbody>
+                  <tr>
+                    <td class="stack-column" style="font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule:exactly; line-height: 22px; color: #e8e5ce; font-weight: normal;">
+                      <p pardot-region="paragraph" style="margin: 0px 0 0px;">${sanitizeRichHtml(brief.content.bodyIntro, utmValue)}</p>
                     </td>
                   </tr>
                 </tbody>
@@ -352,6 +377,7 @@ h3 { color: ${accent} !important; }
           <table align="center" bgcolor="${primary}" border="0" cellpadding="0" cellspacing="0" class="email-container" role="presentation" width="640">
             <tbody>
 ${heroBlock}
+${greetingBlock}
 ${bodyIntroBlock}
 ${sectionBlocks}
 ${moduleBlocks}
