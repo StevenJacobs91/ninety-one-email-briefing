@@ -34,7 +34,7 @@ jobs:
 
       - name: Create deployment package
         run: | 
-          zip -r -q deploy.zip dist agents "Themes and Modules" node_modules package.json package-lock.json
+          zip -r -q deploy.zip dist scripts agents "Themes and Modules" node_modules package.json package-lock.json
         
       - name: Azure login (OIDC)
         uses: azure/login@v3
@@ -50,4 +50,5 @@ jobs:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           slot-name: "production"
           package: deploy.zip
-          startup-command: "pm2 serve /home/site/wwwroot/dist --no-daemon --spa"
+          # wwwroot is read-only (run-from-package), so copy dist to /tmp, inject env.js there, and serve from there
+          startup-command: "chmod -R u+w /tmp/site 2>/dev/null; rm -rf /tmp/site && cp -r /home/site/wwwroot/dist /tmp/site && chmod -R u+w /tmp/site && node /home/site/wwwroot/scripts/write-env.cjs /tmp/site && pm2 serve /tmp/site --no-daemon --spa"

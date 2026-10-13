@@ -1,5 +1,8 @@
 /* ─────────────────────────────────────────────────────────────────────────
    Ninety One Brand Fonts
+   Self-hosted from public/fonts/ — the Pardot host (weare.ninetyone.com)
+   sends no CORS headers, so browsers refuse to load fonts from it directly.
+   To refresh the files, run: npm run fonts:fetch
    ───────────────────────────────────────────────────────────────────────── */
 
 /* Titles — Ninety One Visuelt Display */
@@ -7,8 +10,7 @@
   font-family: 'Ninety One Visuelt Display';
   src: local('Ninety One Visuelt Display'),
        local('Ninety-One-Visuelt-Display'),
-       url('Ninety One Visuelt Display.ttf') format('truetype'),
-       url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+       url('/fonts/NinetyOneVisueltDisplay_Regular.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -17,7 +19,7 @@
 /* Headings — Ninety One Visuelt Regular */
 @font-face {
   font-family: 'Ninety One Visuelt';
-  src: url('https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff') format('woff');
+  src: url('/fonts/NinetyOneVisueltDisplay_Regular.woff') format('woff');
   font-weight: 200;
   font-style: normal;
   font-display: swap;
@@ -26,7 +28,7 @@
 /* Paragraphs / UI body — Ninety One Visuelt Light */
 @font-face {
   font-family: 'Ninety One Visuelt Light';
-  src: url('https://weare.ninetyone.com/l/28902/2020-10-19/8zs4jq/28902/1603114661MAzRiC9E/NinetyOneVisuelt_Light.woff') format('woff');
+  src: url('/fonts/NinetyOneVisuelt_Light.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -35,7 +37,7 @@
 /* Bold / emphasis — Ninety One Visuelt Medium */
 @font-face {
   font-family: 'Ninety One Visuelt Medium';
-  src: url('https://weare.ninetyone.com/l/28902/2020-07-13/8x6784/28902/249453/NinetyOneVisuelt_Medium.woff') format('woff');
+  src: url('/fonts/NinetyOneVisuelt_Medium.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

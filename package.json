@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "build:prod": "vite build --mode prod"
+    "build:prod": "vite build --mode prod",
+    "fonts:fetch": "node scripts/fetch-fonts.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
