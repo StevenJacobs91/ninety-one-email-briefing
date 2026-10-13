@@ -13,6 +13,20 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", ".", "-p", "5174", "--no-clipboard"],
       "port": 5174
+    },
+    {
+      "name": "preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "4173"],
+      "env": {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},
+      "port": 4173
+    },
+    {
+      "name": "vercel",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vercel", "dev", "--listen", "3000"],
+      "env": {"PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},
+      "port": 3000
     }
   ]
 }

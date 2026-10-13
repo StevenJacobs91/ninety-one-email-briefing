@@ -25,7 +25,7 @@ function deriveTints(primary: string) {
 export function TabThemes() {
   const { settings, updateSettings } = useSettings()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<BrandThemeConfig>({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96' })
+  const [draft, setDraft] = useState<BrandThemeConfig>({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96', defaultTextColour: '#e8e5ce' })
   const [isAdding, setIsAdding] = useState(false)
 
   const themes = settings.brandThemes
@@ -45,7 +45,7 @@ export function TabThemes() {
   const startAdd = () => {
     setIsAdding(true)
     setEditingId(null)
-    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96', logoUrl: '', stripeUrl: '', footerLogoUrl: '' })
+    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96', defaultTextColour: '#e8e5ce', logoUrl: '', stripeUrl: '', footerLogoUrl: '' })
   }
 
   const cancelEdit = () => {
@@ -71,7 +71,7 @@ export function TabThemes() {
       brandThemes: [...themes, { ...draft, id }],
     })
     setIsAdding(false)
-    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96' })
+    setDraft({ id: '', label: '', primary: '#134848', ...deriveTints('#134848'), accent: '#fbaa96', defaultTextColour: '#e8e5ce' })
   }
 
   const removeTheme = (id: string) => {
@@ -155,10 +155,21 @@ export function TabThemes() {
                   <p className="text-xs text-gray-400 font-mono">{theme.id}</p>
                 </div>
 
-                {/* Colour codes */}
-                <div className="hidden sm:flex gap-2 text-xs font-mono text-gray-400 shrink-0">
-                  <span title="Primary">{theme.primary}</span>
-                  <span title="Accent">{theme.accent}</span>
+                {/* Colour codes + text colour pill */}
+                <div className="hidden sm:flex items-center gap-3 shrink-0">
+                  <div className="flex gap-2 text-xs font-mono text-gray-400">
+                    <span title="Primary">{theme.primary}</span>
+                    <span title="Accent">{theme.accent}</span>
+                  </div>
+                  {theme.defaultTextColour && (
+                    <span
+                      title={`Default text: ${theme.defaultTextColour === '#e8e5ce' ? 'Cream' : 'Charcoal'} (${theme.defaultTextColour})`}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium border border-black/10"
+                      style={{ background: theme.primary, color: theme.defaultTextColour }}
+                    >
+                      Aa
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -248,6 +259,49 @@ function ThemeEditRow({
           </div>
         ))}
       </div>
+      {/* Default text colour */}
+      <div className="mb-3">
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+          Default Text Colour
+          <span className="ml-1.5 font-normal text-gray-400">(body text on the primary background)</span>
+        </label>
+        <div className="flex gap-2">
+          {([
+            { value: '#e8e5ce' as const, label: 'Cream', description: 'For dark primary backgrounds' },
+            { value: '#424242' as const, label: 'Charcoal', description: 'For light primary backgrounds' },
+          ] as const).map(({ value, label, description }) => {
+            const selected = (draft.defaultTextColour ?? '#e8e5ce') === value
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onChange({ ...draft, defaultTextColour: value })}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-all ${
+                  selected
+                    ? 'border-brand-primary dark:border-brand-accent ring-1 ring-brand-primary/30'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+                }`}
+              >
+                {/* Swatch: primary bg with the text colour as sample text */}
+                <span
+                  className="flex items-center justify-center w-8 h-8 rounded font-bold text-sm border border-black/10 shrink-0"
+                  style={{ background: draft.primary || '#134848', color: value }}
+                >
+                  Aa
+                </span>
+                <span className="min-w-0">
+                  <span className={`block text-xs font-semibold ${selected ? 'text-brand-primary dark:text-brand-accent' : 'text-gray-700 dark:text-gray-300'}`}>
+                    {label}
+                  </span>
+                  <span className="block text-[10px] text-gray-400 font-mono">{value}</span>
+                  <span className="block text-[10px] text-gray-400">{description}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Asset URLs */}
       <div className="space-y-2 mb-3">
         <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Email Asset URLs</p>
@@ -270,12 +324,28 @@ function ThemeEditRow({
       </div>
 
       {/* Preview */}
-      <div className="flex items-center gap-3 mb-3 p-2 rounded border border-gray-200 dark:border-gray-600">
-        <div className="flex gap-1">
-          <span className="w-6 h-6 rounded-full" style={{ backgroundColor: draft.primary }} />
-          <span className="w-4 h-4 rounded-full mt-1" style={{ backgroundColor: draft.accent }} />
+      <div className="flex items-center gap-3 mb-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+        {/* Mini email header mockup */}
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded flex-1"
+          style={{ background: draft.primary }}
+        >
+          <span className="w-5 h-5 rounded-sm" style={{ background: draft.accent }} />
+          <span
+            className="text-xs font-medium truncate"
+            style={{ color: draft.defaultTextColour ?? '#e8e5ce' }}
+          >
+            {draft.label || 'Theme preview'}
+          </span>
+          <span
+            className="ml-auto text-[10px] font-mono shrink-0"
+            style={{ color: draft.defaultTextColour ?? '#e8e5ce', opacity: 0.6 }}
+          >
+            Aa
+          </span>
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">{draft.label || 'Preview'}</span>
+        {/* Accent swatch */}
+        <span className="w-6 h-8 rounded shrink-0" style={{ backgroundColor: draft.accent }} title={`Accent: ${draft.accent}`} />
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={onSave} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">

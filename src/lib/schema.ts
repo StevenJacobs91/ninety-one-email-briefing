@@ -27,11 +27,12 @@ const campaignSchema = z.object({
   emailType: z.string().min(1, 'Email type is required'),
   campaignName: z.string().min(1, 'Campaign name is required'),
   theme: z.string().min(1, 'Theme is required'),
-  subjectLine: z.string().min(1, 'Subject line is required').max(60, 'Max 60 characters'),
-  previewText: z.string().min(1, 'Preview text is required').max(90, 'Max 90 characters'),
+  subjectLine: z.string().min(1, 'Subject line is required'),
+  previewText: z.string().min(1, 'Preview text is required'),
   fromName: z.string().min(1, 'From name is required'),
   fromAddress: z.string().email('Must be a valid email address'),
   replyToEmail: z.string().email('Must be a valid email address').or(z.literal('')).optional(),
+  utmCampaign: z.string().optional(),
 })
 
 const distributionListSchema = z.object({
@@ -67,6 +68,7 @@ const audienceSchema = z.object({
 const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
+  greetingId: z.string().optional(),
   bodyIntro: z.string().min(1, 'Body intro is required'),
   sections: z.array(contentSectionSchema).min(1, 'At least one section required').max(4, 'Max 4 sections'),
   modules: z.array(z.string()),
@@ -85,6 +87,7 @@ const assetAttachmentSchema = z.object({
 })
 
 const assetSchema = z.object({
+  headerType: z.string().optional().default('standard'),
   logoVariant: z.enum(LOGO_VARIANTS),
   stripeColour: z.string().optional(),
   heroImageUrl: z.string().optional().refine(
@@ -97,9 +100,9 @@ const assetSchema = z.object({
 })
 
 const deadlineSchema = z.object({
-  contentApprovalDate: z.string().min(1, 'Content approval date is required'),
+  contentApprovalDate: z.string().optional().default(''),
   sendDate: z.string().min(1, 'Send date is required'),
-  urgency: z.enum(URGENCY_OPTIONS),
+  urgency: z.enum(URGENCY_OPTIONS).default('standard'),
   oneOnOneRequired: z.boolean(),
   notes: z.string().max(300, 'Max 300 characters').optional(),
   tags: z.string().optional(),
@@ -126,17 +129,7 @@ export const briefSchema = z.object({
       })
     }
   }),
-  deadlines: deadlineSchema.superRefine((data, ctx) => {
-    if (data.contentApprovalDate && data.sendDate) {
-      if (new Date(data.sendDate) <= new Date(data.contentApprovalDate)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Send date must be after content approval date',
-          path: ['sendDate'],
-        })
-      }
-    }
-  }),
+  deadlines: deadlineSchema,
 })
 
 export type BriefFormData = z.infer<typeof briefSchema>

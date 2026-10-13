@@ -25,6 +25,7 @@ export interface CampaignDetails {
   fromName: string
   fromAddress: string
   replyToEmail?: string
+  utmCampaign?: string
 }
 
 export interface DistributionListFile {
@@ -45,9 +46,11 @@ export interface AudienceDetails {
 export interface ContentDetails {
   headline: string
   subHeadline?: string
+  greetingId?: string
   bodyIntro: string
   sections: ContentSection[]
   modules: string[]
+  moduleNotes?: Record<string, string>
   cta: CallToAction
   legalDisclaimer?: string
   includeUnsubscribe: boolean
@@ -74,6 +77,7 @@ export interface AssetAttachment {
 }
 
 export interface AssetDetails {
+  headerType?: string
   logoVariant: 'horizontal' | 'stacked' | 'icon'
   stripeColour?: string
   heroImageUrl?: string

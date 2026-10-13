@@ -30,9 +30,9 @@ export interface PardotConfig {
   /** Salesforce Account Engagement Business Unit ID (18-char) */
   businessUnitId: string
   /**
-   * URL of your proxy that forwards to the Pardot v5 REST API.
+   * Base URL of the API proxy (the app's own /api route on Vercel).
+   * Example: https://your-app.vercel.app/api
    * Required when useMockData = false.
-   * Example: https://your-worker.workers.dev/pardot
    */
   apiProxyUrl: string
   /**
@@ -40,6 +40,12 @@ export interface PardotConfig {
    * (some EU customers use https://pi.eu.pardot.com)
    */
   instanceUrl: string
+  /** Salesforce Connected App Consumer Key — forwarded to proxy for OAuth */
+  clientId?: string
+  /** Salesforce Connected App Consumer Secret — forwarded to proxy for OAuth */
+  clientSecret?: string
+  /** "production" | "sandbox" — determines which Salesforce login domain to use */
+  environment?: 'production' | 'sandbox'
 }
 
 export interface PardotListMeta {
@@ -115,14 +121,18 @@ async function fetchLiveAnalysis(
   config: PardotConfig
 ): Promise<PardotFetchResult> {
   try {
-    const url = `${config.apiProxyUrl.replace(/\/$/, '')}/lists/${encodeURIComponent(listId)}`
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Pardot-Business-Unit-Id': config.businessUnitId,
-      },
-    })
+    // Route through the built-in Vercel proxy at /api/pardot/lists/:listId
+    const url = `${config.apiProxyUrl.replace(/\/$/, '')}/pardot/lists/${encodeURIComponent(listId)}`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Pardot-Business-Unit-Id': config.businessUnitId,
+    }
+    // Forward OAuth credentials to the proxy (it exchanges them server-side)
+    if (config.clientId)     headers['X-Pardot-Client-Id']     = config.clientId
+    if (config.clientSecret) headers['X-Pardot-Client-Secret'] = config.clientSecret
+    if (config.environment)  headers['X-Pardot-Environment']   = config.environment
+
+    const res = await fetch(url, { method: 'GET', headers })
 
     if (!res.ok) {
       const text = await res.text().catch(() => `HTTP ${res.status}`)
