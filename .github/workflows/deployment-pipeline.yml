@@ -5,7 +5,6 @@ on:
     branches:
     - main
     - feat/pipeline
-    - fix/ny1-email-brief
   workflow_dispatch:
 
 permissions:
@@ -45,7 +44,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Web App
-        #if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
