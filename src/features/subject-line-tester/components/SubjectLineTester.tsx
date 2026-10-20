@@ -1,6 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { createMockDeps } from '../adapters/mock/createMockDeps'
 import { renderMergeTags } from '../engine/mergeTags'
+import type { SuggestionProvider } from '../adapters/SuggestionProvider'
+import { createMockSuggestionProvider } from '../adapters/mock/mockSuggestionProvider'
+import { FEATURE_FLAGS } from '../featureFlags'
+import { SuggestionsPanel } from './SuggestionsPanel'
 import { InboxPreview } from './InboxPreview/InboxPreview'
 import type { PartialTesterConfig } from '../engine/config'
 import type { AnalyzerDeps } from '../engine/context'
@@ -31,13 +35,16 @@ interface Props {
   /** Show the "Test now" button (standalone page). */
   showTestNow?: boolean
   onChange?: (fields: SubjectFields) => void
+  /** AI rewrite suggestions (phase 5). Off unless the feature flag or this prop turns it on. */
+  enableSuggestions?: boolean
+  suggestionProvider?: SuggestionProvider
   /** Hide the inbox preview (the compact variant in the builder shows it only on request). */
   showPreview?: boolean
   /** Replaces the default inbox preview. */
   renderPreview?: (input: AnalysisInput, result: AnalysisResult) => ReactNode
 }
 
-export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTestNow = false, onChange, showPreview = true, renderPreview }: Props) {
+export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTestNow = false, onChange, enableSuggestions = FEATURE_FLAGS.suggestions, suggestionProvider, showPreview = true, renderPreview }: Props) {
   const [fields, setFields] = useState<SubjectFields>({
     subject: initial?.subject ?? '',
     senderName: initial?.senderName ?? '',
@@ -82,6 +89,17 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
           <CategoryCard key={c.id} category={c} metric={metricLine(result, c.id)} />
         ))}
       </div>
+
+      {enableSuggestions && (
+        <SuggestionsPanel
+          subject={fields.subject}
+          result={result}
+          provider={suggestionProvider ?? createMockSuggestionProvider(deps.lexicon)}
+          deps={deps}
+          config={config}
+          onUse={(subject) => update({ ...fields, subject })}
+        />
+      )}
 
       {renderPreview ? (
         renderPreview(input, result)
