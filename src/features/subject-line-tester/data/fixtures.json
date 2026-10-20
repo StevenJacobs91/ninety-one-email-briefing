@@ -1,0 +1,341 @@
+[
+  {
+    "id": "seed-clean",
+    "subject": "Your 50% off gift is waiting",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false
+    }
+  },
+  {
+    "id": "seed-merge-tag",
+    "subject": "Hi {{Recipient.FirstName}}, your Q4 outlook is here",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false,
+      "chars": 37,
+      "rendered": "Hi Alexandra, your Q4 outlook is here"
+    }
+  },
+  {
+    "id": "seed-mobile-only",
+    "subject": "Register to join | Navigating a rapidly changing market",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "LEN-03"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "seed-long",
+    "subject": "Navigating a rapidly changing world: Q4 market outlook and what it means for your portfolio",
+    "expect": {
+      "score": 75,
+      "failures": [
+        "LEN-02",
+        "LEN-03",
+        "LEN-04"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "seed-spam-caps-punct",
+    "subject": "FREE MONEY!!! Act now",
+    "expect": {
+      "score": 60,
+      "failures": [
+        "WRD-01",
+        "WRD-02",
+        "WRD-03"
+      ],
+      "capped": true
+    }
+  },
+  {
+    "id": "empty",
+    "subject": "",
+    "expect": {
+      "score": 0,
+      "failures": [],
+      "capped": false,
+      "empty": true
+    }
+  },
+  {
+    "id": "whitespace-only",
+    "subject": "   ",
+    "expect": {
+      "score": 0,
+      "failures": [],
+      "capped": false,
+      "empty": true
+    }
+  },
+  {
+    "id": "emoji-only",
+    "subject": "🎉🎉🎉",
+    "expect": {
+      "score": 67,
+      "failures": [
+        "LEN-01",
+        "LEN-04",
+        "WRD-04",
+        "SCN-01"
+      ],
+      "capped": false,
+      "chars": 3
+    }
+  },
+  {
+    "id": "hard-limit-150",
+    "subject": "Your portfolio view for the next quarter in global markets and what it means for you and your clients across every region we cover today and beyondxxx",
+    "expect": {
+      "score": 75,
+      "failures": [
+        "LEN-02",
+        "LEN-03",
+        "LEN-04"
+      ],
+      "capped": false,
+      "chars": 150
+    }
+  },
+  {
+    "id": "merge-tag-only",
+    "subject": "{{Recipient.FirstName}}",
+    "expect": {
+      "score": 75,
+      "failures": [
+        "LEN-01",
+        "LEN-04",
+        "SCN-04"
+      ],
+      "capped": false,
+      "chars": 9,
+      "rendered": "Alexandra"
+    }
+  },
+  {
+    "id": "non-latin",
+    "subject": "今日の市場見通しについてご案内します",
+    "expect": {
+      "score": 67,
+      "failures": [
+        "LEN-01",
+        "LEN-04",
+        "WRD-04",
+        "SCN-04"
+      ],
+      "capped": false,
+      "chars": 18
+    }
+  },
+  {
+    "id": "critical-spam-cap",
+    "subject": "Claim your free gift today",
+    "expect": {
+      "score": 60,
+      "failures": [
+        "WRD-01"
+      ],
+      "capped": true
+    }
+  },
+  {
+    "id": "financial-pack-on",
+    "subject": "Guaranteed returns on your portfolio",
+    "expect": {
+      "score": 60,
+      "failures": [
+        "WRD-01"
+      ],
+      "capped": true
+    }
+  },
+  {
+    "id": "financial-pack-on-2",
+    "subject": "Double your money in a year",
+    "expect": {
+      "score": 60,
+      "failures": [
+        "WRD-01"
+      ],
+      "capped": true
+    }
+  },
+  {
+    "id": "financial-pack-off",
+    "subject": "Double your money in a year",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false
+    },
+    "config": {
+      "lexiconPacks": [
+        "general-spam"
+      ]
+    }
+  },
+  {
+    "id": "two-caps-words",
+    "subject": "Big NEWS and HUGE savings today",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "WRD-02"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "one-caps-word",
+    "subject": "Big NEWS for your fund today",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false
+    }
+  },
+  {
+    "id": "acronyms-allowed",
+    "subject": "ESG outlook: USD and ZAR in focus",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "WRD-04"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "two-exclamations",
+    "subject": "Great news! Read now!",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "WRD-03"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "question-hook",
+    "subject": "Is your portfolio ready for Q4?",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false
+    }
+  },
+  {
+    "id": "adjacent-emoji",
+    "subject": "Q4 results are in 🎉🎊",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "SCN-01"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "bad-formatting",
+    "subject": "Q4  results (unclosed outlook",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "SCN-02"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "unknown-merge-field",
+    "subject": "Hi {{Recipient.Nickname}}, Q4 news",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "SCN-03"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "unresolved-placeholder",
+    "subject": "Hi [Name], your Q4 news",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "SCN-03"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "very-long-word",
+    "subject": "Internationalisation matters for your portfolio",
+    "expect": {
+      "score": 83,
+      "failures": [
+        "LEN-03",
+        "SCN-04"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "long-average-word",
+    "subject": "Consolidation strategies determine outcomes for your",
+    "expect": {
+      "score": 83,
+      "failures": [
+        "LEN-03",
+        "SCN-04"
+      ],
+      "capped": false
+    }
+  },
+  {
+    "id": "exactly-20-chars",
+    "subject": "Plan your Q4 review!",
+    "expect": {
+      "score": 100,
+      "failures": [],
+      "capped": false,
+      "chars": 20
+    }
+  },
+  {
+    "id": "curly-apostrophe",
+    "subject": "You can’t lose with us",
+    "expect": {
+      "score": 60,
+      "failures": [
+        "WRD-01"
+      ],
+      "capped": true
+    }
+  },
+  {
+    "id": "custom-mobile-threshold",
+    "subject": "Hi {{Recipient.FirstName}}, your Q4 outlook is here",
+    "expect": {
+      "score": 92,
+      "failures": [
+        "LEN-03"
+      ],
+      "capped": false
+    },
+    "config": {
+      "thresholds": {
+        "mobileMax": 35
+      }
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "fields": {
+    "Recipient.FirstName": "Alexandra",
+    "Recipient.LastName": "Moyo",
+    "Recipient.Company": "Acme Capital",
+    "Recipient.Email": "alexandra.moyo@example.com",
+    "Recipient.Broker_Preferred_Name": "Alex"
+  }
+}

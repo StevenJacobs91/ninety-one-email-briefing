@@ -1,0 +1,318 @@
+{
+  "terms": [
+    {
+      "term": "free money",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "100% free",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "click here",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "buy now",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "order now",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "you've won",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "you have won",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "congratulations",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "winner",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "lottery",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "casino",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "viagra",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "cash bonus",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "make money fast",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "earn extra cash",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "no credit check",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "weight loss",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "miracle cure",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "dear friend",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "once in a lifetime",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "risk free",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "no obligation",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "limited time offer",
+      "severity": "critical",
+      "pack": "general-spam"
+    },
+    {
+      "term": "free",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "urgent",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "cheap",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "bonus",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "guarantee",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "guaranteed",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "discount",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "cash",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "deal",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "earn",
+      "severity": "warn",
+      "pack": "general-spam"
+    },
+    {
+      "term": "guaranteed returns",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "guaranteed return",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "guaranteed profit",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "guaranteed profits",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "risk-free",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "can't lose",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "cannot lose",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "double your money",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "triple your money",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "get rich",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "sure thing",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "no risk",
+      "severity": "critical",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "beat the market",
+      "severity": "warn",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "outperform the market",
+      "severity": "warn",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "high returns",
+      "severity": "warn",
+      "pack": "financial-promotions"
+    },
+    {
+      "term": "hot tip",
+      "severity": "warn",
+      "pack": "financial-promotions"
+    }
+  ],
+  "hooks": [
+    "register",
+    "join",
+    "discover",
+    "today",
+    "last chance",
+    "learn",
+    "explore",
+    "read",
+    "watch",
+    "download",
+    "save",
+    "new",
+    "now",
+    "act",
+    "book",
+    "claim",
+    "get",
+    "find",
+    "see",
+    "listen",
+    "don't miss",
+    "limited",
+    "ends",
+    "tomorrow",
+    "exclusive",
+    "invitation",
+    "invited",
+    "reserve",
+    "apply",
+    "start",
+    "unlock",
+    "how to",
+    "why",
+    "what"
+  ],
+  "acronyms": [
+    "ESG",
+    "USD",
+    "ZAR",
+    "GBP",
+    "EUR",
+    "CEO",
+    "CFO",
+    "CIO",
+    "GDP",
+    "ETF",
+    "FX",
+    "UK",
+    "USA",
+    "EU",
+    "AI",
+    "IPO",
+    "YTD",
+    "NAV",
+    "KPI",
+    "CPI",
+    "FAQ",
+    "PDF",
+    "LDI",
+    "REIT",
+    "AUM",
+    "FOMC",
+    "MSCI",
+    "UCITS",
+    "OEIC",
+    "AGM",
+    "VAT"
+  ]
+}
