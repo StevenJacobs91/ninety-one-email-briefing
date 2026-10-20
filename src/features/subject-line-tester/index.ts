@@ -8,14 +8,6 @@ export type { AnalysisInput, AnalysisResult, Band, CategoryResult, CheckResult, 
 export type { LexiconProvider, MergeTagSyntax, SampleContactProvider } from './adapters'
 export { createMockLexiconProvider, createMockMergeTagSyntax, createMockSampleContactProvider } from './adapters/mock'
 
-import { createMockLexiconProvider, createMockMergeTagSyntax, createMockSampleContactProvider } from './adapters/mock'
-import type { AnalyzerDeps } from './engine/context'
-
-/** The adapters backed by mock data. Swap any of them for a real implementation of the same interface. */
-export function createMockDeps(): AnalyzerDeps {
-  return {
-    lexicon: createMockLexiconProvider(),
-    mergeTags: createMockMergeTagSyntax(),
-    sampleContact: createMockSampleContactProvider(),
-  }
-}
+export { createMockDeps } from './adapters/mock/createMockDeps'
+export { SubjectLineTester } from './components/SubjectLineTester'
+export { SubjectLineTesterPage } from './components/SubjectLineTesterPage'

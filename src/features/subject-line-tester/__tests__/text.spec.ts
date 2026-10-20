@@ -107,3 +107,13 @@ describe('findTerms', () => {
     expect(findTerms('free   money', terms).map((x) => x.text)).toEqual(['free   money'])
   })
 })
+
+import { truncateGraphemes } from '../engine/text'
+
+describe('truncateGraphemes', () => {
+  it('cuts at a character limit without splitting an emoji or flag', () => {
+    expect(truncateGraphemes('abc', 5)).toBe('abc')
+    expect(truncateGraphemes('Sale 🇿🇦🇿🇦', 6)).toBe('Sale 🇿🇦')
+    expect(truncateGraphemes('👍🏽👍🏽👍🏽', 2)).toBe('👍🏽👍🏽')
+  })
+})

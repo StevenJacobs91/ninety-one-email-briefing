@@ -112,3 +112,15 @@ export function findTerms(text: string, terms: readonly LexiconTerm[]): Match[] 
   }
   return chosen.sort((a, b) => a.start - b.start)
 }
+
+/** The first `max` characters, never splitting an emoji, flag or accented letter. */
+export function truncateGraphemes(text: string, max: number): string {
+  let out = ''
+  let n = 0
+  for (const { segment } of segmenter.segment(text)) {
+    if (n >= max) break
+    out += segment
+    n++
+  }
+  return out
+}
