@@ -170,6 +170,28 @@ export async function triggerCampaignInsights(
 }
 
 /**
+ * Fires the Test Email flow.
+ * Called by Send Test Email on the Review and Submission step; the flow
+ * sends the rendered HTML to a single recipient.
+ */
+export async function triggerTestEmail(
+  config: PowerAutomateConfig,
+  args: { recipient: string; subject: string; html: string; emailName: string },
+): Promise<PATriggerResult> {
+  if (!config.enabled) return { ok: false, error: 'Power Automate integration is disabled.' }
+  const { testEmailFlow } = config
+  if (!testEmailFlow.enabled) return { ok: false, error: 'Test Email flow is disabled.' }
+  if (!testEmailFlow.webhookUrl) return { ok: false, error: 'Test Email flow has no webhook URL.' }
+
+  return postWithRetry(config, testEmailFlow.webhookUrl, {
+    triggeredAt: new Date().toISOString(),
+    source:      'Ninety One Email Briefing',
+    isTest:      true,
+    ...args,
+  })
+}
+
+/**
  * Sends a test ping to any webhook URL.
  * Used by the Settings panel "Test" buttons.
  */
