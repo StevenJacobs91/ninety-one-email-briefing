@@ -24,7 +24,6 @@ import { KanbanBoard } from '../kanban/KanbanBoard'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
-import { EmailBuilderShell } from '../builder/EmailBuilderShell'
 import { WebBriefingPlatform } from '../platforms/WebBriefingPlatform'
 import { SocialMediaPlatform } from '../platforms/SocialMediaPlatform'
 import { MarketingAutomationPlatform } from '../platforms/MarketingAutomationPlatform'
@@ -488,7 +487,6 @@ export function FormShell() {
   )
   const [showBoard, setShowBoard] = useState(false)
   const [showPlanner, setShowPlanner] = useState(false)
-  const [showBuilder, setShowBuilder] = useState(false)
   const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation' | 'design'>('email')
   const [showPlatformDropdown, setShowPlatformDropdown] = useState(false)
   const [showInsights, setShowInsights] = useState(false)
@@ -763,19 +761,6 @@ export function FormShell() {
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </button>
-              {/* Email Builder */}
-              <button
-                type="button"
-                onClick={() => setShowBuilder(!showBuilder)}
-                title="Email Builder"
-                aria-label="Email Builder"
-                className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${showBuilder ? 'text-white bg-white/15' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
               {/* Approvals */}
               {settings.approvals?.enabled && (
                 <button
@@ -897,17 +882,6 @@ export function FormShell() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowBuilder(!showBuilder)}
-                className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
-                aria-label="Email Builder"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowBoard(!showBoard)}
                 className="w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
                 aria-label="Campaign board"
@@ -968,11 +942,6 @@ export function FormShell() {
         {/* Coral accent line */}
         <div className="h-[2px] bg-brand-accent/50" aria-hidden="true" />
       </header>
-
-      {/* ── Email Builder — full-screen overlay ── */}
-      {showBuilder && (
-        <EmailBuilderShell onClose={() => setShowBuilder(false)} />
-      )}
 
       {/* ── Platform overlays ── */}
       {activePlatform === 'web' && (
