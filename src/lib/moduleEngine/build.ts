@@ -81,7 +81,13 @@ export function duplicateModule(b: EmailBuild, instanceId: string): EmailBuild {
 export function swapModule(b: EmailBuild, instanceId: string, moduleName: string): EmailBuild {
   return {
     ...b,
-    modules: b.modules.map((m) => (m.instanceId === instanceId ? { ...m, moduleName, repeats: {}, images: {} } : m)),
+    modules: b.modules.map((m) => {
+      if (m.instanceId !== instanceId) return m
+      // Values bound to the brief belong to the old module's keys; drop them.
+      const regions = { ...m.regions }
+      for (const key of Object.keys(m.boundFields)) delete regions[key]
+      return { ...m, moduleName, regions, boundFields: {}, repeats: {}, images: {} }
+    }),
   }
 }
 

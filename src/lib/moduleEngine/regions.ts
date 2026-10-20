@@ -50,7 +50,7 @@ export function moduleHtml(dom: ModuleDom): string {
   return dom.root.innerHTML
 }
 
-function regionElements(dom: ModuleDom): Element[] {
+export function regionElements(dom: ModuleDom): Element[] {
   const all = Array.from(dom.root.querySelectorAll('[pardot-region]'))
   // A region that wraps another region is a container (e.g. a detail paragraph
   // around a button link); only the innermost region is the editable field.
