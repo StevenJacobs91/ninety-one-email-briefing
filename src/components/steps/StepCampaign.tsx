@@ -545,24 +545,15 @@ export function StepCampaign() {
 
       {/* Sub-section: Message Envelope */}
       <SubSection title="Message Envelope">
-        <div>
-          <FieldText
-            label="Subject Line"
-            registration={register('campaign.subjectLine')}
-            error={errors.campaign?.subjectLine}
-            required
-            placeholder="Suggested: up to 60 characters"
-            suggestedLength={60}
-            currentLength={subjectLine.length}
-          />
-          <SubjectLineScore
-            deps={subjectLineDeps}
-            subject={subjectLine}
-            senderName={watch('campaign.fromName') ?? ''}
-            preheader={previewText}
-            onApplySubject={(subject) => setValue('campaign.subjectLine', subject, { shouldValidate: true, shouldDirty: true })}
-          />
-        </div>
+        <FieldText
+          label="Subject Line"
+          registration={register('campaign.subjectLine')}
+          error={errors.campaign?.subjectLine}
+          required
+          placeholder="Suggested: up to 60 characters"
+          suggestedLength={60}
+          currentLength={subjectLine.length}
+        />
 
         <FieldText
           label="Preview Text"
@@ -572,6 +563,14 @@ export function StepCampaign() {
           placeholder="Suggested: up to 90 characters"
           suggestedLength={90}
           currentLength={previewText.length}
+        />
+
+        <SubjectLineScore
+          deps={subjectLineDeps}
+          subject={subjectLine}
+          senderName={watch('campaign.fromName') ?? ''}
+          preheader={previewText}
+          onApplySubject={(subject) => setValue('campaign.subjectLine', subject, { shouldValidate: true, shouldDirty: true })}
         />
       </SubSection>
 
