@@ -1,8 +1,12 @@
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { triggerTestEmail, isTestEmailFlowReady } from './powerAutomateService.ts'
+import {
+  triggerTestEmail, isTestEmailFlowReady,
+  triggerBriefSubmission, isBriefSubmissionFlowReady,
+} from './powerAutomateService.ts'
 import { DEFAULT_POWER_AUTOMATE_CONFIG } from './settingsDefaults.ts'
 import type { PowerAutomateConfig } from '../types/settings.types'
+import type { BriefPayload } from '../types/brief.types'
 
 const URL = 'https://flow.test/hook?sig=abc'
 const ARGS = {
@@ -94,4 +98,40 @@ test('the test-email flow is ready only when the master toggle, the flow and its
     config({ testEmailFlow: { webhookUrl: URL, enabled: false } })), false)
   assert.equal(isTestEmailFlowReady(
     config({ testEmailFlow: { webhookUrl: '   ', enabled: true } })), false)
+})
+
+// Only the fields triggerBriefSubmission reads.
+const BRIEF = {
+  meta: { briefId: 'b-1', status: 'submitted' },
+  campaign: {
+    campaignName: 'Taking Stock', emailType: 'newsletter', theme: 'agulhas-coral',
+    subjectLine: 'Q2 outlook', previewText: 'p', fromName: 'Ninety One', replyToEmail: 'a@b.co',
+  },
+  audience: { region: ['ZA'], channel: ['INTERMEDIARY'], pardotListId: '123' },
+  content: { headline: 'Headline', cta: { label: 'Read', url: 'https://example.com' } },
+  deadlines: { sendDate: '2026-11-01', contentApprovalDate: '2026-10-25', urgency: 'standard', notes: '' },
+} as unknown as BriefPayload
+
+const SUBMIT = { briefSubmissionFlow: { webhookUrl: URL, enabled: true } }
+
+test('the brief submission carries the rendered html, brief html, text version and email name', async () => {
+  const res = await triggerBriefSubmission(config(SUBMIT), BRIEF, {
+    html: '<html>email</html>', briefHtml: '<html>brief</html>',
+    textEmail: 'plain text', emailName: 'Taking Stock Q2',
+  })
+  assert.equal(res.ok, true)
+  const body = JSON.parse(String(calls[0].init.body))
+  assert.equal(body.html, '<html>email</html>')
+  assert.equal(body.briefHtml, '<html>brief</html>')
+  assert.equal(body.textEmail, 'plain text')
+  assert.equal(body.emailName, 'Taking Stock Q2')
+  assert.equal(body.briefId, 'b-1')
+})
+
+test('the brief-submission flow is ready only when the master toggle, the flow and its url are all set', () => {
+  assert.equal(isBriefSubmissionFlowReady(config(SUBMIT)), true)
+  assert.equal(isBriefSubmissionFlowReady(config()), false)
+  assert.equal(isBriefSubmissionFlowReady(config({ ...SUBMIT, enabled: false })), false)
+  assert.equal(isBriefSubmissionFlowReady(
+    config({ briefSubmissionFlow: { webhookUrl: ' ', enabled: true } })), false)
 })

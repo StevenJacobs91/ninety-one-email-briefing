@@ -11,7 +11,7 @@
  * Power Automate connector used: "When an HTTP request is received" (Premium).
  */
 
-import type { PowerAutomateConfig } from '../types/settings.types'
+import type { PowerAutomateConfig, PowerAutomateFlowEndpoint } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -89,6 +89,11 @@ export async function triggerBriefSubmission(
   extras?: {
     kanbanCardId?: string
     submittedBy?: string
+    /** The rendered email, the brief document and the plain-text version */
+    html?: string
+    briefHtml?: string
+    textEmail?: string
+    emailName?: string
   },
 ): Promise<PATriggerResult> {
   if (!config.enabled) return { ok: false, error: 'Power Automate integration is disabled.' }
@@ -169,6 +174,18 @@ export async function triggerCampaignInsights(
   })
 }
 
+function isFlowReady(config: PowerAutomateConfig, flow: PowerAutomateFlowEndpoint): boolean {
+  return config.enabled && flow.enabled && flow.webhookUrl.trim() !== ''
+}
+
+/**
+ * Whether Submit Brief can use its flow. When false the caller falls back to
+ * downloading the files and opening the mail client.
+ */
+export function isBriefSubmissionFlowReady(config: PowerAutomateConfig): boolean {
+  return isFlowReady(config, config.briefSubmissionFlow)
+}
+
 /**
  * Whether Send Test Email can use its flow: the master toggle, the flow's own
  * toggle and a non-blank URL. When false the caller falls back to the mail
@@ -176,9 +193,7 @@ export async function triggerCampaignInsights(
  * switches the integration off without deleting the URL.
  */
 export function isTestEmailFlowReady(config: PowerAutomateConfig): boolean {
-  return config.enabled
-    && config.testEmailFlow.enabled
-    && config.testEmailFlow.webhookUrl.trim() !== ''
+  return isFlowReady(config, config.testEmailFlow)
 }
 
 /**

@@ -9,7 +9,10 @@ import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
-import { triggerTestEmail, isTestEmailFlowReady } from '../../lib/powerAutomateService'
+import {
+  triggerTestEmail, isTestEmailFlowReady,
+  triggerBriefSubmission, isBriefSubmissionFlowReady,
+} from '../../lib/powerAutomateService'
 
 type ViewportMode = 'desktop' | 'mobile'
 type ViewMode = 'preview' | 'source' | 'text'
@@ -203,25 +206,16 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
 
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
-    const webhookUrl = settings.n8nWebhookUrl?.trim()
 
     try {
-      if (webhookUrl) {
-        // POST directly to n8n webhook
-        const payload = {
-          brief: data,
+      if (isBriefSubmissionFlowReady(settings.powerAutomate)) {
+        const result = await triggerBriefSubmission(settings.powerAutomate, data, {
           html,
           briefHtml: generateBriefHtml(data),
           textEmail: generateTextEmail(data),
           emailName,
-          submittedAt: new Date().toISOString(),
-        }
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
         })
-        if (!response.ok) throw new Error(`Webhook returned ${response.status}`)
+        if (!result.ok) throw new Error(result.error)
       } else {
         // Fallback: download both files + open mailto
         const slugName = data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()
@@ -262,7 +256,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       setSubmitStatus('sent')
       onComplete?.()
       setTimeout(() => setSubmitStatus('idle'), 5000)
-    } catch {
+    } catch (err) {
+      console.error('Brief submission failed:', err)
       setSubmitStatus('error')
       setTimeout(() => setSubmitStatus('idle'), 3000)
     }
@@ -540,8 +535,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
           </button>
           {submitStatus === 'idle' && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              {settings.n8nWebhookUrl?.trim()
-                ? 'Sends brief JSON and HTML to your n8n workflow'
+              {isBriefSubmissionFlowReady(settings.powerAutomate)
+                ? 'Sends the brief and rendered HTML to your Power Automate flow'
                 : 'Downloads files and opens your email client'}
             </p>
           )}
