@@ -33,6 +33,9 @@ export function LibraryBuilder() {
   const subHeadline = watch('content.subHeadline') ?? ''
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const build = watch('content.build') as EmailBuild | undefined
+  const heroImageUrl = watch('assets.heroImageUrl') ?? ''
+  const heroImageAlt = watch('assets.heroImageAlt') ?? ''
+  const requiresHero = (settings.headers ?? []).find((h) => h.id === headerTypeId)?.requiresHeroImage ?? false
 
   const cat = useCatalogue(theme)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -68,6 +71,12 @@ export function LibraryBuilder() {
     const wantHeader = headerModuleFor(headerTypeId)
     if (header && wantHeader && header.moduleName !== wantHeader) b = swapModule(b, header.instanceId, wantHeader)
 
+    // The form's hero image is the single source of truth for header types that need one.
+    const hdr = b.modules.find((m) => m.slot === 'header')
+    if (hdr && requiresHero && (hdr.images['img:0']?.src ?? '') !== heroImageUrl) {
+      b = setImage(b, hdr.instanceId, 'img:0', { src: heroImageUrl })
+    }
+
     const disclaimer = b.modules.find((m) => m.slot === 'disclaimer')
     const wantDisclaimer = regions.includes('UK') ? 'Disclaimer - UK' : 'Disclaimer'
     if (disclaimer && /^Disclaimer/.test(disclaimer.moduleName) && disclaimer.moduleName !== wantDisclaimer) {
@@ -83,7 +92,7 @@ export function LibraryBuilder() {
     if (current?.label !== cta.label || current?.url !== cta.url) {
       setValue('content.cta', { label: cta.label, url: cta.url, openInNewTab: current?.openInNewTab ?? true }, { shouldDirty: true })
     }
-  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro, requiresHero, heroImageUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const previews = useMemo(() => {
     if (!catalogue || !build) return new Map<string, { html: string; dropped: number }>()
@@ -248,6 +257,17 @@ export function LibraryBuilder() {
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
             onImage={(key, src) => commit(setImage(build, selected.instanceId, key, { src }))}
             onHeaderType={(id) => setValue('assets.headerType', id, { shouldDirty: true })}
+            hero={requiresHero ? {
+              url: heroImageUrl,
+              alt: heroImageAlt,
+              themeId: theme,
+              headline,
+              subHeadline,
+              onChange: (patch) => {
+                if (patch.url !== undefined) setValue('assets.heroImageUrl', patch.url, { shouldValidate: true, shouldDirty: true })
+                if (patch.alt !== undefined) setValue('assets.heroImageAlt', patch.alt, { shouldValidate: true, shouldDirty: true })
+              },
+            } : undefined}
             onClose={() => setSelectedId(null)}
           />
         )}

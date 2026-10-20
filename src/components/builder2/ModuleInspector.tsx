@@ -4,6 +4,7 @@ import type { RegionValue } from '../../lib/moduleEngine/regions'
 import { headerModuleFor } from '../../lib/moduleEngine/seed'
 import type { HeaderTypeConfig } from '../../types/settings.types'
 import { RegionEditor } from './RegionEditor'
+import { HeroImagePicker } from './HeroImagePicker'
 
 interface Props {
   module: BuildModule
@@ -15,15 +16,18 @@ interface Props {
   onRepeat: (group: string, count: number) => void
   onImage: (key: string, src: string) => void
   onHeaderType: (id: string) => void
+  /** Background image for header types that require one (replaces the plain placeholder-image field). */
+  hero?: React.ComponentProps<typeof HeroImagePicker>
   onClose: () => void
 }
 
 export function ModuleInspector({
-  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onHeaderType, onClose,
+  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onHeaderType, hero, onClose,
 }: Props) {
   const editable = info.fields.filter((f) => !f.locked)
   const lockedCount = info.fields.length - editable.length
-  const hasContent = editable.length > 0 || info.images.length > 0 || info.repeats.some((r) => r.canResize)
+  const showHero = !!hero && m.slot === 'header'
+  const hasContent = showHero || editable.length > 0 || info.images.length > 0 || info.repeats.some((r) => r.canResize)
 
   return (
     <aside className="w-full lg:w-[340px] shrink-0 border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -76,7 +80,9 @@ export function ModuleInspector({
           </div>
         ))}
 
-        {info.images.map((src, i) => (
+        {showHero && <HeroImagePicker {...hero!} />}
+
+        {info.images.map((src, i) => (showHero && i === 0) ? null : (
           <div key={src}>
             <label htmlFor={`img-${i}`} className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Image {info.images.length > 1 ? i + 1 : ''} URL</label>
             <input id={`img-${i}`} value={m.images[`img:${i}`]?.src ?? ''} placeholder="https://… (replaces the placeholder)"
