@@ -38,7 +38,9 @@ for (const theme of BRAND_THEMES) {
   const folder = themeFolderName(theme.label)
   const dir = join(ROOT, 'Modules', folder)
   if (!existsSync(dir)) throw new Error(`Missing module folder for ${theme.id}: ${dir}`)
-  const names = readdirSync(dir).filter((f) => f.endsWith('.html')).map((f) => f.slice(0, -5))
+  const all = readdirSync(dir).filter((f) => f.endsWith('.html')).map((f) => f.slice(0, -5))
+  // iCloud sync leaves "<name> 2.html" copies beside the originals; ignore them.
+  const names = all.filter((n) => !(n.endsWith(' 2') && all.includes(n.slice(0, -2))))
   if (names.length < MIN_MODULES) throw new Error(`${theme.id}: only ${names.length} modules in ${dir}`)
   const modules: Record<string, string> = {}
   for (const n of names) modules[n] = readFileSync(join(dir, `${n}.html`), 'utf8')
@@ -50,4 +52,5 @@ for (const theme of BRAND_THEMES) {
   const ordered = [...order.filter((n) => n in modules), ...names.filter((n) => !order.includes(n)).sort()]
   writeFileSync(join(OUT, `${theme.id}.json`), JSON.stringify({ themeId: theme.id, shell, order: ordered, modules }))
 }
+writeFileSync(join(OUT, 'index.json'), JSON.stringify({ themes: BRAND_THEMES.map((t) => t.id) }))
 console.log(`Wrote ${BRAND_THEMES.length} theme catalogues to ${OUT}`)

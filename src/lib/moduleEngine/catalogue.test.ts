@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { themeFolderName, loadCatalogue, clearCatalogueCache } from './catalogue.ts'
+import { themeFolderName, loadCatalogue, clearCatalogueCache, loadAvailableThemes } from './catalogue.ts'
 
 const SAMPLE = { themeId: 'agulhas-coral', shell: { head: '<h>', tail: '</h>' }, order: ['Greeting'], modules: { Greeting: '<tr></tr>' } }
 
@@ -28,4 +28,19 @@ test('a failed fetch rejects naming the theme and is not cached', async () => {
   await assert.rejects(loadCatalogue('agulhas-coral', stub(404)), /agulhas-coral/)
   await loadCatalogue('agulhas-coral', stub(200))
   assert.equal(calls, 2)
+})
+
+test('a theme with no module library gives a readable error, not a JSON parse error', async () => {
+  const html = (async () => new Response('<!doctype html><html></html>', { status: 200 })) as unknown as typeof fetch
+  await assert.rejects(loadCatalogue('white-teal', html), /no module library.*white-teal/i)
+})
+
+test('the list of themes that have a module library is read from the index', async () => {
+  const f = (async () => new Response(JSON.stringify({ themes: ['agulhas-coral'] }), { status: 200 })) as unknown as typeof fetch
+  assert.deepEqual(await loadAvailableThemes(f), ['agulhas-coral'])
+})
+
+test('if the index is unavailable every theme is treated as available', async () => {
+  const f = (async () => new Response('<!doctype html>', { status: 200 })) as unknown as typeof fetch
+  assert.equal(await loadAvailableThemes(f), null)
 })

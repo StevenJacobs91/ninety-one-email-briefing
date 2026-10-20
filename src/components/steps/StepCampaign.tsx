@@ -13,6 +13,7 @@ import { SubSection } from '../ui/SubSection'
 import { SupportingMaterial } from './SupportingMaterial'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useAvailableThemes } from '../builder2/useAvailableThemes'
 import { instantiateTemplate, isBuildEmpty } from '../../lib/campaignTemplate'
 import { StepAudience } from './StepAudience'
 import { SendTimeSuggestion } from './SendTimeSuggestion'
@@ -59,6 +60,7 @@ export function StepCampaign() {
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
+  const availableThemes = useAvailableThemes()
   const campaignName = watch('campaign.campaignName') ?? ''
   const selectedClientGroups = watch('audience.clientGroup') ?? []
   const selectedRegions = watch('audience.region') ?? []
@@ -520,25 +522,36 @@ export function StepCampaign() {
                 role="radiogroup"
                 aria-labelledby="theme-label"
               >
-                {(settings.brandThemes ?? []).map((theme) => (
-                  <label
-                    key={theme.id}
-                    role="radio"
-                    aria-checked={selectedTheme === theme.id}
-                    className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
-                      selectedTheme === theme.id
-                        ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                  >
-                    <input type="radio" {...register('campaign.theme')} value={theme.id} className="sr-only" />
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
-                      <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
-                    </div>
-                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">{theme.label}</span>
-                  </label>
-                ))}
+                {(settings.brandThemes ?? []).map((theme) => {
+                  // Themes with no module library cannot be built in Layout & Content.
+                  const pending = availableThemes !== null && !availableThemes.includes(theme.id)
+                  return (
+                    <label
+                      key={theme.id}
+                      role="radio"
+                      aria-checked={selectedTheme === theme.id}
+                      aria-disabled={pending}
+                      title={pending ? 'No module library for this theme yet' : undefined}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors ${
+                        pending
+                          ? 'opacity-50 cursor-not-allowed'
+                          : selectedTheme === theme.id
+                            ? 'cursor-pointer bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
+                            : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <input type="radio" {...register('campaign.theme')} value={theme.id} disabled={pending && selectedTheme !== theme.id} className="sr-only" />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
+                        <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
+                      </div>
+                      <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
+                        {theme.label}
+                        {pending && <span className="block text-[10px] text-gray-400">Module library pending</span>}
+                      </span>
+                    </label>
+                  )
+                })}
               </div>
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
             </div>
