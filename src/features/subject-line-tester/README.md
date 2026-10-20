@@ -26,7 +26,7 @@ Pass your implementations as the `deps` prop, or to `analyzeSubjectLine`. No cha
 - **Open question 1 (merge-tag syntax):** Pardot HML only for now; the adapter is where others would go.
 - **Open question 3 (blocking), decided:** the pill never blocks sending. It is advisory only.
 - **Open question 2 (word-list ownership), decided:** the spam word list is maintained in Settings → General → Spam Word List. It is stored with the other settings as `spamWordList`; when unset, the starting list shipped in `data/mock-lexicon.json` applies, and "Restore defaults" clears it back to that. Hook words and the acronym allowlist still come from the mock data.
-- **The score display is a line chart**, not a counter: one point per settled subject this session, so it shows the score climbing as issues are fixed. The three bands are zones behind the line, named in text.
+- **The score display is a horizontal bar** across the width of the module, filled to the score in the colour of its band (Great: Ocean Teal, Good: Leatherback Green, Needs work: Gazania Gold). The percentage and band name are written beside it and the 70 and 90 thresholds are marked, so colour is never the only cue.
 - **Match ranges** are UTF-16 offsets into `AnalysisResult.rendered`, so `rendered.slice(start, end) === text`.
 - **`cappedByCritical`** is true whenever a critical check fails, even if the score was already under the cap.
 - **Empty input** returns `empty: true`, score 0, so the UI shows its empty state.

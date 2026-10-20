@@ -58,41 +58,50 @@ describe('live scoring (AC-10, AC-11)', () => {
   })
 })
 
-describe('score chart', () => {
-  it('names the three bands in text, so colour is not the only cue', () => {
-    render(<SubjectLineTester />)
-    for (const name of ['Great', 'Good', 'Needs work']) expect(screen.getAllByText(name).length).toBeGreaterThan(0)
+describe('score bar', () => {
+  const fill = () => screen.getByTestId('score-bar-fill')
+
+  it('fills the bar to the score, labelled with the percentage and band name', () => {
+    render(<SubjectLineTester initial={{ subject: 'Your 50% off gift is waiting' }} />)
+    expect(fill().style.width).toBe('100%')
+    expect(screen.getByText('100%')).toBeTruthy()
+    expect(screen.getAllByText('Great').length).toBeGreaterThan(0)
   })
 
-  it('adds a point for each settled edit and describes the trend', async () => {
+  it('colours the fill by band using Ninety One colours: Ocean Teal, Leatherback Green, Gazania Gold', async () => {
     const user = setup()
     render(<SubjectLineTester />)
+    const colour = () => fill().style.backgroundColor
+    await user.type(subjectBox(), 'Your 50% off gift is waiting')
+    settle()
+    expect(colour()).toBe('rgb(0, 157, 128)')
+    await user.clear(subjectBox())
+    await user.type(subjectBox(), 'Important information - Changes to the benchmark')
+    settle()
+    expect(screen.getByText('83%')).toBeTruthy()
+    expect(colour()).toBe('rgb(19, 72, 72)')
+    await user.clear(subjectBox())
     await user.type(subjectBox(), 'FREE MONEY!!! Act now')
     settle()
-    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
-    await user.clear(subjectBox())
-    await user.type(subjectBox(), 'Your 50% off gift is waiting')
-    settle()
-    expect(screen.getAllByTestId('chart-point')).toHaveLength(2)
-    expect(chart().getAttribute('aria-label')).toMatch(/2 tests, from 60 to 100 percent\./)
-    expect(screen.getByText('100%')).toBeTruthy()
+    expect(colour()).toBe('rgb(207, 111, 19)')
   })
 
-  it('does not add a point for a repeat of the same subject', async () => {
-    const user = setup()
-    render(<SubjectLineTester showTestNow />)
-    await user.type(subjectBox(), 'Your 50% off gift is waiting')
-    settle()
-    await user.click(screen.getByRole('button', { name: 'Test now' }))
-    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
+  it('marks where Good and Great begin, in text', () => {
+    render(<SubjectLineTester initial={{ subject: 'Hello world today' }} />)
+    expect(screen.getByText('70')).toBeTruthy()
+    expect(screen.getByText('90')).toBeTruthy()
   })
 
-  it('starts with one point for a pre-filled subject and none when empty', () => {
-    const { unmount } = render(<SubjectLineTester initial={{ subject: 'Your 50% off gift is waiting' }} />)
-    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
-    unmount()
+  it('is an empty track with no fill while there is nothing to score', () => {
     render(<SubjectLineTester />)
+    expect(fill().style.width).toBe('0%')
+    expect(screen.queryByText('Needs work')).toBeNull()
+  })
+
+  it('has no history chart any more', () => {
+    render(<SubjectLineTester initial={{ subject: 'Your 50% off gift is waiting' }} />)
     expect(screen.queryAllByTestId('chart-point')).toHaveLength(0)
+    expect(chart().getAttribute('aria-label')).toBe('Score 100 percent, Great.')
   })
 })
 
