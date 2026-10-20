@@ -11,3 +11,5 @@ export { createMockLexiconProvider, createMockMergeTagSyntax, createMockSampleCo
 export { createMockDeps } from './adapters/mock/createMockDeps'
 export { SubjectLineTester } from './components/SubjectLineTester'
 export { SubjectLineTesterPage } from './components/SubjectLineTesterPage'
+export { SubjectLineScore } from './components/SubjectLineScore'
+export { SubjectLineTesterDialog } from './components/SubjectLineTesterDialog'

@@ -15,6 +15,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useAvailableThemes } from '../builder2/useAvailableThemes'
 import { instantiateTemplate, isBuildEmpty } from '../../lib/campaignTemplate'
 import { buildTags } from '../../lib/tags'
+import { SubjectLineScore } from '../../features/subject-line-tester'
 import { StepAudience } from './StepAudience'
 import { SendTimeSuggestion } from './SendTimeSuggestion'
 
@@ -542,15 +543,23 @@ export function StepCampaign() {
 
       {/* Sub-section: Message Envelope */}
       <SubSection title="Message Envelope">
-        <FieldText
-          label="Subject Line"
-          registration={register('campaign.subjectLine')}
-          error={errors.campaign?.subjectLine}
-          required
-          placeholder="Suggested: up to 60 characters"
-          suggestedLength={60}
-          currentLength={subjectLine.length}
-        />
+        <div>
+          <FieldText
+            label="Subject Line"
+            registration={register('campaign.subjectLine')}
+            error={errors.campaign?.subjectLine}
+            required
+            placeholder="Suggested: up to 60 characters"
+            suggestedLength={60}
+            currentLength={subjectLine.length}
+          />
+          <SubjectLineScore
+            subject={subjectLine}
+            senderName={watch('campaign.fromName') ?? ''}
+            preheader={previewText}
+            onApplySubject={(subject) => setValue('campaign.subjectLine', subject, { shouldValidate: true, shouldDirty: true })}
+          />
+        </div>
 
         <FieldText
           label="Preview Text"
