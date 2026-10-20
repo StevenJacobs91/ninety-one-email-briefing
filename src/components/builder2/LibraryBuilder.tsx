@@ -9,6 +9,7 @@ import {
 import { describeModule } from '../../lib/moduleEngine/describe'
 import { browserParse, type RegionValue } from '../../lib/moduleEngine/regions'
 import { renderBuild } from '../../lib/moduleEngine/render'
+import { deriveCta } from '../../lib/moduleEngine/derive'
 import { bindBrief, buildFromLegacy, headerModuleFor, seedBuild } from '../../lib/moduleEngine/seed'
 import { ModuleInspector } from './ModuleInspector'
 import { ModulePicker } from './ModulePicker'
@@ -71,6 +72,13 @@ export function LibraryBuilder() {
 
     const next = bindBrief(b, { headline, subHeadline, bodyIntro }, catalogue, browserParse)
     if (JSON.stringify(next) !== JSON.stringify(build)) commit(next)
+
+    // The brief's single CTA (Pardot, Power Automate, Brand Review) follows the first edited button.
+    const cta = deriveCta(next, catalogue, browserParse) ?? { label: '', url: '' }
+    const current = getValues('content.cta')
+    if (current?.label !== cta.label || current?.url !== cta.url) {
+      setValue('content.cta', { label: cta.label, url: cta.url, openInNewTab: current?.openInNewTab ?? true }, { shouldDirty: true })
+    }
   }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const previews = useMemo(() => {

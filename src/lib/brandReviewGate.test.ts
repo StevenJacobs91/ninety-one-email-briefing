@@ -73,3 +73,8 @@ test('the AI review auto-runs only once the user is on the review tab', () => {
   assert.equal(shouldAutoRunAI({ ...base, aiAvailable: false }), false)
   assert.equal(shouldAutoRunAI({ ...base, aiStatus: 'success' }), false)
 })
+
+test('a brief with no CTA label raises no CTA-label warning', () => {
+  const r = runBrandGuardianReview(FRESH_BRIEF)
+  assert.ok(!r.items.some((i) => i.field === 'content.cta.label'))
+})

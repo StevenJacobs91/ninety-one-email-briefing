@@ -349,15 +349,17 @@ export function runBrandGuardianReview(brief: BriefPayload, opts?: BrandGuardian
     })
   }
 
-  // 18. CTA label tone
-  const ctaLabel = brief.content.cta.label.toLowerCase()
+  // 18. CTA label tone (skipped when the email has no CTA module edited)
+  const ctaLabel = (brief.content.cta?.label ?? '').toLowerCase()
   const actionWords = [
     'learn', 'read', 'watch', 'discover', 'explore', 'register', 'download',
     'view', 'invest', 'find', 'get', 'start', 'join', 'see', 'contact',
     'sign', 'subscribe', 'attend', 'rsvp', 'listen', 'apply', 'book',
   ]
   const hasActionWord = actionWords.some((w) => ctaLabel.includes(w))
-  if (hasActionWord) {
+  if (!ctaLabel) {
+    // nothing to review
+  } else if (hasActionWord) {
     items.push({
       field: 'content.cta.label',
       category: 'Brand Voice',
