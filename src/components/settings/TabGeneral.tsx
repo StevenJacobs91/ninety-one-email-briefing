@@ -2,6 +2,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { EMAIL_TYPES, EMAIL_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
 import { VISIBILITY_OPTIONS, isShown } from '../../lib/uiVisibility'
+import { DEFAULT_SPAM_TERMS, SpamWordListEditor } from '../../features/subject-line-tester'
 
 export function TabGeneral() {
   const { settings, updateSettings } = useSettings()
@@ -186,6 +187,24 @@ export function TabGeneral() {
             </div>
           </div>
         ))}
+      </section>
+
+
+      <hr className="border-gray-100 dark:border-gray-800" />
+
+      {/* Spam word list: the words and phrases the Subject Line Tester flags */}
+      <section>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Spam Word List</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Words and phrases the Subject Line Tester flags in a subject line. Matching is whole-word and ignores capitals. A match fails
+          the &ldquo;No spam triggers&rdquo; check, which caps the score at 60%, and the tester never blocks sending.
+        </p>
+        <SpamWordListEditor
+          value={settings.spamWordList ?? DEFAULT_SPAM_TERMS}
+          onChange={(list) => updateSettings({ spamWordList: list })}
+          customised={settings.spamWordList !== undefined}
+          onRestoreDefaults={() => updateSettings({ spamWordList: undefined })}
+        />
       </section>
 
 

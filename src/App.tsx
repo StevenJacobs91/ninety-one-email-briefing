@@ -7,13 +7,15 @@ import { FormShell } from './components/layout/FormShell'
 import { LoginPage } from './components/auth/LoginPage'
 import { BriefArtifactPage } from './components/artifacts/BriefArtifactPage'
 import { SubjectLineTesterPage } from './features/subject-line-tester'
+import { useSubjectLineDeps } from './hooks/useSubjectLineDeps'
 
 // A board card's links open a saved brief's email HTML or summary; everything else is the app.
 function Home() {
   const [params] = useSearchParams()
   const briefId = params.get('brief')
   const view = params.get('view')
-  if (params.get('tool') === 'subject-line-tester') return <SubjectLineTesterPage />
+  const subjectLineDeps = useSubjectLineDeps()
+  if (params.get('tool') === 'subject-line-tester') return <SubjectLineTesterPage deps={subjectLineDeps} />
   if (briefId && (view === 'html' || view === 'summary')) return <BriefArtifactPage briefId={briefId} view={view} />
   return <FormShell />
 }

@@ -16,6 +16,7 @@ import { useAvailableThemes } from '../builder2/useAvailableThemes'
 import { instantiateTemplate, isBuildEmpty } from '../../lib/campaignTemplate'
 import { buildTags } from '../../lib/tags'
 import { SubjectLineScore } from '../../features/subject-line-tester'
+import { useSubjectLineDeps } from '../../hooks/useSubjectLineDeps'
 import { StepAudience } from './StepAudience'
 import { SendTimeSuggestion } from './SendTimeSuggestion'
 
@@ -38,6 +39,7 @@ export function StepCampaign() {
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
   const availableThemes = useAvailableThemes()
+  const subjectLineDeps = useSubjectLineDeps()
   const campaignName = watch('campaign.campaignName') ?? ''
   const selectedClientGroups = watch('audience.clientGroup') ?? []
   const selectedRegions = watch('audience.region') ?? []
@@ -554,6 +556,7 @@ export function StepCampaign() {
             currentLength={subjectLine.length}
           />
           <SubjectLineScore
+            deps={subjectLineDeps}
             subject={subjectLine}
             senderName={watch('campaign.fromName') ?? ''}
             preheader={previewText}

@@ -95,6 +95,12 @@ export interface SenderDefaults {
   replyToEmail: string
 }
 
+export interface SpamWordEntry {
+  term: string
+  severity: 'critical' | 'warn'
+  pack: string
+}
+
 export interface FormDefaults {
   theme: string
   urgency: 'standard' | 'urgent'
@@ -472,6 +478,8 @@ export interface AppSettings {
   designBriefing: DesignBriefingSettings
   // Campaign Planner
   campaignPlanner: CampaignPlannerSettings
+  /** Words and phrases the Subject Line Tester flags. Unset means the starting list shipped with the app. */
+  spamWordList?: SpamWordEntry[]
 }
 
 // ─── Power Automate ──────────────────────────────────────────
