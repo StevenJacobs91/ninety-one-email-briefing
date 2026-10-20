@@ -425,7 +425,6 @@ export interface AppSettings {
   senderDefaults: SenderDefaults
   formDefaults: FormDefaults
   legalDisclaimers: LegalDisclaimerConfig[]
-  n8nWebhookUrl: string
   pardot: PardotConfig
   campaigns: CampaignEntry[]
   // Sign-off signatures

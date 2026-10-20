@@ -14,7 +14,7 @@
  * To wire up the real API in a future session:
  *   1. Set `pardotConfig.businessUnitId`, `apiProxyUrl`, and `useMockData: false`
  *      in the Settings panel → Pardot tab.
- *   2. Deploy a lightweight proxy (e.g. n8n webhook, Vercel Edge Function, or
+ *   2. Deploy a lightweight proxy (e.g. a Power Automate flow, Vercel Edge Function, or
  *      Cloudflare Worker) that forwards requests to:
  *        https://pi.pardot.com/api/v5/objects/lists/{listId}
  *      with `Authorization: Bearer <access_token>` and

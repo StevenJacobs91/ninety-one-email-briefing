@@ -421,7 +421,7 @@ export function TabPardot() {
           </Field>
           <Field
             label="API Proxy URL"
-            hint="Account Engagement does not support direct browser requests (no CORS). This app ships with a built-in Vercel proxy — click 'Use built-in' to set it automatically. Alternatively, supply your own Cloudflare Worker, Vercel Edge Function, or n8n webhook URL."
+            hint="Account Engagement does not support direct browser requests (no CORS). This app ships with a built-in Vercel proxy — click 'Use built-in' to set it automatically. Alternatively, supply your own Cloudflare Worker or Vercel Edge Function URL."
           >
             <div className="flex gap-2">
               <input

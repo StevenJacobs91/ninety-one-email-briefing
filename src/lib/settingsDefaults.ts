@@ -443,7 +443,6 @@ export function createDefaultSettings(): AppSettings {
     senderDefaults: DEFAULT_SENDER_DEFAULTS,
     formDefaults: DEFAULT_FORM_DEFAULTS,
     legalDisclaimers: DEFAULT_LEGAL_DISCLAIMERS,
-    n8nWebhookUrl: '',
     pardot: DEFAULT_PARDOT_CONFIG,
     campaigns: DEFAULT_CAMPAIGNS,
     signoffs: DEFAULT_SIGNOFFS,

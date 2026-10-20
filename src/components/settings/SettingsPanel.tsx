@@ -75,7 +75,7 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
   {
     label: 'Setup',
     tabs: [
-      { id: 'general',   label: 'General',     description: 'Sender defaults, form defaults, and n8n integration' },
+      { id: 'general',   label: 'General',     description: 'Sender defaults and form defaults' },
       { id: 'layout',    label: 'Form Layout',  description: 'Reorder fields and set required/optional' },
       { id: 'users',     label: 'Users',        description: 'Manage team members, roles, and access' },
       { id: 'approvals',      label: 'Approvals',      description: 'Configure approval workflow, roles, and routing rules' },

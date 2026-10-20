@@ -20,7 +20,7 @@ function row(label: string, value: string): string {
 
 /**
  * Generates a standalone HTML document that mirrors the "Review your Brief" layout.
- * Used as the brief attachment when submitting via email or n8n.
+ * Used as the brief attachment when submitting via email or Power Automate.
  */
 export function generateBriefHtml(brief: BriefPayload): string {
   const theme = BRAND_THEMES.find((t) => t.id === brief.campaign.theme)

@@ -43,7 +43,7 @@ export function StepAudience() {
           placeholder="e.g. 12345  |  NI-ZA-Intermediary-Q1  |  https://pi.pardot.com/lists/read/id/12345"
         />
         <p className="text-xs text-gray-400 dark:text-gray-500">
-          Optional. Found in Pardot under <em>Marketing → Segmentation → Lists</em>. Used by the n8n automation to trigger the send.
+          Optional. Found in Pardot under <em>Marketing → Segmentation → Lists</em>. Used by the automation to trigger the send.
         </p>
         {pardotListId.trim() && (
           <PardotAnalysisPanel listIdentifier={pardotListId} config={settings.pardot} />

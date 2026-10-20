@@ -4,7 +4,7 @@ import type { EmailType } from '../../lib/constants'
 
 export function TabGeneral() {
   const { settings, updateSettings } = useSettings()
-  const { senderDefaults, formDefaults, n8nWebhookUrl } = settings
+  const { senderDefaults, formDefaults } = settings
 
   return (
     <div className="space-y-8">
@@ -148,30 +148,6 @@ export function TabGeneral() {
         </div>
       </section>
 
-      <hr className="border-gray-100 dark:border-gray-800" />
-
-      {/* n8n Integration */}
-      <section>
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">n8n Integration</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          When configured, the "Submit Brief & Template" button will POST the brief JSON and HTML directly to your n8n webhook instead of opening the email client.
-        </p>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Webhook URL</label>
-          <input
-            type="url"
-            value={n8nWebhookUrl}
-            onChange={(e) => updateSettings({ n8nWebhookUrl: e.target.value })}
-            placeholder="https://your-n8n-instance.com/webhook/..."
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono"
-          />
-          {n8nWebhookUrl && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1.5">
-              ✓ Webhook configured — submission will POST to n8n
-            </p>
-          )}
-        </div>
-      </section>
 
     </div>
   )

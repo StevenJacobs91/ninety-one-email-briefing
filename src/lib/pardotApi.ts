@@ -3,7 +3,7 @@
  *
  * Auth flow: Salesforce OAuth 2.0 client_credentials → access_token
  * Then call Pardot Account Engagement REST API v5 via apiProxyUrl (CORS proxy)
- * or directly when running server-side / in n8n.
+ * or directly when running server-side.
  *
  * Docs: https://developer.salesforce.com/docs/marketing/pardot/guide/overview.html
  */
@@ -77,7 +77,7 @@ function buildHeaders(accessToken: string, businessUnitId: string): Record<strin
 
 /**
  * Exchange client credentials for a Salesforce access token.
- * NOTE: This must be called server-side (n8n / Edge Function) in production —
+ * NOTE: This must be called server-side (Edge Function) in production —
  * browsers cannot reach login.salesforce.com directly due to CORS.
  * When apiProxyUrl is set, the proxy is expected to handle token exchange too.
  */
