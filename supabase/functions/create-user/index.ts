@@ -7,7 +7,11 @@
 // and supports ES256 natively.
 //
 // Request body:
-//   { email: string, password: string, displayName: string, role: 'admin' | 'producer' | 'requester' }
+//   { email: string, password: string, displayName: string, role: 'admin' | 'producer' | 'requester', restore?: boolean }
+//
+// If the email belongs to a login whose profile was removed, the response is 409 with
+// code REMOVED_USER. Sending the same request with restore: true brings that user back:
+// same login, password reset to the one supplied, profile recreated.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -80,13 +84,14 @@ Deno.serve(async (req) => {
   }
 
   // Parse request body
-  let email: string, password: string, displayName: string, role: string
+  let email: string, password: string, displayName: string, role: string, restore = false
   try {
     const body = await req.json()
     email = body.email?.trim()
     password = body.password
     displayName = body.displayName?.trim() || email
     role = body.role || 'requester'
+    restore = body.restore === true
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid request body' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -112,26 +117,53 @@ Deno.serve(async (req) => {
     email_confirm: true,
     user_metadata: { display_name: displayName },
   }
-  let { data: newUserData, error: createError } = await adminClient.auth.admin.createUser(createArgs)
+  const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser(createArgs)
 
-  // A user removed before delete-user existed left their login behind with no profile,
-  // which blocks the same email being added again. Clear that orphan and retry. A login
-  // that still has a profile is a real, existing user and is never touched.
+  // The email already has a login. If a profile still exists it is a real user; if not, the
+  // user was removed and can be restored rather than created again.
   if (createError && /already.*(registered|exists)/i.test(createError.message)) {
     const orphan = await findAuthUserByEmail(adminClient, email)
     if (orphan) {
       const { data: existingProfile } = await adminClient
         .from('profiles').select('id').eq('id', orphan.id).maybeSingle()
       if (existingProfile) {
-        return new Response(JSON.stringify({ error: 'A user with this email already exists.' }), {
+        return new Response(JSON.stringify({ error: 'A user with this email already exists.', code: 'USER_EXISTS' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      const { error: cleanupError } = await adminClient.auth.admin.deleteUser(orphan.id)
-      if (!cleanupError) {
-        console.log('create-user: removed orphaned login for', email)
-        ;({ data: newUserData, error: createError } = await adminClient.auth.admin.createUser(createArgs))
+      if (!restore) {
+        return new Response(JSON.stringify({
+          error: 'This email belongs to a user who was removed. You can restore them instead.',
+          code: 'REMOVED_USER',
+        }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
+
+      // Restore: same login, new password, profile recreated with the details supplied.
+      const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(orphan.id, {
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName },
+      })
+      if (updateAuthError) {
+        return new Response(JSON.stringify({ error: `Could not restore the login: ${updateAuthError.message}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const profile = { id: orphan.id, team_id: callerProfile.team_id, display_name: displayName, role }
+      let { error: profileError } = await adminClient.from('profiles').upsert({ ...profile, email })
+      if (profileError && /email/i.test(profileError.message)) {
+        // Some schemas keep the email only on the login; retry without the column.
+        ;({ error: profileError } = await adminClient.from('profiles').upsert(profile))
+      }
+      if (profileError) {
+        return new Response(JSON.stringify({ error: `Could not restore the profile: ${profileError.message}` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      console.log('create-user: restored', email, 'as', role, 'for team', callerProfile.team_id)
+      return new Response(JSON.stringify({ userId: orphan.id, restored: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
   }
 

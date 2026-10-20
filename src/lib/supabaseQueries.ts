@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { functionErrorMessage, isFunctionMissing } from './functionError'
+import { functionErrorDetails, functionErrorMessage, isFunctionMissing } from './functionError'
 import type { AppSettings } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
 import type { KanbanCard } from '../types/kanban.types'
@@ -357,11 +357,22 @@ export async function removeMember(userId: string): Promise<{ loginRemoved: bool
   throw new Error(await functionErrorMessage(error, 'Failed to remove member'))
 }
 
+/** Thrown when creating a user fails; `code` is set when the function says why (e.g. REMOVED_USER). */
+export class CreateUserError extends Error {
+  code?: string
+  constructor(message: string, code?: string) {
+    super(message)
+    this.name = 'CreateUserError'
+    this.code = code
+  }
+}
+
 export async function createTeamMember(
   email: string,
   password: string,
   displayName: string,
   role: UserRole,
+  opts: { restore?: boolean } = {},
 ): Promise<{ userId: string }> {
   // Explicitly retrieve the session token — functions.invoke() may fall back to
   // the anon key in some environments, which has no `sub` claim and fails our
@@ -371,11 +382,14 @@ export async function createTeamMember(
   if (!accessToken) throw new Error('Not authenticated')
 
   const { data, error } = await supabase.functions.invoke('create-user', {
-    body: { email, password, displayName, role },
+    body: { email, password, displayName, role, restore: opts.restore === true },
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
-  if (error) throw new Error(await functionErrorMessage(error, 'Failed to create user'))
-  if (data?.error) throw new Error(data.error)
+  if (error) {
+    const d = await functionErrorDetails(error, 'Failed to create user')
+    throw new CreateUserError(d.message, d.code)
+  }
+  if (data?.error) throw new CreateUserError(data.error, data.code)
   return { userId: data.userId }
 }

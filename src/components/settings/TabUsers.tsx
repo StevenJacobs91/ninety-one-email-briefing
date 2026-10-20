@@ -18,6 +18,7 @@ import {
   updateMemberPresets,
   removeMember,
   createTeamMember,
+  CreateUserError,
   type TeamMember,
   type UserRole,
 } from '../../lib/supabaseQueries'
@@ -398,25 +399,34 @@ function AddUserForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Set when the email belongs to a user who was removed: they can be restored instead.
+  const [canRestore, setCanRestore] = useState(false)
 
   function set(field: keyof typeof INITIAL_FORM, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
     setError('')
+    setCanRestore(false)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit(restore: boolean) {
     if (!form.email.trim() || !form.password) return
     setSaving(true)
     setError('')
+    setCanRestore(false)
     try {
-      await createTeamMember(form.email.trim(), form.password, form.displayName.trim() || form.email.trim(), form.role)
+      await createTeamMember(form.email.trim(), form.password, form.displayName.trim() || form.email.trim(), form.role, { restore })
       onSuccess()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user')
+      setCanRestore(err instanceof CreateUserError && err.code === 'REMOVED_USER')
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    void submit(false)
   }
 
   return (
@@ -457,6 +467,17 @@ function AddUserForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
         </div>
       </div>
       {error && <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{error}</p>}
+      {canRestore && (
+        <div className="rounded-lg border border-brand-primary/30 bg-brand-primary/5 px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+          <p className="mb-2">
+            Restoring brings back their previous account with the display name and role above. Their password is set to the one entered.
+          </p>
+          <button type="button" onClick={() => void submit(true)} disabled={saving}
+            className="px-3 py-1.5 rounded-lg bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90 disabled:opacity-50 transition-colors">
+            {saving ? 'Restoring…' : 'Restore this user'}
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-2 pt-1">
         <button type="submit" disabled={saving || !form.email.trim() || !form.password}
           className="px-4 py-2 rounded-lg bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5">
