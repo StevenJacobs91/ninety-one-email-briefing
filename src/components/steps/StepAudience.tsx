@@ -5,6 +5,7 @@ import { FieldText } from '../ui/FieldText'
 import { formatFileSize } from '../../lib/formatFileSize'
 import { parseDistributionList, downloadCleanedCsv } from '../../lib/parseDistributionList'
 import type { ListAnalysis } from '../../lib/parseDistributionList'
+import { isShown } from '../../lib/uiVisibility'
 import { fetchPardotListAnalysis } from '../../lib/pardotService'
 import type { PardotListAnalysis } from '../../lib/pardotService'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -45,7 +46,7 @@ export function StepAudience() {
         <p className="text-xs text-gray-400 dark:text-gray-500">
           Optional. Found in Pardot under <em>Marketing → Segmentation → Lists</em>. Used by the automation to trigger the send.
         </p>
-        {pardotListId.trim() && (
+        {pardotListId.trim() && isShown(settings.formDefaults, 'showPardotProspectHealth') && (
           <PardotAnalysisPanel listIdentifier={pardotListId} config={settings.pardot} />
         )}
       </div>
@@ -57,6 +58,8 @@ export function StepAudience() {
 
 function DistributionListsUpload() {
   const { setValue, watch } = useFormContext<BriefFormData>()
+  const { settings } = useSettings()
+  const showDropzone = isShown(settings.formDefaults, 'showDistributionListDropzone')
   const storedLists = watch('audience.distributionLists') ?? []
 
   // Local state tracks full analysis + CSV per entry (not persisted in schema)
@@ -213,52 +216,54 @@ function DistributionListsUpload() {
         />
       ))}
 
-      {/* Drop zone — always visible so more lists can be added */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-        onDragLeave={() => setIsDragging(false)}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
-          isProcessing
-            ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent/50'
-            : isDragging
-            ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent dark:bg-brand-accent/5'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-brand-primary focus-within:border-brand-primary'
-        }`}
-      >
-        {!isProcessing && (
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            multiple
-            onChange={(e) => {
-              const files = Array.from(e.target.files ?? [])
-              if (files.length) handleFiles(files)
-              e.target.value = ''
-            }}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          />
-        )}
-        {isProcessing ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-5 h-5 border-2 border-brand-primary dark:border-brand-accent border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-              Processing <span className="text-gray-800 dark:text-gray-200">{processingName}</span>…
-            </p>
-          </div>
-        ) : (
-          <div className="text-gray-500 dark:text-gray-400">
-            <p className="text-xl mb-1">📋</p>
-            <p className="text-sm font-medium">
-              {localEntries.length === 0
-                ? isDragging ? 'Drop your list here' : 'Drag & drop a distribution list'
-                : isDragging ? 'Drop to add another list' : '+ Add another list'
-              }
-            </p>
-            <p className="text-xs mt-0.5 text-gray-400">or click to browse · Excel or CSV · multiple files supported</p>
-          </div>
-        )}
-      </div>
+      {/* Drop zone — visible so more lists can be added, unless hidden in Settings → General */}
+      {showDropzone && (
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+          onDragLeave={() => setIsDragging(false)}
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+            isProcessing
+              ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent/50'
+              : isDragging
+              ? 'border-brand-primary bg-brand-primary/5 dark:border-brand-accent dark:bg-brand-accent/5'
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 focus-within:ring-2 focus-within:ring-brand-primary focus-within:border-brand-primary'
+          }`}
+        >
+          {!isProcessing && (
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? [])
+                if (files.length) handleFiles(files)
+                e.target.value = ''
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          )}
+          {isProcessing ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-5 h-5 border-2 border-brand-primary dark:border-brand-accent border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                Processing <span className="text-gray-800 dark:text-gray-200">{processingName}</span>…
+              </p>
+            </div>
+          ) : (
+            <div className="text-gray-500 dark:text-gray-400">
+              <p className="text-xl mb-1">📋</p>
+              <p className="text-sm font-medium">
+                {localEntries.length === 0
+                  ? isDragging ? 'Drop your list here' : 'Drag & drop a distribution list'
+                  : isDragging ? 'Drop to add another list' : '+ Add another list'
+                }
+              </p>
+              <p className="text-xs mt-0.5 text-gray-400">or click to browse · Excel or CSV · multiple files supported</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {uploadError && (
         <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">

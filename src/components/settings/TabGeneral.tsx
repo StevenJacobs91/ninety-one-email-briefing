@@ -1,6 +1,7 @@
 import { useSettings } from '../../contexts/SettingsContext'
 import { EMAIL_TYPES, EMAIL_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
+import { VISIBILITY_OPTIONS, isShown } from '../../lib/uiVisibility'
 
 export function TabGeneral() {
   const { settings, updateSettings } = useSettings()
@@ -146,6 +147,45 @@ export function TabGeneral() {
             </button>
           </div>
         </div>
+      </section>
+
+
+      <hr className="border-gray-100 dark:border-gray-800" />
+
+      {/* Show / hide controls */}
+      <section>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Show or hide</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Hide controls your team doesn&rsquo;t use. Hidden items are only removed from the screen.
+        </p>
+        {(['Campaign', 'Review and Submission'] as const).map((tab) => (
+          <div key={tab} className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">{tab} tab</p>
+            <div className="space-y-3">
+              {VISIBILITY_OPTIONS.filter((o) => o.tab === tab).map((o) => {
+                const on = isShown(formDefaults, o.key)
+                return (
+                  <div key={o.key} className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{o.label}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{o.hint}</p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={o.label}
+                      onClick={() => updateSettings({ formDefaults: { ...formDefaults, [o.key]: !on } })}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${on ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${on ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </section>
 
 

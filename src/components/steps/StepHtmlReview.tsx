@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import type { BriefPayload, HtmlEdit } from '../../types/brief.types'
+import { isShown } from '../../lib/uiVisibility'
 import { useCatalogue } from '../builder2/useCatalogue'
 import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
@@ -49,6 +50,7 @@ export function StepHtmlReview(props: StepHtmlReviewProps) {
 function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, catalogue }: StepHtmlReviewProps & { catalogue?: ThemeCatalogue }) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
+  const show = (key: Parameters<typeof isShown>[1]) => isShown(settings.formDefaults, key)
   const data = getValues() as BriefPayload
 
   const html = useMemo(() => generateEmailHtml(data, settings, { catalogue }), [data, settings, catalogue])
@@ -451,52 +453,56 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         >
           Download HTML
         </button>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex-1 min-w-[130px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'error' ? 'Failed' : 'Copy HTML'}
-        </button>
+        {show('showCopyHtml') && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex-1 min-w-[130px] border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'error' ? 'Failed' : 'Copy HTML'}
+          </button>
+        )}
       </div>
 
       {/* Send Test Email */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Test Email</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {isTestEmailFlowReady(settings.powerAutomate)
-            ? 'Sends the rendered HTML to the specified address via your Power Automate flow.'
-            : 'No Power Automate test-email flow configured — will open your email client with a pre-filled message.'}
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            value={testRecipient}
-            onChange={(e) => { setTestRecipient(e.target.value); setTestError('') }}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendTestEmail()}
-            placeholder="recipient@example.com"
-            className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-          />
-          <button
-            type="button"
-            onClick={handleSendTestEmail}
-            disabled={testStatus === 'sending' || !testRecipient.trim()}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-hover transition-colors disabled:opacity-40 shrink-0"
-          >
-            {testStatus === 'sending' ? 'Sending…' : testStatus === 'sent' ? 'Sent!' : 'Send Test'}
-          </button>
-        </div>
-        {testError && (
-          <p className="text-xs text-red-600 dark:text-red-400 mt-2">{testError}</p>
-        )}
-        {testStatus === 'sent' && !testError && (
-          <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+      {show('showSendTestEmail') && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Test Email</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
             {isTestEmailFlowReady(settings.powerAutomate)
-              ? `Test email dispatched to ${testRecipient} via Power Automate.`
-              : 'Email client opened — attach the HTML file before sending.'}
+              ? 'Sends the rendered HTML to the specified address via your Power Automate flow.'
+              : 'No Power Automate test-email flow configured — will open your email client with a pre-filled message.'}
           </p>
-        )}
-      </div>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={testRecipient}
+              onChange={(e) => { setTestRecipient(e.target.value); setTestError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendTestEmail()}
+              placeholder="recipient@example.com"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+            />
+            <button
+              type="button"
+              onClick={handleSendTestEmail}
+              disabled={testStatus === 'sending' || !testRecipient.trim()}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-brand-primary text-white hover:bg-brand-primary-hover transition-colors disabled:opacity-40 shrink-0"
+            >
+              {testStatus === 'sending' ? 'Sending…' : testStatus === 'sent' ? 'Sent!' : 'Send Test'}
+            </button>
+          </div>
+          {testError && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2">{testError}</p>
+          )}
+          {testStatus === 'sent' && !testError && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+              {isTestEmailFlowReady(settings.powerAutomate)
+                ? `Test email dispatched to ${testRecipient} via Power Automate.`
+                : 'Email client opened — attach the HTML file before sending.'}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Divider */}
       <div className="border-t border-gray-100 dark:border-gray-800 mb-4" />
@@ -510,46 +516,48 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         )}
 
         {/* Submit to Pardot */}
-        <div>
-          <button
-            type="button"
-            onClick={handleSubmitToPardot}
-            disabled={blocked || pardotStatus === 'sending'}
-            className="w-full bg-brand-primary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50"
-          >
-            {pardotStatus === 'sending'
-              ? 'Sending to Pardot…'
-              : pardotStatus === 'sent'
-                ? '✓ Sent to Pardot'
-                : pardotStatus === 'error'
-                  ? 'Pardot Error — try again'
-                  : 'Submit to Pardot'}
-          </button>
-          {pardotStatus === 'sent' && pardotResult?.emailId && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
-              Draft created in Pardot — ID: {pardotResult.emailId}
-            </p>
-          )}
-          {pardotStatus === 'sent' && !pardotResult?.emailId && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
-              {pardotResult?.emailName ?? 'Draft'} created in Pardot
-            </p>
-          )}
-          {pardotStatus === 'error' && pardotResult && (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
-              {pardotResult.error}{pardotResult.details ? ` — ${pardotResult.details.slice(0, 80)}` : ''}
-            </p>
-          )}
-          {pardotStatus === 'idle' && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              {settings.pardot?.useMockData
-                ? 'Mock mode — no real API call'
-                : settings.pardot?.apiProxyUrl?.trim()
-                  ? 'Creates a draft in Pardot Account Engagement'
-                  : 'Configure Pardot in Settings to enable'}
-            </p>
-          )}
-        </div>
+        {show('showSubmitToPardot') && (
+          <div>
+            <button
+              type="button"
+              onClick={handleSubmitToPardot}
+              disabled={blocked || pardotStatus === 'sending'}
+              className="w-full bg-brand-primary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50"
+            >
+              {pardotStatus === 'sending'
+                ? 'Sending to Pardot…'
+                : pardotStatus === 'sent'
+                  ? '✓ Sent to Pardot'
+                  : pardotStatus === 'error'
+                    ? 'Pardot Error — try again'
+                    : 'Submit to Pardot'}
+            </button>
+            {pardotStatus === 'sent' && pardotResult?.emailId && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+                Draft created in Pardot — ID: {pardotResult.emailId}
+              </p>
+            )}
+            {pardotStatus === 'sent' && !pardotResult?.emailId && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+                {pardotResult?.emailName ?? 'Draft'} created in Pardot
+              </p>
+            )}
+            {pardotStatus === 'error' && pardotResult && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
+                {pardotResult.error}{pardotResult.details ? ` — ${pardotResult.details.slice(0, 80)}` : ''}
+              </p>
+            )}
+            {pardotStatus === 'idle' && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+                {settings.pardot?.useMockData
+                  ? 'Mock mode — no real API call'
+                  : settings.pardot?.apiProxyUrl?.trim()
+                    ? 'Creates a draft in Pardot Account Engagement'
+                    : 'Configure Pardot in Settings to enable'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Submit Brief & Template */}
         <div>

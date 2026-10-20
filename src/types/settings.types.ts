@@ -102,6 +102,12 @@ export interface FormDefaults {
   includeUnsubscribe: boolean
   /** Show the auto-generated Tags section in the Campaign tab. Tags are still collected when hidden. */
   showTagsSection: boolean
+  /** Show or hide individual controls; a missing value means shown. See lib/uiVisibility.ts. */
+  showDistributionListDropzone?: boolean
+  showPardotProspectHealth?: boolean
+  showCopyHtml?: boolean
+  showSendTestEmail?: boolean
+  showSubmitToPardot?: boolean
 }
 
 export interface LegalDisclaimerConfig {
