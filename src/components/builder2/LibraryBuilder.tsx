@@ -5,7 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
-  addModule, duplicateModule, moveModule, removeModule, setImage, setRegion, setRepeat, setTheme, swapModule,
+  addModule, duplicateModule, isLocked, moveModule, removeModule, setImage, setRegion, setRepeat, setTheme, swapModule,
   type BuildModule, type EmailBuild,
 } from '../../lib/moduleEngine/build'
 import { describeModule } from '../../lib/moduleEngine/describe'
@@ -119,6 +119,13 @@ export function LibraryBuilder() {
     if (bind && patch.value !== undefined) setValue(`content.${bind}`, patch.value, { shouldValidate: true, shouldDirty: true })
   }
 
+  const removeOne = (m: BuildModule) => {
+    commit(removeModule(build, m.instanceId))
+    if (m.instanceId === selectedId) setSelectedId(null)
+    // The brief's body intro follows the body module; without it there is no intro.
+    if (Object.values(m.boundFields).includes('bodyIntro')) setValue('content.bodyIntro', '', { shouldDirty: true })
+  }
+
   const pick = (name: string, at: number) => {
     const next = addModule(build, name, at)
     commit(next)
@@ -149,7 +156,6 @@ export function LibraryBuilder() {
   }
 
   const headlineError = errors.content?.headline?.message
-  const bodyError = errors.content?.bodyIntro?.message
 
   return (
     <div>
@@ -173,10 +179,9 @@ export function LibraryBuilder() {
         </div>
       )}
 
-      {(headlineError || bodyError) && (
+      {headlineError && (
         <div role="alert" className="mb-4 border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
           {headlineError && <p>Headline: {headlineError}. Add it in the header module.</p>}
-          {bodyError && <p>Body intro: {bodyError}. Add it in the Body Content module.</p>}
         </div>
       )}
 
@@ -207,10 +212,10 @@ export function LibraryBuilder() {
                       {p && p.dropped > 0 && <span className="ml-2 text-amber-600">{p.dropped} saved value{p.dropped > 1 ? 's' : ''} not in this theme</span>}
                     </span>
                     <span className="flex items-center gap-1 shrink-0">
-                      <button type="button" aria-label={`Move ${m.moduleName} up`} disabled={!!m.slot} onClick={() => commit(moveModule(build, m.instanceId, i - 1))} className="px-1.5 disabled:opacity-30">↑</button>
-                      <button type="button" aria-label={`Move ${m.moduleName} down`} disabled={!!m.slot} onClick={() => commit(moveModule(build, m.instanceId, i + 1))} className="px-1.5 disabled:opacity-30">↓</button>
-                      <button type="button" aria-label={`Duplicate ${m.moduleName}`} disabled={!!m.slot} onClick={() => commit(duplicateModule(build, m.instanceId))} className="px-1.5 disabled:opacity-30">⧉</button>
-                      <button type="button" aria-label={`Remove ${m.moduleName}`} disabled={!!m.slot} onClick={() => { commit(removeModule(build, m.instanceId)); if (isSel) setSelectedId(null) }} className="px-1.5 text-red-600 disabled:opacity-30">✕</button>
+                      <button type="button" aria-label={`Move ${m.moduleName} up`} disabled={isLocked(m)} onClick={() => commit(moveModule(build, m.instanceId, i - 1))} className="px-1.5 disabled:opacity-30">↑</button>
+                      <button type="button" aria-label={`Move ${m.moduleName} down`} disabled={isLocked(m)} onClick={() => commit(moveModule(build, m.instanceId, i + 1))} className="px-1.5 disabled:opacity-30">↓</button>
+                      <button type="button" aria-label={`Duplicate ${m.moduleName}`} disabled={isLocked(m)} onClick={() => commit(duplicateModule(build, m.instanceId))} className="px-1.5 disabled:opacity-30">⧉</button>
+                      <button type="button" aria-label={`Remove ${m.moduleName}`} disabled={isLocked(m)} onClick={() => removeOne(m)} className="px-1.5 text-red-600 disabled:opacity-30">✕</button>
                     </span>
                   </div>
                   <div className="relative">

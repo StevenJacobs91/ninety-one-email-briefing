@@ -23,7 +23,6 @@ const STEP_FIELDS_BY_ID: Record<string, FieldPath<BriefFormData>[]> = {
   ],
   content: [
     'content.headline',
-    'content.bodyIntro',
   ],
   review: [],
 }

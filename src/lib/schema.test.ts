@@ -21,9 +21,9 @@ test('a non-empty CTA url must still be a valid URL', () => {
   assert.equal(r.success, false)
 })
 
-test('headline and body intro are still required', () => {
+test('headline is required but body intro is not (the body module can be removed)', () => {
   assert.equal(contentSchema.safeParse({ ...base, headline: '' }).success, false)
-  assert.equal(contentSchema.safeParse({ ...base, bodyIntro: '' }).success, false)
+  assert.equal(contentSchema.safeParse({ ...base, bodyIntro: '' }).success, true)
 })
 
 test('a saved build round-trips through the schema', () => {

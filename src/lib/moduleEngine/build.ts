@@ -27,6 +27,11 @@ export function newModule(moduleName: string, slot: Slot | null = null): BuildMo
   return { instanceId: newInstanceId(), moduleName, slot, repeats: {}, regions: {}, images: {}, boundFields: {} }
 }
 
+/** Header, footer and disclaimer are fixed in place; the body module is an ordinary module that happens to be seeded. */
+export function isLocked(m: BuildModule): boolean {
+  return m.slot !== null && m.slot !== 'body'
+}
+
 // Free modules live between the header and the disclaimer/footer slots.
 function freeRange(modules: BuildModule[]): [number, number] {
   const header = modules.findIndex((m) => m.slot === 'header')
@@ -50,13 +55,13 @@ export function addModule(b: EmailBuild, name: string, at: number): EmailBuild {
 
 export function removeModule(b: EmailBuild, instanceId: string): EmailBuild {
   const m = b.modules.find((x) => x.instanceId === instanceId)
-  if (!m || m.slot) return b
+  if (!m || isLocked(m)) return b
   return { ...b, modules: b.modules.filter((x) => x.instanceId !== instanceId) }
 }
 
 export function moveModule(b: EmailBuild, instanceId: string, to: number): EmailBuild {
   const m = b.modules.find((x) => x.instanceId === instanceId)
-  if (!m || m.slot) return b
+  if (!m || isLocked(m)) return b
   const rest = b.modules.filter((x) => x.instanceId !== instanceId)
   return { ...b, modules: insertAt(rest, m, to) }
 }
@@ -64,9 +69,10 @@ export function moveModule(b: EmailBuild, instanceId: string, to: number): Email
 export function duplicateModule(b: EmailBuild, instanceId: string): EmailBuild {
   const i = b.modules.findIndex((x) => x.instanceId === instanceId)
   const m = b.modules[i]
-  if (!m || m.slot) return b
+  if (!m || isLocked(m)) return b
   const copy: BuildModule = {
     ...m,
+    slot: null,
     instanceId: newInstanceId(),
     regions: { ...m.regions },
     repeats: { ...m.repeats },

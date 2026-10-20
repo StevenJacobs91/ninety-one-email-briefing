@@ -86,7 +86,7 @@ export const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
   greetingId: z.string().optional(),
-  bodyIntro: z.string().min(1, 'Body intro is required'),
+  bodyIntro: z.string(),
   sections: z.array(contentSectionSchema).max(4, 'Max 4 sections'),
   modules: z.array(z.string()),
   moduleNotes: z.record(z.string()).optional(),

@@ -46,10 +46,22 @@ test('an edited region appears in the rendered email', () => {
   assert.ok(out.html.includes('Hello <b>world</b>'))
 })
 
-test('seeded slot modules cannot be removed or moved', () => {
+test('header, footer and disclaimer slot modules cannot be removed or moved', () => {
   const b = base()
-  assert.deepEqual(removeModule(b, b.modules[0].instanceId), b)
-  assert.deepEqual(moveModule(b, b.modules[1].instanceId, 3), b)
+  for (const i of [0, 2, 3]) {
+    assert.deepEqual(removeModule(b, b.modules[i].instanceId), b)
+    assert.deepEqual(moveModule(b, b.modules[i].instanceId, 1), b)
+  }
+})
+
+test('the seeded body module can be removed, moved and duplicated like any other', () => {
+  let b = addModule(base(), 'Greeting', 1)
+  const body = b.modules.find((m) => m.slot === 'body')!
+  b = moveModule(b, body.instanceId, 1)
+  assert.equal(b.modules[1].slot, 'body')
+  assert.equal(duplicateModule(b, body.instanceId).modules.filter((m) => m.moduleName === 'Body Content').length, 2)
+  b = removeModule(b, body.instanceId)
+  assert.ok(!b.modules.some((m) => m.slot === 'body'))
 })
 
 test('added modules land between the header and the footer', () => {
