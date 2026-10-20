@@ -5,7 +5,6 @@ import {
   EMAIL_TYPES, EMAIL_TYPE_LABELS, CLIENT_GROUPS, CHANNELS,
   CLIENT_GROUP_REGIONS,
 } from '../../lib/constants'
-import type { BrandThemeConfig } from '../../types/settings.types'
 import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
@@ -15,6 +14,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAvailableThemes } from '../builder2/useAvailableThemes'
 import { instantiateTemplate, isBuildEmpty } from '../../lib/campaignTemplate'
+import { buildTags } from '../../lib/tags'
 import { StepAudience } from './StepAudience'
 import { SendTimeSuggestion } from './SendTimeSuggestion'
 
@@ -23,30 +23,6 @@ function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
   const seen = new Set(builtIn)
   const extras = custom.filter((v) => !seen.has(v))
   return [...builtIn, ...extras]
-}
-
-// ─── Tags builder ──────────────────────────────────────────────────────────────
-function buildTags(data: BriefFormData, themes: BrandThemeConfig[] = []): string {
-  const now = new Date()
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  const yy = String(now.getFullYear()).slice(-2)
-  const regionPart = (data.audience.region ?? []).length > 0 ? (data.audience.region ?? []).join(' ') : 'tbd'
-  const audiencePart = (data.audience.channel ?? []).length > 0 ? (data.audience.channel ?? []).join(' ') : 'tbd'
-  const namePart = data.campaign.campaignName || 'untitled'
-  const emailName = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
-
-  const themeLabel = themes.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
-
-  return [
-    `parent - ${emailName}`,
-    'email - primary',
-    `client group - ${(data.audience.clientGroup ?? []).join(' ').toLowerCase()}`,
-    `region - ${(data.audience.region ?? []).join(' ').toLowerCase()}`,
-    `audience - ${(data.audience.channel ?? []).join(' ').toLowerCase()}`,
-    `campaign - ${(data.campaign.campaignName || 'untitled').toLowerCase()}`,
-    `email type - ${(data.campaign.emailType || '').toLowerCase()}`,
-    `colour theme - ${themeLabel.toLowerCase().replace(/\s*\/\s*/g, ' and ')}`,
-  ].join(', ')
 }
 
 // ─── Main StepCampaign ─────────────────────────────────────────────────────────

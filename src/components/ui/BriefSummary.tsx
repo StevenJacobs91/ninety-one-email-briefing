@@ -2,7 +2,9 @@ import type { BriefFormData } from '../../lib/schema'
 import { BRAND_THEMES, EMAIL_TYPE_LABELS, EMAIL_MODULES } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
 import { buildEmailName } from '../../lib/emailName'
+import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { buildTags } from '../../lib/tags'
 
 function formatDate(iso: string): string {
   if (!iso) return ''
@@ -24,6 +26,8 @@ export function BriefSummary({ data }: BriefSummaryProps) {
   const theme = BRAND_THEMES.find((t) => t.id === data.campaign.theme)
   const selectedModuleLabels = (data.content.modules ?? [])
     .map((id) => EMAIL_MODULES.find((m) => m.id === id)?.label ?? id)
+  const tags = buildTags(data, settings.brandThemes ?? [])
+  const [tagsCopied, setTagsCopied] = useState(false)
   const emailName = buildEmailName(data.campaign.campaignName, data.audience?.region ?? [], data.audience?.channel ?? [], data.campaign?.emailDescription)
 
   function sectionVisible(fieldId: string): boolean {
@@ -119,6 +123,25 @@ export function BriefSummary({ data }: BriefSummaryProps) {
           {data.deadlines.notes && <Row label="Notes" value={data.deadlines.notes} />}
         </Section>
       )}
+
+      <Section title="Tags">
+        <p className="font-mono text-xs leading-relaxed text-gray-900 dark:text-gray-200 break-words select-all">{tags}</p>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(tags)
+              setTagsCopied(true)
+              setTimeout(() => setTagsCopied(false), 2000)
+            } catch {
+              setTagsCopied(false)
+            }
+          }}
+          className="mt-2 text-xs font-medium text-brand-primary dark:text-brand-accent border border-brand-primary/30 dark:border-brand-accent/30 px-2.5 py-1 hover:bg-brand-primary/5"
+        >
+          {tagsCopied ? 'Copied' : 'Copy tags'}
+        </button>
+      </Section>
     </div>
   )
 }
