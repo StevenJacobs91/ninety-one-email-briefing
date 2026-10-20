@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
-import { useWatch } from 'react-hook-form'
+import { useWatch, type Control } from 'react-hook-form'
+import type { BriefFormData } from '../lib/schema'
 import type { BriefPayload } from '../types/brief.types'
 import { runBrandGuardianReview, type BrandReview } from '../lib/brandGuardian'
 import { evaluateGate, type GateResult } from '../lib/brandReviewGate'
@@ -15,11 +16,10 @@ export interface BrandReviewState extends GateResult {
 }
 
 // Static rules review, optional AI review, and the submit gate built from both.
-// Must be called inside the form's FormProvider.
-export function useBrandReviewGate(): BrandReviewState {
+export function useBrandReviewGate(control: Control<BriefFormData>): BrandReviewState {
   const { settings } = useSettings()
   const cfg = settings.brandGuardian
-  const watched = useWatch() as unknown as BriefPayload
+  const watched = useWatch({ control }) as unknown as BriefPayload
   const data = watched
 
   const review = useMemo(

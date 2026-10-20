@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { BRIEF_TABS, resolveTabs, clampTab, mergeFormSteps } from './briefTabs.ts'
+import { BRIEF_TABS, resolveTabs, mergeFormSteps } from './briefTabs.ts'
 import { DEFAULT_FORM_STEPS } from './settingsDefaults.ts'
 
 const ids = (s: { id: string }[]) => s.map((x) => x.id)
@@ -30,12 +30,6 @@ test('a saved step marked hidden does not remove a tab', () => {
   const tabs = resolveTabs(hidden)
   assert.equal(tabs.length, 3)
   assert.ok(tabs.every((t) => t.visible))
-})
-
-test('clampTab keeps an index inside the tab range', () => {
-  assert.equal(clampTab(5, 3), 2)
-  assert.equal(clampTab(-1, 3), 0)
-  assert.equal(clampTab(1, 3), 1)
 })
 
 test('mergeFormSteps and the defaults agree with BRIEF_TABS', () => {

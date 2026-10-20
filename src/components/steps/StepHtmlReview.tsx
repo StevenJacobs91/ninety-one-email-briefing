@@ -19,9 +19,12 @@ type ViewMode = 'preview' | 'source' | 'text'
 
 interface StepHtmlReviewProps {
   onComplete?: () => void
+  /** Brand Review gate: disables both submit buttons and shows the reason. */
+  blocked?: boolean
+  blockReason?: string | null
 }
 
-export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
+export function StepHtmlReview({ onComplete, blocked = false, blockReason = null }: StepHtmlReviewProps) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
   const data = getValues() as BriefPayload
@@ -478,12 +481,18 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
 
       {/* Primary submission actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {blocked && blockReason && (
+          <p role="alert" className="text-xs text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-3 py-2">
+            <span className="font-bold">Submission blocked: </span>{blockReason}
+          </p>
+        )}
+
         {/* Submit to Pardot */}
         <div>
           <button
             type="button"
             onClick={handleSubmitToPardot}
-            disabled={pardotStatus === 'sending'}
+            disabled={blocked || pardotStatus === 'sending'}
             className="w-full bg-brand-primary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-primary-hover transition-colors disabled:opacity-50"
           >
             {pardotStatus === 'sending'
@@ -525,7 +534,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
           <button
             type="button"
             onClick={handleSubmitBriefAndTemplate}
-            disabled={submitStatus === 'sending'}
+            disabled={blocked || submitStatus === 'sending'}
             className="w-full bg-brand-secondary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-secondary-hover transition-colors disabled:opacity-50"
           >
             {submitStatus === 'sending'

@@ -1,4 +1,3 @@
-const PIPELINE_LABELS = ['Brand Review', 'HTML Email'] as const
 
 interface BriefStepConfig {
   id: string
@@ -18,10 +17,7 @@ export function StepIndicator({
   onStepClick,
   briefSteps,
 }: StepIndicatorProps) {
-  const allSteps: string[] = [
-    ...briefSteps.map((s) => s.label),
-    ...PIPELINE_LABELS,
-  ]
+  const allSteps: string[] = briefSteps.map((s) => s.label)
 
   return (
     <nav className="flex" aria-label="Form progress">
@@ -29,7 +25,6 @@ export function StepIndicator({
         const isCompleted = index < currentStep
         const isCurrent = index === currentStep
         const isReachable = index <= highestStepReached
-        const isPipeline = index >= briefSteps.length
 
         return (
           <button
@@ -67,8 +62,8 @@ export function StepIndicator({
                 {index + 1}
               </span>
             )}
-            {/* Label — hide pipeline labels on small screens, hide brief labels after 2nd on very small */}
-            <span className={isPipeline ? 'hidden sm:inline' : index >= 2 ? 'hidden sm:inline' : ''}>
+            {/* Label — hide labels after the 2nd on very small screens */}
+            <span className={index >= 2 ? 'hidden sm:inline' : ''}>
               {label}
             </span>
           </button>

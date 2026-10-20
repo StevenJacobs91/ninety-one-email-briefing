@@ -15,9 +15,10 @@ import { SettingsPanel } from '../settings/SettingsPanel'
 import { StepCampaign } from '../steps/StepCampaign'
 // StepAudience merged into StepCampaign — audience section is now part of Campaign step
 import { StepContent } from '../steps/StepContent'
-import { StepReview } from '../steps/StepReview'
-import { StepBrandReview } from '../steps/StepBrandReview'
-import { StepHtmlReview } from '../steps/StepHtmlReview'
+import { StepReviewSubmission } from '../steps/StepReviewSubmission'
+import { BrandReviewPanel } from '../review/BrandReviewPanel'
+import { useBrandReviewGate, type BrandReviewState } from '../../hooks/useBrandReviewGate'
+import { resolveTabs, type BriefTabId } from '../../lib/briefTabs'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { KanbanBoard } from '../kanban/KanbanBoard'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
@@ -52,7 +53,7 @@ const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: strin
     ],
   },
   content: {
-    title: 'Writing your content',
+    title: 'Layout and content',
     body: 'Craft your headline, body introduction, and content sections. Use the rich text tools for brand-consistent inline formatting.',
     tips: [
       'Headlines under 80 characters render cleanly across most email clients',
@@ -61,23 +62,13 @@ const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: strin
     ],
   },
   review: {
-    title: 'Reviewing your brief',
-    body: 'Check all the details you have entered before generating the HTML email. Export the brief as JSON or PDF for your records.',
+    title: 'Review and submission',
+    body: 'Check the rendered email, work through the Brand Review beside it, then send a test or submit. The brief summary and JSON/PDF export sit in the collapsed section at the top.',
     tips: [
+      'Fix anything the Brand Review flags; submission stays blocked below the minimum score',
+      'Send a test email to yourself before submitting',
       'Download or copy the JSON to share the brief with your production team',
-      'Use Print / PDF to generate a formatted PDF version of your brief',
-      'Once you proceed, the brief will be validated against Ninety One brand standards',
     ],
-  },
-  'brand-review': {
-    title: 'Reviewing for compliance',
-    body: 'Check that your brief meets Ninety One brand standards before generating the HTML email. Address any flagged issues before proceeding.',
-    tips: [],
-  },
-  'html-email': {
-    title: 'Your production email',
-    body: 'Review and export your brand-compliant HTML email. Copy or download it for use in your send platform.',
-    tips: [],
   },
 }
 
@@ -116,16 +107,15 @@ interface HelpPanelProps {
   campaignName?: string
   onOpenInsights?: () => void
   briefSummary?: BriefSummaryData
+  brandReview?: BrandReviewState
+  onGoToTab?: (tab: BriefTabId) => void
 }
 
-function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary }: HelpPanelProps) {
+function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary, brandReview, onGoToTab }: HelpPanelProps) {
   const { settings } = useSettings()
   const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
   const theme = (settings.brandThemes ?? []).find((t) => t.id === currentTheme)
-  const isPipeline = stepId === 'brand-review' || stepId === 'html-email'
-  const eyebrow = isPipeline
-    ? `Pipeline · ${stepId === 'brand-review' ? 'Brand Review' : 'HTML Email'}`
-    : `Step ${currentStepIndex + 1} of ${totalBriefSteps} · ${help.title}`
+  const eyebrow = `Step ${currentStepIndex + 1} of ${totalBriefSteps} · ${help.title}`
 
   return (
     <aside className="help-panel-sticky w-full space-y-4">
@@ -153,8 +143,13 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
         )}
       </div>
 
-      {/* Checklist details — only on HTML Email pipeline step */}
-      {stepId === 'html-email' && briefSummary && (
+      {/* Brand Review — Review and Submission tab */}
+      {stepId === 'review' && brandReview && onGoToTab && (
+        <BrandReviewPanel state={brandReview} onGoToTab={onGoToTab} />
+      )}
+
+      {/* Checklist details — Review and Submission tab */}
+      {stepId === 'review' && briefSummary && (
         <div className="bg-brand-bg-panel dark:bg-brand-bg-panel-dark border border-brand-border-warm dark:border-gray-700 p-6">
           <div className="flex items-center gap-3 mb-5">
             <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
@@ -328,7 +323,7 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
       )}
 
       {/* Active brand theme swatch */}
-      {theme && !isPipeline && (
+      {theme && stepId !== 'review' && (
         <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
           <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-4">Active Brand Theme</p>
           <div className="flex items-start gap-3">
@@ -430,7 +425,7 @@ export function FormShell() {
 
   // Derive visible brief steps from settings, sorted by order
   const visibleBriefSteps = useMemo(
-    () => [...settings.formSteps].sort((a, b) => a.order - b.order).filter((s) => s.visible),
+    () => resolveTabs(settings.formSteps),
     [settings.formSteps]
   )
   const lastBriefStep = Math.max(0, visibleBriefSteps.length - 1)
@@ -456,7 +451,7 @@ export function FormShell() {
     userId: user?.id,
   }, visibleBriefSteps.length || 3, useCallback((payload: BriefPayload) => {
     // Add to Kanban board — addCard deduplicates internally so this is safe
-    // even if handleBriefSubmitAndAdvance already called it via the pipeline path
+    // even if handleBriefSubmitAndAdvance already added the card on reaching the review tab
     addCard(payload as BriefFormData)
     audit({
       action: 'Submitted brief to board',
@@ -484,10 +479,10 @@ export function FormShell() {
   }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]))
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
+  const brandReview = useBrandReviewGate(form.control)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
 
-  const [pipelineStep, setPipelineStep] = useState<number | null>(null)
   const [highestStep, setHighestStep] = useState(0)
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
@@ -503,19 +498,9 @@ export function FormShell() {
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
-  // Current step id ('campaign' | 'content' | 'review') for brief steps,
-  // or 'brand-review' / 'html-email' for pipeline steps.
   const currentBriefStepId = visibleBriefSteps[currentStep]?.id ?? 'campaign'
-  const currentStepId = pipelineStep === 3
-    ? 'brand-review'
-    : pipelineStep === 4
-      ? 'html-email'
-      : currentBriefStepId
-
-  // Index within the step indicator (brief steps first, then pipeline)
-  const indicatorStep = pipelineStep != null
-    ? visibleBriefSteps.length + (pipelineStep - 3)
-    : currentStep
+  const currentStepId = currentBriefStepId
+  const indicatorStep = currentStep
 
   const handleSignOut = useCallback(() => {
     audit({ action: 'Signed out', category: 'auth' })
@@ -567,7 +552,6 @@ export function FormShell() {
           return obj != null
         })
         if (hasError) {
-          setPipelineStep(null)
           goToStep(i)
           return
         }
@@ -587,30 +571,20 @@ export function FormShell() {
         details: { campaignName: values.campaign.campaignName, emailType: values.campaign.emailType },
       })
     }
-    setPipelineStep(3)
-  }, [form, goToStep, addCard, cards, audit, visibleBriefSteps])
-
-  const handleBrandAccept = useCallback(() => {
-    setPipelineStep(4)
-  }, [])
-
-  const handleBrandDecline = useCallback(() => {
-    setPipelineStep(null)
     goToStep(lastBriefStep)
-  }, [goToStep, lastBriefStep])
+  }, [form, goToStep, addCard, cards, audit, visibleBriefSteps, lastBriefStep])
 
-  const handleGoToStep = useCallback(
-    (step: number) => {
-      setPipelineStep(null)
-      goToStep(step)
+  const handleGoToTab = useCallback(
+    (tab: BriefTabId) => {
+      const idx = visibleBriefSteps.findIndex((t) => t.id === tab)
+      if (idx >= 0) goToStep(idx)
     },
-    [goToStep]
+    [goToStep, visibleBriefSteps]
   )
 
   const handleLoadDraft = useCallback((draft: SavedDraft) => {
     form.reset(draft.data)
     setShowTemplatePicker(false)
-    setPipelineStep(null)
     goToStep(0)
     setHighestStep(0)
     closeDrafts()
@@ -634,30 +608,12 @@ export function FormShell() {
 
   const handleChangeTemplate = useCallback(() => {
     setShowTemplatePicker(true)
-    setPipelineStep(null)
     goToStep(0)
   }, [goToStep])
 
-  const handlePipelineStepClick = useCallback(
-    (indicatorIdx: number) => {
-      if (indicatorIdx < visibleBriefSteps.length) {
-        // Brief step — navigate by position
-        setPipelineStep(null)
-        goToStep(indicatorIdx)
-      } else {
-        // Pipeline step — remap indicator index back to raw pipeline step (3 or 4)
-        const rawPipelineStep = 3 + (indicatorIdx - visibleBriefSteps.length)
-        if (rawPipelineStep < (pipelineStep ?? visibleBriefSteps.length + 10)) {
-          setPipelineStep(rawPipelineStep)
-        }
-      }
-    },
-    [goToStep, pipelineStep, visibleBriefSteps.length]
-  )
-
   const isFirstStep = currentStep === 0
   const isLastBriefStep = currentStep === lastBriefStep
-  const isPipelineStep = pipelineStep !== null
+  const isReviewTab = currentBriefStepId === 'review'
 
   const currentTheme = form.watch('campaign.theme')
   const watchedCampaignName = form.watch('campaign.campaignName') ?? ''
@@ -1069,8 +1025,7 @@ export function FormShell() {
               </div>
               {!showTemplatePicker && (
                 <div className="text-right hidden sm:block shrink-0">
-                  {!isPipelineStep ? (
-                    <>
+                  <>
                       <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Current Step</p>
                       <p className="font-ni-display leading-none">
                         <span className="text-brand-accent text-3xl">{currentStep + 1}</span>
@@ -1079,14 +1034,6 @@ export function FormShell() {
                       </p>
                       <p className="text-white/50 text-xs uppercase tracking-[0.18em] mt-1.5 font-ni-heading">{visibleBriefSteps[currentStep]?.label ?? ''}</p>
                     </>
-                  ) : (
-                    <>
-                      <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1">Pipeline</p>
-                      <p className="font-ni-display text-[#e8e5ce] text-xl leading-none">
-                        {pipelineStep === 3 ? 'Brand Review' : 'HTML Email'}
-                      </p>
-                    </>
-                  )}
                 </div>
               )}
             </div>
@@ -1100,7 +1047,7 @@ export function FormShell() {
           <StepIndicator
             currentStep={indicatorStep}
             highestStepReached={highestStep}
-            onStepClick={handlePipelineStepClick}
+            onStepClick={goToStep}
             briefSteps={visibleBriefSteps}
           />
         </div>
@@ -1110,7 +1057,7 @@ export function FormShell() {
       {!showBoard && <div ref={cardRef} className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
         <FormProvider {...form}>
           <form onSubmit={(e) => e.preventDefault()}>
-            {showTemplatePicker && !isPipelineStep ? (
+            {showTemplatePicker ? (
               /* Template picker — full width */
               <div ref={stepContentRef}>
                 <TemplatePicker
@@ -1124,20 +1071,14 @@ export function FormShell() {
                 {/* Form card */}
                 <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700">
                   <div ref={stepContentRef} className="p-8 lg:p-10">
-                    {!isPipelineStep && currentBriefStepId === 'campaign' && <StepCampaign />}
-                    {!isPipelineStep && currentBriefStepId === 'content' && <StepContent />}
-                    {!isPipelineStep && currentBriefStepId === 'review' && (
-                      <StepReview onSubmit={submitBrief} submitStatus={submitStatus} />
-                    )}
-                    {pipelineStep === 3 && (
-                      <StepBrandReview
-                        onAccept={handleBrandAccept}
-                        onDecline={handleBrandDecline}
-                        onGoToStep={handleGoToStep}
-                      />
-                    )}
-                    {pipelineStep === 4 && (
-                      <StepHtmlReview
+                    {currentBriefStepId === 'campaign' && <StepCampaign />}
+                    {currentBriefStepId === 'content' && <StepContent />}
+                    {isReviewTab && (
+                      <StepReviewSubmission
+                        onExport={submitBrief}
+                        exportStatus={submitStatus}
+                        blocked={brandReview.blocked}
+                        blockReason={brandReview.reason}
                         onComplete={() => {
                           saveDraft(form.getValues(), form.getValues().campaign.campaignName)
                           clearDraft()
@@ -1154,10 +1095,12 @@ export function FormShell() {
                     currentStepIndex={currentStep}
                     totalBriefSteps={visibleBriefSteps.length}
                     currentTheme={currentTheme}
-                    onChangeTemplate={!isPipelineStep && currentBriefStepId === 'campaign' ? handleChangeTemplate : undefined}
+                    onChangeTemplate={currentBriefStepId === 'campaign' ? handleChangeTemplate : undefined}
                     campaignName={watchedCampaignName || undefined}
                     onOpenInsights={watchedCampaignName ? () => setShowInsights(true) : undefined}
-                    briefSummary={pipelineStep === 4 ? {
+                    brandReview={brandReview}
+                    onGoToTab={handleGoToTab}
+                    briefSummary={isReviewTab ? {
                       campaignName: watchedCampaignName,
                       sendDate: watchedSendDate,
                       subjectLine: watchedSubjectLine,
@@ -1181,7 +1124,7 @@ export function FormShell() {
       </div>}
 
       {/* ── Sticky footer navigation — brief steps only ── */}
-      {!showBoard && !isPipelineStep && !showTemplatePicker && (
+      {!showBoard && !showTemplatePicker && (
         <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
             {!isFirstStep ? (
@@ -1202,12 +1145,14 @@ export function FormShell() {
               Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">{visibleBriefSteps.length}</strong>
             </span>
             {isLastBriefStep ? (
+              <div />
+            ) : currentStep === lastBriefStep - 1 ? (
               <button
                 type="button"
                 onClick={handleBriefSubmitAndAdvance}
                 className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
               >
-                Review Brief
+                Continue to {visibleBriefSteps[currentStep + 1]?.label ?? ''}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
@@ -1224,34 +1169,6 @@ export function FormShell() {
                 </svg>
               </button>
             )}
-          </div>
-        </footer>
-      )}
-
-      {/* Pipeline step 5 footer */}
-      {!showBoard && pipelineStep === 5 && (
-        <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => setPipelineStep(4)}
-              className="min-h-[44px] flex items-center gap-2 text-sm font-ni-heading text-brand-primary dark:text-brand-accent tracking-wide hover:opacity-70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent px-2"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Back to Brand Review
-            </button>
-            <button
-              type="button"
-              onClick={() => { setPipelineStep(null); goToStep(0) }}
-              className="min-h-[44px] flex items-center gap-2 text-sm font-ni-heading text-brand-text-muted dark:text-gray-500 tracking-wide hover:text-brand-primary dark:hover:text-brand-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent px-2"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-              Return to Brief
-            </button>
           </div>
         </footer>
       )}

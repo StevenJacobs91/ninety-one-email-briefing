@@ -14,10 +14,6 @@ export function resolveTabs(_saved?: FormStepConfig[]): FormStepConfig[] {
   return BRIEF_TABS.map((t, order) => ({ ...t, order, visible: true }))
 }
 
-export function clampTab(index: number, count: number): number {
-  return Math.min(Math.max(index, 0), Math.max(count - 1, 0))
-}
-
 export function mergeFormSteps(remote?: FormStepConfig[]): FormStepConfig[] {
   return resolveTabs(remote)
 }
