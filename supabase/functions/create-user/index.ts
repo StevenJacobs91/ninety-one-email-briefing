@@ -18,6 +18,19 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// Finds an auth user by email (the admin API has no lookup by email, so page through).
+async function findAuthUserByEmail(client: ReturnType<typeof createClient>, email: string) {
+  const wanted = email.toLowerCase()
+  for (let page = 1; page <= 25; page++) {
+    const { data, error } = await client.auth.admin.listUsers({ page, perPage: 200 })
+    if (error || !data?.users?.length) return null
+    const match = data.users.find((u) => u.email?.toLowerCase() === wanted)
+    if (match) return match
+    if (data.users.length < 200) return null
+  }
+  return null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -93,12 +106,34 @@ Deno.serve(async (req) => {
   }
 
   // Create the auth user — email_confirm: true so they can log in immediately
-  const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
+  const createArgs = {
     email,
     password,
     email_confirm: true,
     user_metadata: { display_name: displayName },
-  })
+  }
+  let { data: newUserData, error: createError } = await adminClient.auth.admin.createUser(createArgs)
+
+  // A user removed before delete-user existed left their login behind with no profile,
+  // which blocks the same email being added again. Clear that orphan and retry. A login
+  // that still has a profile is a real, existing user and is never touched.
+  if (createError && /already.*(registered|exists)/i.test(createError.message)) {
+    const orphan = await findAuthUserByEmail(adminClient, email)
+    if (orphan) {
+      const { data: existingProfile } = await adminClient
+        .from('profiles').select('id').eq('id', orphan.id).maybeSingle()
+      if (existingProfile) {
+        return new Response(JSON.stringify({ error: 'A user with this email already exists.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const { error: cleanupError } = await adminClient.auth.admin.deleteUser(orphan.id)
+      if (!cleanupError) {
+        console.log('create-user: removed orphaned login for', email)
+        ;({ data: newUserData, error: createError } = await adminClient.auth.admin.createUser(createArgs))
+      }
+    }
+  }
 
   if (createError || !newUserData?.user) {
     return new Response(JSON.stringify({ error: createError?.message ?? 'Failed to create user' }), {

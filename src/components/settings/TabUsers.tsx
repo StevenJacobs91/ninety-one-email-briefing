@@ -481,6 +481,7 @@ function SubTabMembers() {
   const { log: audit } = useAuditLog()
   const { settings } = useSettings()
   const [members, setMembers] = useState<TeamMember[]>([])
+  const [removeNotice, setRemoveNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -532,10 +533,17 @@ function SubTabMembers() {
   const handleRemove = useCallback(async (userId: string) => {
     const target = members.find((m) => m.id === userId)
     setMembers((prev) => prev.filter((m) => m.id !== userId))
+    setRemoveNotice(null)
     try {
-      await removeMember(userId)
-      audit({ action: 'Removed team member', category: 'user', entityType: 'profile', entityId: userId, details: { targetEmail: target?.email, targetName: target?.displayName } })
-    } catch { loadMembers() }
+      const { loginRemoved } = await removeMember(userId)
+      audit({ action: 'Removed team member', category: 'user', entityType: 'profile', entityId: userId, details: { targetEmail: target?.email, targetName: target?.displayName, loginRemoved } })
+      if (!loginRemoved) {
+        setRemoveNotice({ ok: false, text: `${target?.email ?? 'The user'} was removed from the team, but their login account was kept because the delete-user function is not deployed yet. They cannot be added again until it is.` })
+      }
+    } catch (err) {
+      setRemoveNotice({ ok: false, text: err instanceof Error ? err.message : 'Failed to remove the user' })
+      loadMembers()
+    }
   }, [loadMembers, members, audit])
 
   const adminCount = members.filter((m) => m.role === 'admin').length
@@ -568,6 +576,12 @@ function SubTabMembers() {
 
   return (
     <div className="space-y-5">
+      {removeNotice && (
+        <div role="alert" className="flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          <span>{removeNotice.text}</span>
+          <button type="button" onClick={() => setRemoveNotice(null)} aria-label="Dismiss" className="shrink-0 text-amber-600 hover:text-amber-800">&times;</button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Team Members</h3>

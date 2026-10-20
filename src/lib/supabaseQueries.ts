@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { functionErrorMessage, isFunctionMissing } from './functionError'
 import type { AppSettings } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
 import type { KanbanCard } from '../types/kanban.types'
@@ -332,13 +333,28 @@ export async function updateMemberPresets(userId: string, clientGroups: string[]
   if (error) throw new Error(`Failed to update presets: ${error.message}`)
 }
 
-export async function removeMember(userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('profiles')
-    .delete()
-    .eq('id', userId)
+/**
+ * Removes a team member and their login, so the same email can be added again.
+ * `loginRemoved` is false only when the delete-user function is not deployed yet;
+ * the profile is still removed, but the login account stays.
+ */
+export async function removeMember(userId: string): Promise<{ loginRemoved: boolean }> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Not authenticated')
 
-  if (error) throw new Error(`Failed to remove member: ${error.message}`)
+  const { error } = await supabase.functions.invoke('delete-user', {
+    body: { userId },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!error) return { loginRemoved: true }
+
+  if (isFunctionMissing(error)) {
+    const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId)
+    if (profileError) throw new Error(`Failed to remove member: ${profileError.message}`)
+    return { loginRemoved: false }
+  }
+  throw new Error(await functionErrorMessage(error, 'Failed to remove member'))
 }
 
 export async function createTeamMember(
@@ -359,7 +375,7 @@ export async function createTeamMember(
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
-  if (error) throw new Error(error.message ?? 'Failed to create user')
+  if (error) throw new Error(await functionErrorMessage(error, 'Failed to create user'))
   if (data?.error) throw new Error(data.error)
   return { userId: data.userId }
 }
