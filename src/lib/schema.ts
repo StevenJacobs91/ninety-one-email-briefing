@@ -3,15 +3,15 @@ import { LOGO_VARIANTS, URGENCY_OPTIONS } from './constants'
 
 const contentSectionSchema = z.object({
   id: z.string(),
-  heading: z.string().min(1, 'Heading is required').max(60, 'Max 60 characters'),
-  body: z.string().min(1, 'Body is required').max(500, 'Max 500 characters'),
+  heading: z.string().max(60, 'Max 60 characters'),
+  body: z.string().max(500, 'Max 500 characters'),
   imageRequired: z.boolean(),
   imageDescription: z.string().optional(),
 })
 
 const ctaSchema = z.object({
-  label: z.string().min(1, 'CTA label is required').max(30, 'Max 30 characters'),
-  url: z.string().url('Must be a valid URL'),
+  label: z.string().max(30, 'Max 30 characters'),
+  url: z.string().url('Must be a valid URL').or(z.literal('')),
   openInNewTab: z.boolean(),
 })
 
@@ -65,14 +65,32 @@ const audienceSchema = z.object({
   distributionLists: z.array(distributionListSchema).optional(),
 })
 
-const contentSchema = z.object({
+const buildModuleSchema = z.object({
+  instanceId: z.string(),
+  moduleName: z.string(),
+  slot: z.enum(['header', 'body', 'disclaimer', 'footer']).nullable(),
+  repeats: z.record(z.number()),
+  regions: z.record(z.object({ value: z.string().optional(), href: z.string().optional(), alt: z.string().optional() })),
+  images: z.record(z.object({ src: z.string().optional() })),
+  boundFields: z.record(z.string()),
+})
+
+const emailBuildSchema = z.object({
+  version: z.literal(1),
+  themeId: z.string(),
+  headerTypeId: z.string().optional(),
+  modules: z.array(buildModuleSchema),
+})
+
+export const contentSchema = z.object({
   headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
   greetingId: z.string().optional(),
   bodyIntro: z.string().min(1, 'Body intro is required'),
-  sections: z.array(contentSectionSchema).min(1, 'At least one section required').max(4, 'Max 4 sections'),
+  sections: z.array(contentSectionSchema).max(4, 'Max 4 sections'),
   modules: z.array(z.string()),
   moduleNotes: z.record(z.string()).optional(),
+  build: emailBuildSchema.optional(),
   cta: ctaSchema,
   legalDisclaimer: z.string().optional(),
   footerSignoff: z.string().optional(),

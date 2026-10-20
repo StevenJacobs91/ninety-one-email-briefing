@@ -50,15 +50,7 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
       headline: '',
       subHeadline: '',
       bodyIntro: '',
-      sections: [
-        {
-          id: uuidv4(),
-          heading: '',
-          body: '',
-          imageRequired: false,
-          imageDescription: '',
-        },
-      ],
+      sections: [],
       modules: [],
       moduleNotes: {},
       cta: {

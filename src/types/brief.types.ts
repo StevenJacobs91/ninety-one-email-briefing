@@ -51,6 +51,7 @@ export interface ContentDetails {
   sections: ContentSection[]
   modules: string[]
   moduleNotes?: Record<string, string>
+  build?: import('../lib/moduleEngine/build').EmailBuild
   cta: CallToAction
   legalDisclaimer?: string
   includeUnsubscribe: boolean
