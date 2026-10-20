@@ -34,3 +34,9 @@ test('placeholder images and repeat groups are reported', () => {
   assert.equal(info('Article List').repeats[0].units, 3)
   assert.equal(info('Gallery V1').fields.length, 0)
 })
+
+test('describing with repeat counts reflects the resized module', () => {
+  const resized = describeModule('Article List', readModule('Article List'), parse, { subheading: 5 })
+  assert.equal(resized.repeats[0].units, 5)
+  assert.ok(resized.fields.some((f) => f.label.startsWith('Item 5')))
+})

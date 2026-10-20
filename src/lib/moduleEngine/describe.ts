@@ -1,5 +1,5 @@
 import { parseModuleDom, parseRegions, regionElements, type ParseDoc, type RegionField } from './regions'
-import { findRepeats, type RepeatGroup } from './repeats'
+import { findRepeats, resizeRepeat, type RepeatGroup } from './repeats'
 import { listPlaceholders } from './render'
 
 export interface FieldInfo extends RegionField {
@@ -26,8 +26,11 @@ function baseLabel(tag: string, kind: RegionField['kind']): string {
   return 'Text'
 }
 
-export function describeModule(moduleName: string, html: string, parse: ParseDoc): ModuleInfo {
+export function describeModule(
+  moduleName: string, html: string, parse: ParseDoc, repeats: Record<string, number> = {},
+): ModuleInfo {
   const dom = parseModuleDom(html, parse)
+  for (const [group, count] of Object.entries(repeats)) resizeRepeat(dom, group, count)
   const { groups, unitOf } = findRepeats(dom)
   const fields = parseRegions(dom, unitOf)
   const els = regionElements(dom)
