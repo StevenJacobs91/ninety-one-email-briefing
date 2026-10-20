@@ -3,6 +3,9 @@ import type { AppSettings } from '../types/settings.types'
 import { BRAND_THEMES } from './constants'
 import { generateModuleHtml } from './moduleHtml'
 import { appendUtm, applyUtmToHtml } from './utm'
+import type { ThemeCatalogue } from './moduleEngine/catalogue'
+import { renderBuild } from './moduleEngine/render'
+import { browserParse, type ParseDoc } from './moduleEngine/regions'
 
 const FALLBACK_LOGO        = 'https://weare.ninetyone.com/l/28902/2020-09-03/8yq1t3/28902/254044/91_logo_digital_warm_yellowwood__300x150.png'
 const FALLBACK_STRIPE      = 'https://weare.ninetyone.com/l/28902/2020-03-24/8tsmvs/28902/237457/banner_stripes_warm_yellow_200x234.png'
@@ -35,7 +38,31 @@ function getThemeColors(themeId: string) {
  * Generates a production-ready HTML email from a brief payload.
  * Uses the Ninety One template structure with proper Pardot regions.
  */
-export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings): string {
+export interface GenerateOptions {
+  /** Library catalogue for the brief's theme; required to render `content.build`. */
+  catalogue?: ThemeCatalogue
+  parse?: ParseDoc
+}
+
+/** Renders a library build: shell + modules, settings assets, and UTM tagging. */
+function generateFromBuild(brief: BriefPayload, settings: AppSettings | undefined, catalogue: ThemeCatalogue, parse: ParseDoc): string {
+  const build = brief.content.build!
+  const themeSettings = settings?.brandThemes?.find((t) => t.id === brief.campaign.theme)
+  const { html } = renderBuild(build, catalogue, {
+    parse,
+    assets: { logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl },
+  })
+  const utm = brief.campaign.utmCampaign?.trim() || brief.campaign.campaignName || ''
+  if (!utm) return html
+  // Library links carry an empty utm_campaign slot; fill it, then tag absolute URLs.
+  const filled = html.replace(/utm_campaign=(?=["'&])/g, `utm_campaign=${encodeURIComponent(utm)}`)
+  return applyUtmToHtml(filled, utm)
+}
+
+export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings, opts: GenerateOptions = {}): string {
+  if (brief.content.build && opts.catalogue) {
+    return generateFromBuild(brief, settings, opts.catalogue, opts.parse ?? browserParse)
+  }
   const theme = getThemeColors(brief.campaign.theme)
   const primary = theme.primary
   const accent = theme.accent

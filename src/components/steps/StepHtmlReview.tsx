@@ -2,6 +2,8 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import type { BriefPayload, HtmlEdit } from '../../types/brief.types'
+import { useCatalogue } from '../builder2/useCatalogue'
+import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
 import { generateBriefHtml } from '../../lib/generateBriefHtml'
 import { generateTextEmail } from '../../lib/generateTextEmail'
@@ -24,12 +26,32 @@ interface StepHtmlReviewProps {
   blockReason?: string | null
 }
 
-export function StepHtmlReview({ onComplete, blocked = false, blockReason = null }: StepHtmlReviewProps) {
+// Briefs built in the library builder need that theme's catalogue before the
+// email can be rendered; older briefs render straight away.
+export function StepHtmlReview(props: StepHtmlReviewProps) {
+  const { getValues } = useFormContext<BriefFormData>()
+  const values = getValues()
+  const needsCatalogue = !!values.content.build
+  const cat = useCatalogue(values.campaign.theme)
+
+  if (needsCatalogue && cat.status === 'loading') return <p className="text-sm text-gray-500">Loading the module library…</p>
+  if (needsCatalogue && cat.status === 'error') {
+    return (
+      <div role="alert" className="border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+        {cat.message}{' '}
+        <button type="button" onClick={cat.retry} className="underline font-medium">Retry</button>
+      </div>
+    )
+  }
+  return <StepHtmlReviewInner {...props} catalogue={cat.status === 'ready' ? cat.catalogue : undefined} />
+}
+
+function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, catalogue }: StepHtmlReviewProps & { catalogue?: ThemeCatalogue }) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
   const data = getValues() as BriefPayload
 
-  const html = useMemo(() => generateEmailHtml(data, settings), [data, settings])
+  const html = useMemo(() => generateEmailHtml(data, settings, { catalogue }), [data, settings, catalogue])
   const textEmail = useMemo(() => generateTextEmail(data), [data])
   const emailName = useMemo(
     () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel, data.campaign.emailDescription),
