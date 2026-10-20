@@ -93,3 +93,12 @@ test('the preheader div module parses without losing its markup', () => {
   const d = dom('Visually Hidden Preheader Text')
   assert.ok(moduleHtml(d).includes('display:none'))
 })
+
+test('a region patched as removed is taken out of the module', () => {
+  const d = dom('Greeting')
+  assert.ok(moduleHtml(d).includes('Broker_Preferred_Name'))
+  applyRegions(d, { 'root.1': { removed: true } })
+  const html = moduleHtml(d)
+  assert.ok(!html.includes('Broker_Preferred_Name'))
+  assert.ok(html.includes('Recipient.FirstName'))
+})

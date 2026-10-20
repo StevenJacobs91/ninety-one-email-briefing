@@ -70,7 +70,7 @@ const buildModuleSchema = z.object({
   moduleName: z.string(),
   slot: z.enum(['header', 'body', 'disclaimer', 'footer']).nullable(),
   repeats: z.record(z.number()),
-  regions: z.record(z.object({ value: z.string().optional(), href: z.string().optional(), alt: z.string().optional() })),
+  regions: z.record(z.object({ value: z.string().optional(), href: z.string().optional(), alt: z.string().optional(), removed: z.boolean().optional() })),
   images: z.record(z.object({ src: z.string().optional() })),
   boundFields: z.record(z.string()),
 })

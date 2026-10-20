@@ -18,16 +18,19 @@ interface Props {
   onHeaderType: (id: string) => void
   /** Background image for header types that require one (replaces the plain placeholder-image field). */
   hero?: React.ComponentProps<typeof HeroImagePicker>
+  /** Greetings saved in Settings → Greetings, for the Greeting module. */
+  greeting?: { options: { id: string; label: string; value: string }[]; selectedId: string; onSelect: (id: string) => void }
   onClose: () => void
 }
 
 export function ModuleInspector({
-  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onHeaderType, hero, onClose,
+  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onHeaderType, hero, greeting, onClose,
 }: Props) {
   const editable = info.fields.filter((f) => !f.locked)
   const lockedCount = info.fields.length - editable.length
   const showHero = !!hero && m.slot === 'header'
-  const hasContent = showHero || editable.length > 0 || info.images.length > 0 || info.repeats.some((r) => r.canResize)
+  const showGreeting = !!greeting && m.moduleName === 'Greeting'
+  const hasContent = showHero || showGreeting || editable.length > 0 || info.images.length > 0 || info.repeats.some((r) => r.canResize)
 
   return (
     <aside className="w-full lg:w-[340px] shrink-0 border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -57,10 +60,29 @@ export function ModuleInspector({
           </div>
         )}
 
-        {lockedCount > 0 && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2">
-            The greeting comes from Settings → Greetings so merge tags stay intact.
-          </p>
+        {showGreeting && (
+          <div>
+            <label htmlFor="greeting-select" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Greeting</label>
+            {greeting!.options.length === 0 ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                No greetings yet. Add them in Settings → Greetings.
+              </p>
+            ) : (
+              <>
+                <select
+                  id="greeting-select"
+                  value={greeting!.selectedId}
+                  onChange={(e) => greeting!.onSelect(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm"
+                >
+                  {greeting!.options.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+                </select>
+                <p className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-400 break-words">
+                  {greeting!.options.find((g) => g.id === greeting!.selectedId)?.value}
+                </p>
+              </>
+            )}
+          </div>
         )}
 
         {editable.map((f) => (

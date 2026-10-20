@@ -13,6 +13,8 @@ export interface RegionValue {
   value?: string
   href?: string
   alt?: string
+  /** Take this region's element out of the module (e.g. the unused alternative greeting). */
+  removed?: boolean
 }
 
 export type ParseDoc = (html: string) => Document
@@ -127,6 +129,10 @@ export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>
     const patch = values[field.key]
     if (!patch) return
     const el = els[i]
+    if (patch.removed) {
+      el.parentNode?.removeChild(el)
+      return
+    }
     if (field.kind === 'image') {
       const img = imageOf(el)
       if (!img) return

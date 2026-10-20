@@ -12,6 +12,7 @@ import { describeModule } from '../../lib/moduleEngine/describe'
 import { browserParse, type RegionValue } from '../../lib/moduleEngine/regions'
 import { renderBuild } from '../../lib/moduleEngine/render'
 import { deriveCta } from '../../lib/moduleEngine/derive'
+import { applyGreeting } from '../../lib/moduleEngine/greeting'
 import { bindBrief, buildFromLegacy, headerModuleFor, seedBuild } from '../../lib/moduleEngine/seed'
 import { ModuleInspector } from './ModuleInspector'
 import { ModulePicker } from './ModulePicker'
@@ -33,6 +34,9 @@ export function LibraryBuilder() {
   const subHeadline = watch('content.subHeadline') ?? ''
   const bodyIntro = watch('content.bodyIntro') ?? ''
   const build = watch('content.build') as EmailBuild | undefined
+  const greetingId = watch('content.greetingId') ?? ''
+  const greetings = settings.greetings ?? []
+  const chosenGreeting = greetings.find((g) => g.id === greetingId) ?? greetings.find((g) => g.isDefault) ?? null
   const heroImageUrl = watch('assets.heroImageUrl') ?? ''
   const heroImageAlt = watch('assets.heroImageAlt') ?? ''
   const requiresHero = (settings.headers ?? []).find((h) => h.id === headerTypeId)?.requiresHeroImage ?? false
@@ -83,7 +87,7 @@ export function LibraryBuilder() {
       b = swapModule(b, disclaimer.instanceId, wantDisclaimer)
     }
 
-    const next = bindBrief(b, { headline, subHeadline, bodyIntro }, catalogue, browserParse)
+    const next = applyGreeting(bindBrief(b, { headline, subHeadline, bodyIntro }, catalogue, browserParse), chosenGreeting?.value ?? null)
     if (JSON.stringify(next) !== JSON.stringify(build)) commit(next)
 
     // The brief's single CTA (Pardot, Power Automate, Brand Review) follows the first edited button.
@@ -92,7 +96,7 @@ export function LibraryBuilder() {
     if (current?.label !== cta.label || current?.url !== cta.url) {
       setValue('content.cta', { label: cta.label, url: cta.url, openInNewTab: current?.openInNewTab ?? true }, { shouldDirty: true })
     }
-  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro, requiresHero, heroImageUrl]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro, requiresHero, heroImageUrl, chosenGreeting?.value]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const previews = useMemo(() => {
     if (!catalogue || !build) return new Map<string, { html: string; dropped: number }>()
@@ -257,6 +261,11 @@ export function LibraryBuilder() {
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
             onImage={(key, src) => commit(setImage(build, selected.instanceId, key, { src }))}
             onHeaderType={(id) => setValue('assets.headerType', id, { shouldDirty: true })}
+            greeting={{
+              options: greetings.map((g) => ({ id: g.id, label: g.label, value: g.value })),
+              selectedId: chosenGreeting?.id ?? '',
+              onSelect: (id) => setValue('content.greetingId', id, { shouldDirty: true }),
+            }}
             hero={requiresHero ? {
               url: heroImageUrl,
               alt: heroImageAlt,
