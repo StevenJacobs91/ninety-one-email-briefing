@@ -8,3 +8,4 @@ dist
 db/.env
 !*.env.example
 api/.env
+public/module-catalogue/
