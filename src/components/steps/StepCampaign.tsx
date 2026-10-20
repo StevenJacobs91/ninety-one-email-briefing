@@ -10,6 +10,7 @@ import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constant
 import { FieldText } from '../ui/FieldText'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { SubSection } from '../ui/SubSection'
+import { SupportingMaterial } from './SupportingMaterial'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { StepAudience } from './StepAudience'
@@ -644,6 +645,10 @@ export function StepCampaign() {
       <SubSection title="Audience">
         <StepAudience />
       </SubSection>
+
+      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+
+      <SupportingMaterial />
     </div>
   )
 }
