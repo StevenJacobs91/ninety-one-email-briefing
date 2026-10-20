@@ -450,7 +450,7 @@ export function FormShell() {
     userId: user?.id,
   }, visibleBriefSteps.length || 3, useCallback((payload: BriefPayload) => {
     // Add to Kanban board — addCard deduplicates internally so this is safe
-    // even if handleBriefSubmitAndAdvance already added the card on reaching the review tab
+    // even if the brief was already added by the review tab's Submit button
     addCard(payload as BriefFormData)
     audit({
       action: 'Submitted brief to board',
@@ -555,21 +555,8 @@ export function FormShell() {
       }
       return
     }
-    const values = form.getValues()
-    const briefId = values.meta?.briefId
-    const alreadyOnBoard = briefId ? cards.some((c) => c.briefId === briefId) : false
-    if (!alreadyOnBoard) {
-      addCard(values)
-      audit({
-        action: 'Submitted brief to board',
-        category: 'brief',
-        entityType: 'brief',
-        entityId: briefId,
-        details: { campaignName: values.campaign.campaignName, emailType: values.campaign.emailType },
-      })
-    }
     goToStep(lastBriefStep)
-  }, [form, goToStep, addCard, cards, audit, visibleBriefSteps, lastBriefStep])
+  }, [form, goToStep, visibleBriefSteps, lastBriefStep])
 
   const handleGoToTab = useCallback(
     (tab: BriefTabId) => {

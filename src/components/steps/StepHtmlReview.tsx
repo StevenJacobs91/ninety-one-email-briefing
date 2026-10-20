@@ -10,6 +10,12 @@ import { generateBriefHtml } from '../../lib/generateBriefHtml'
 import { generateTextEmail } from '../../lib/generateTextEmail'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { useKanban } from '../../contexts/KanbanContext'
+import { useAuditLog } from '../../hooks/useAuditLog'
+import { saveBrief } from '../../lib/supabaseQueries'
+import { collectAttachments } from '../../lib/attachmentStore'
+import { DRAFT_RECIPIENT, boardLinks, boardNotes, buildEml, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
 import {
@@ -62,6 +68,10 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [submitError, setSubmitError] = useState('')
+  const [submitNotes, setSubmitNotes] = useState<{ ok: boolean; text: string }[]>([])
+  const { profile, user } = useAuth()
+  const { addCard } = useKanban()
+  const { log: audit } = useAuditLog()
   const [pardotStatus, setPardotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [pardotResult, setPardotResult] = useState<PardotSubmitResult | null>(null)
   const [testRecipient, setTestRecipient] = useState('')
@@ -232,62 +242,110 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     }
   }
 
+  // One click does two things at once: drafts the email to the producer with the
+  // files attached, and puts the brief on the Campaign Board in Briefed.
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
     setSubmitError('')
+    setSubmitNotes([])
 
-    try {
+    const now = new Date()
+    const briefHtml = generateBriefHtml(data)
+    const names = submissionFiles(data.campaign.campaignName, now.toISOString().slice(0, 10))
+    const links = boardLinks(window.location.origin, data.meta.briefId)
+    const createdByName = profile?.displayName || user?.email || 'Unknown'
+    const submitted: BriefPayload = { ...data, meta: { ...data.meta, status: 'submitted', updatedAt: now.toISOString() } }
+
+    const addToBoard = async (): Promise<string[]> => {
+      const warnings: string[] = []
+      if (profile?.teamId && user) {
+        // The board links open the saved brief, so it has to be saved first.
+        await saveBrief(profile.teamId, user.id, submitted)
+      } else {
+        warnings.push('The brief could not be saved, so the board links will not open.')
+      }
+      addCard(submitted as BriefFormData, {
+        notes: boardNotes({ createdByName, createdByEmail: user?.email ?? '', links, at: now }),
+      })
+      audit({
+        action: 'Submitted brief to board',
+        category: 'brief',
+        entityType: 'brief',
+        entityId: data.meta.briefId,
+        details: { campaignName: data.campaign.campaignName, emailType: data.campaign.emailType },
+      })
+      return warnings
+    }
+
+    const createDraft = async (): Promise<string[]> => {
+      const warnings: string[] = []
+      const { found, missing } = await collectAttachments(data.assets.attachments ?? [])
+      if (missing.length > 0) {
+        warnings.push(`${missing.length} attachment${missing.length > 1 ? 's were' : ' was'} not attached because the page was reloaded after adding ${missing.length > 1 ? 'them' : 'it'}: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} again on the Campaign tab.`)
+      }
+      const attachments: DraftAttachment[] = [
+        { name: names.email, type: 'text/html', base64: textToBase64(html) },
+        { name: names.summary, type: 'text/html', base64: textToBase64(briefHtml) },
+        ...found,
+      ]
+
       if (isBriefSubmissionFlowReady(settings.powerAutomate)) {
-        const result = await triggerBriefSubmission(settings.powerAutomate, data, {
+        const result = await triggerBriefSubmission(settings.powerAutomate, submitted, {
           html,
-          briefHtml: generateBriefHtml(data),
+          briefHtml,
           textEmail: generateTextEmail(data),
           emailName,
+          submittedBy: createdByName,
+          draftTo: DRAFT_RECIPIENT,
+          draftSubject: emailName,
+          attachments,
         })
         if (!result.ok) throw new Error(result.error)
+        warnings.unshift(`Draft email to ${DRAFT_RECIPIENT} sent to your Power Automate flow with ${attachments.length} attachment${attachments.length > 1 ? 's' : ''}.`)
       } else {
-        // Fallback: download both files + open mailto
-        const slugName = data.campaign.campaignName.replace(/\s+/g, '-').toLowerCase()
-        const dateStr = new Date().toISOString().slice(0, 10)
-
-        const briefHtmlContent = generateBriefHtml(data)
-        const briefBlob = new Blob([briefHtmlContent], { type: 'text/html' })
-        const briefLink = Object.assign(document.createElement('a'), {
-          href: URL.createObjectURL(briefBlob),
-          download: `brief-${slugName}-${dateStr}.html`,
+        // No flow configured: an unsent draft (.eml) with everything attached.
+        const body =
+          `Hi Steven,\n\nA new email brief has been submitted: ${emailName}\n\n` +
+          `Campaign: ${data.campaign.campaignName}\nEmail type: ${data.campaign.emailType}\n` +
+          `Subject line: ${data.campaign.subjectLine}\nSend date: ${data.deadlines.sendDate}\n` +
+          `Urgency: ${data.deadlines.urgency}\nSubmitted by: ${createdByName}\n\n` +
+          `Email HTML: ${links.html}\nBrief summary: ${links.summary}\n`
+        const eml = buildEml({ to: DRAFT_RECIPIENT, subject: emailName, body, attachments })
+        const a = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(new Blob([eml], { type: 'message/rfc822' })),
+          download: `draft-${slug(data.campaign.campaignName)}.eml`,
         })
-        briefLink.click()
-        URL.revokeObjectURL(briefLink.href)
-
-        const htmlBlob = new Blob([html], { type: 'text/html' })
-        const htmlLink = Object.assign(document.createElement('a'), {
-          href: URL.createObjectURL(htmlBlob),
-          download: `email-${slugName}-${dateStr}.html`,
-        })
-        htmlLink.click()
-        URL.revokeObjectURL(htmlLink.href)
-
-        const subject = encodeURIComponent(`Email Brief - ${emailName}`)
-        const body = encodeURIComponent(
-          `Hi Steven,\n\n` +
-          `Please find the email brief JSON and HTML template attached (downloaded to your computer).\n\n` +
-          `Campaign: ${data.campaign.campaignName}\n` +
-          `Email Type: ${data.campaign.emailType}\n` +
-          `Theme: ${data.campaign.theme}\n` +
-          `Subject Line: ${data.campaign.subjectLine}\n` +
-          `Send Date: ${data.deadlines.sendDate}\n` +
-          `Urgency: ${data.deadlines.urgency}\n\n` +
-          `Please attach the two downloaded files to this email before sending.`
-        )
-        window.location.href = `mailto:steven.jacobs@ninetyone.com?subject=${subject}&body=${body}`
+        a.click()
+        URL.revokeObjectURL(a.href)
+        warnings.unshift(`No Power Automate flow is set up, so a draft email file was downloaded. Open it to review and send to ${DRAFT_RECIPIENT}.`)
       }
+      return warnings
+    }
 
+    const [board, draft] = await Promise.allSettled([addToBoard(), createDraft()])
+    const notes: { ok: boolean; text: string }[] = []
+    if (board.status === 'fulfilled') {
+      notes.push({ ok: true, text: 'Added to the Campaign Board in Briefed, with links to the email HTML and brief summary.' })
+      board.value.forEach((w) => notes.push({ ok: false, text: w }))
+    } else {
+      notes.push({ ok: false, text: `The board card was not added: ${board.reason instanceof Error ? board.reason.message : String(board.reason)}` })
+    }
+    if (draft.status === 'fulfilled') {
+      const [first, ...rest] = draft.value
+      notes.push({ ok: true, text: first })
+      rest.forEach((w) => notes.push({ ok: false, text: w }))
+    } else {
+      notes.push({ ok: false, text: `The draft email was not created: ${draft.reason instanceof Error ? draft.reason.message : String(draft.reason)}` })
+    }
+    setSubmitNotes(notes)
+
+    if (board.status === 'fulfilled' && draft.status === 'fulfilled') {
       setSubmitStatus('sent')
       onComplete?.()
       setTimeout(() => setSubmitStatus('idle'), 5000)
-    } catch (err) {
-      console.error('Brief submission failed:', err)
-      setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
+    } else {
+      console.error('Brief submission incomplete:', board, draft)
+      setSubmitError('Part of the submission did not complete. See below.')
       setSubmitStatus('error')
       setTimeout(() => setSubmitStatus('idle'), 3000)
     }
@@ -577,13 +635,20 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           </button>
           {submitStatus === 'idle' && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              {isBriefSubmissionFlowReady(settings.powerAutomate)
-                ? 'Sends the brief and rendered HTML to your Power Automate flow'
-                : 'Downloads files and opens your email client'}
+              Drafts an email to {DRAFT_RECIPIENT} with the email HTML, brief summary and attachments, and adds the brief to the Campaign Board.
             </p>
           )}
           {submitError && (
             <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">{submitError}</p>
+          )}
+          {submitNotes.length > 0 && (
+            <ul className="mt-2 space-y-1" aria-live="polite">
+              {submitNotes.map((n, i) => (
+                <li key={i} className={`text-xs ${n.ok ? 'text-green-600 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                  {n.ok ? '✓ ' : '! '}{n.text}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

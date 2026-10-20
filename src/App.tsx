@@ -1,10 +1,20 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { KanbanProvider } from './contexts/KanbanContext'
 import { ApprovalsProvider } from './contexts/ApprovalsContext'
 import { FormShell } from './components/layout/FormShell'
 import { LoginPage } from './components/auth/LoginPage'
+import { BriefArtifactPage } from './components/artifacts/BriefArtifactPage'
+
+// A board card's links open a saved brief's email HTML or summary; everything else is the app.
+function Home() {
+  const [params] = useSearchParams()
+  const briefId = params.get('brief')
+  const view = params.get('view')
+  if (briefId && (view === 'html' || view === 'summary')) return <BriefArtifactPage briefId={briefId} view={view} />
+  return <FormShell />
+}
 
 function AuthGate() {
   const { user, loading } = useAuth()
@@ -28,7 +38,7 @@ function AuthGate() {
         <ApprovalsProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="*" element={<FormShell />} />
+              <Route path="*" element={<Home />} />
             </Routes>
           </BrowserRouter>
         </ApprovalsProvider>

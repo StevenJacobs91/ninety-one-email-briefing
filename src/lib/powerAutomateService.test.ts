@@ -135,3 +135,14 @@ test('the brief-submission flow is ready only when the master toggle, the flow a
   assert.equal(isBriefSubmissionFlowReady(
     config({ briefSubmissionFlow: { webhookUrl: ' ', enabled: true } })), false)
 })
+
+test('the brief submission carries the draft recipient, subject and attachments for the flow', async () => {
+  const attachments = [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+' }]
+  await triggerBriefSubmission(config(SUBMIT), BRIEF, {
+    emailName: 'Q2', draftTo: 'steven.jacobs@ninetyone.com', draftSubject: 'Q2', attachments,
+  })
+  const body = JSON.parse(String(calls[0].init.body))
+  assert.equal(body.draftTo, 'steven.jacobs@ninetyone.com')
+  assert.equal(body.draftSubject, 'Q2')
+  assert.deepEqual(body.attachments, attachments)
+})

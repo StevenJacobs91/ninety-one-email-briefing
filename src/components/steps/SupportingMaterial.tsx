@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { formatFileSize } from '../../lib/formatFileSize'
+import { forgetFile, rememberFiles } from '../../lib/attachmentStore'
 import { SubSection } from '../ui/SubSection'
 
 // Brief metadata, not email content: extra asset links and attached files.
@@ -15,6 +16,7 @@ export function SupportingMaterial() {
   const [isDragging, setIsDragging] = useState(false)
 
   const handleFiles = useCallback((fileList: FileList) => {
+    rememberFiles(Array.from(fileList))
     const current = getValues('assets.attachments') ?? []
     const newAttachments = Array.from(fileList).map((file) => ({
       name: file.name,
@@ -35,6 +37,8 @@ export function SupportingMaterial() {
 
   const removeAttachment = useCallback((index: number) => {
     const current = getValues('assets.attachments') ?? []
+    const gone = current[index]
+    if (gone) forgetFile(gone.name, gone.size)
     setValue('assets.attachments', current.filter((_, i) => i !== index), { shouldValidate: true })
   }, [getValues, setValue])
 

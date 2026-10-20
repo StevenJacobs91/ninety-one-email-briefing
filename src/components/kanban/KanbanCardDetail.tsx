@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
+import { boardLinks } from '../../lib/submissionDraft'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -252,6 +253,20 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
                 <section>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Tags</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{card.tags}</p>
+                </section>
+              </>
+            )}
+
+            {/* Cards created by Submit Brief & Template carry links to the saved brief's files */}
+            {card.notes.includes('view=html') && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                <section>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Files</p>
+                  <ul className="space-y-1 text-sm">
+                    <li><a className="text-brand-primary dark:text-brand-accent hover:underline" href={boardLinks(window.location.origin, card.briefId).html} target="_blank" rel="noopener noreferrer">Email HTML</a></li>
+                    <li><a className="text-brand-primary dark:text-brand-accent hover:underline" href={boardLinks(window.location.origin, card.briefId).summary} target="_blank" rel="noopener noreferrer">Brief Summary</a></li>
+                  </ul>
                 </section>
               </>
             )}

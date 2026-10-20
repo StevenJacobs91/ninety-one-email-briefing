@@ -48,6 +48,43 @@ export async function insertBrief(
   if (error) throw new Error(`Failed to save brief: ${error.message}`)
 }
 
+/** Saves the brief under its id: updates the existing record, or inserts the first one. */
+export async function saveBrief(teamId: string, userId: string, brief: BriefPayload): Promise<void> {
+  const { data: existing, error: findError } = await supabase
+    .from('briefs')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('brief_id', brief.meta.briefId)
+    .maybeSingle()
+  if (findError) throw new Error(`Failed to save brief: ${findError.message}`)
+  if (!existing) return insertBrief(teamId, userId, brief)
+
+  const { error } = await supabase
+    .from('briefs')
+    .update({
+      campaign_name: brief.campaign.campaignName,
+      email_type: brief.campaign.emailType,
+      theme: brief.campaign.theme,
+      status: brief.meta.status,
+      data: brief,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', existing.id)
+  if (error) throw new Error(`Failed to save brief: ${error.message}`)
+}
+
+export async function fetchBriefById(briefId: string): Promise<BriefPayload | null> {
+  const { data, error } = await supabase
+    .from('briefs')
+    .select('data')
+    .eq('brief_id', briefId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw new Error(`Failed to load brief: ${error.message}`)
+  return data ? (data.data as BriefPayload) : null
+}
+
 export async function fetchBriefs(teamId: string): Promise<BriefPayload[]> {
   const { data, error } = await supabase
     .from('briefs')

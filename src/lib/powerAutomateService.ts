@@ -94,6 +94,10 @@ export async function triggerBriefSubmission(
     briefHtml?: string
     textEmail?: string
     emailName?: string
+    /** The draft email the flow should create: recipient, subject and files (base64) to attach */
+    draftTo?: string
+    draftSubject?: string
+    attachments?: { name: string; type: string; base64: string }[]
   },
 ): Promise<PATriggerResult> {
   if (!config.enabled) return { ok: false, error: 'Power Automate integration is disabled.' }

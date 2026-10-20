@@ -16,7 +16,7 @@ import {
 interface KanbanContextValue {
   cards: KanbanCard[]
   loading: boolean
-  addCard: (brief: BriefFormData) => void
+  addCard: (brief: BriefFormData, extras?: { notes?: string }) => void
   addManualCard: (data: ManualCardInput) => void
   moveCard: (id: string, column: KanbanColumn) => void
   updateCardNotes: (id: string, notes: string) => void
@@ -64,7 +64,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [teamId])
 
-  const addCard = useCallback((brief: BriefFormData) => {
+  const addCard = useCallback((brief: BriefFormData, extras?: { notes?: string }) => {
     if (!teamId) return
     const briefId = brief.meta?.briefId ?? uuidv4()
 
@@ -87,7 +87,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         column: 'briefed',
         submittedAt: now,
         columnHistory: [{ column: 'briefed', at: now }],
-        notes: '',
+        notes: extras?.notes ?? '',
         tags: brief.deadlines.tags ?? '',
       }
 
