@@ -1088,8 +1088,8 @@ export function FormShell() {
                   </div>
                 </div>
 
-                {/* Help panel — full width on < lg, fixed sidebar on lg+ */}
-                <div className="w-full lg:w-[320px] xl:w-[340px] shrink-0">
+                {/* Help panel — full width on < lg, fixed sidebar on lg+. The builder tab uses the full width. */}
+                {currentBriefStepId !== 'content' && <div className="w-full lg:w-[320px] xl:w-[340px] shrink-0">
                   <HelpPanel
                     stepId={currentStepId}
                     currentStepIndex={currentStep}
@@ -1116,7 +1116,7 @@ export function FormShell() {
                       pardotListId: watchedPardotListId,
                     } : undefined}
                   />
-                </div>
+                </div>}
               </div>
             )}
           </form>
