@@ -173,6 +173,74 @@ the library, so two exceptions are specified rather than discovered:
 real library; `src/components/builder/` and the `FormShell` toggle that opens
 it are removed, so there is one way to build an email.
 
+### 7.0 The brief becomes three tabs
+
+Four steps become three. Today: Campaign → Content → Brand Review → HTML Email,
+where the last two are "pipeline" steps fixed after the configurable ones
+(`PIPELINE_LABELS` in `src/components/ui/StepIndicator.tsx:1`;
+`src/components/layout/FormShell.tsx:420`).
+
+| # | Tab | Change |
+|---|---|---|
+| 1 | **Campaign** | Unchanged, plus Additional Asset URLs and Attachments moved here from Content |
+| 2 | **Layout & Content** | The builder, and nothing else |
+| 3 | **Review and Submission** | Brand Review and HTML Email merged; Brand Review moves into the sidebar beside the existing Checklist details |
+
+The sidebar on tab 3 carries **Brand Review** and **Checklist details**.
+Checklist details already renders there for the HTML Email step
+(`FormShell.tsx:156`); Brand Review joins it, and `StepBrandReview.tsx`'s
+403 lines move from a full step into a sidebar panel. `PIPELINE_LABELS`
+collapses to one entry, and Settings → Form Layout's copy ("always shown after
+these") follows.
+
+### 7.0.1 Layout & Content is builder-only
+
+**Decided by the user: all content fields become modules.** The Content step's
+remaining form fields are retired in favour of the library module that already
+does the job:
+
+| Retired field | Becomes |
+|---|---|
+| Greeting | Greeting module (still driven by `greetingId`, §8.2) |
+| CTA label + URL | Single Primary CTA module (`button` region) |
+| Legal disclaimer | Disclaimer / Disclaimer - UK module |
+| Footer sign-off | Footer v1 module |
+| Headline, Sub-headline, Body Intro | header `<h1>`/`<h2>` and Body Content, bound per §8 |
+| Additional Asset URLs, Attachments | **move to the Campaign tab** — brief metadata, not email content |
+
+`includeUnsubscribe` stays as brief metadata and is satisfied by the seeded
+Disclaimer module (§8).
+
+**This widens the migration.** `BriefPayload.content` loses `sections`, `cta`,
+`legalDisclaimer` and the sign-off as *inputs*; they must still be derivable
+for the Pardot payload, the Power Automate brief-submission body and
+`generateBriefHtml`. The plan needs a read path for briefs already holding
+them.
+
+### 7.0.2 Send Test Email moves to Power Automate; n8n is removed
+
+**Decided by the user.** Today the Send Test Email control on the HTML Email
+step posts the rendered HTML to `settings.n8nWebhookUrl`, falling back to
+opening the user's mail client
+(`src/components/steps/StepHtmlReview.tsx:447-480`).
+
+- A **fourth flow endpoint, `testEmailFlow`**, joins `briefSubmissionFlow`,
+  `listAnalysisFlow` and `campaignInsightsFlow` in `PowerAutomateConfig`, with
+  the same `{ webhookUrl, enabled }` shape, surfaced in Settings → Power
+  Automate alongside the others and sharing the existing shared-secret header,
+  timeout and retry settings.
+- Its payload carries at least `recipient`, `subject`, `html`, plus the
+  `triggeredAt` / `source` envelope the other triggers use.
+- **n8n is removed**: the `n8nWebhookUrl` field
+  (`src/types/settings.types.ts:428`), its Settings → General control, its
+  default in `settingsDefaults.ts`, and the help text referencing it in
+  `StepAudience.tsx:46`. The comments in `pardotService.ts:17` and
+  `generateBriefHtml.ts:23` are updated rather than deleted.
+- The mail-client fallback is **kept** for when no flow is configured.
+
+Note: `testEmailFlow` is the **only** Power Automate flow with a caller. The
+other three remain uncalled (see §3 non-goals); wiring them is separate work.
+
 Interaction — **the email itself, edited in place** (chosen from three options:
 a three-pane library/canvas/inspector, this, and a two-step pick-then-populate
 wizard):
