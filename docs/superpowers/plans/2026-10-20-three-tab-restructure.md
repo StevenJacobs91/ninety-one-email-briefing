@@ -40,11 +40,11 @@ Out (Plan C): the builder itself and retiring Content's other fields. Until Plan
 - Modify: `src/lib/settingsDefaults.ts` (`DEFAULT_FORM_STEPS`, new `mergeFormSteps`), `src/contexts/SettingsContext.tsx` (merge)
 
 **Interfaces:**
-- Produces: `type BriefTabId = 'campaign' | 'content' | 'review-submission'`; `BRIEF_TABS: readonly { id: BriefTabId; label: string }[]`; `resolveTabs(formSteps: FormStepConfig[] | undefined): FormStepConfig[]` (always the three tabs, in order, labels from `BRIEF_TABS`, `visible: true`); `clampTab(index: number, count: number): number`; `mergeFormSteps(remote?: FormStepConfig[]): FormStepConfig[]`.
+- Produces: `type BriefTabId = 'campaign' | 'content' | 'review'`; `BRIEF_TABS: readonly { id: BriefTabId; label: string }[]`; `resolveTabs(formSteps: FormStepConfig[] | undefined): FormStepConfig[]` (always the three tabs, in order, labels from `BRIEF_TABS`, `visible: true`); `clampTab(index: number, count: number): number`; `mergeFormSteps(remote?: FormStepConfig[]): FormStepConfig[]`.
 - Consumes: `FormStepConfig` from `settings.types`.
 
 - [ ] **Step 1: Write failing tests** in `briefTabs.test.ts`:
-  - `resolveTabs(undefined)` and `resolveTabs([])` return ids `['campaign','content','review-submission']`.
+  - `resolveTabs(undefined)` and `resolveTabs([])` return ids `['campaign','content','review']`.
   - Old saved `[campaign, content, review]` (all visible) returns exactly those three ids, labels `Campaign`, `Layout & Content`, `Review and Submission`.
   - Old saved list with `content` `visible:false` still returns three tabs (tabs are fixed; Review Focus 1 and 5).
   - `clampTab(5, 3) === 2`, `clampTab(-1, 3) === 0`, `clampTab(1, 3) === 1`.
@@ -82,7 +82,7 @@ Out (Plan C): the builder itself and retiring Content's other fields. Until Plan
 
 - [ ] **Step 1:** In `FormShell.tsx` remove `pipelineStep`, `handleBrandAccept`, `handleBrandDecline`, `handlePipelineStepClick`, `handleGoToStep`, the `pipelineStep === 5` footer and the "Pipeline" header block. `visibleBriefSteps` becomes `resolveTabs(settings.formSteps)`. `currentStep` is clamped with `clampTab` when a draft loads. `handleBriefSubmitAndAdvance` becomes the check run when moving from tab 2 to tab 3: `form.trigger()`, and on failure jump to the first tab owning an invalid field, as the existing loop does.
 - [ ] **Step 2:** `StepIndicator`: delete `PIPELINE_LABELS` and the `isPipeline` branch; labels show from the second tab up at `sm`. Header counter reads `n / 3`.
-- [ ] **Step 3:** `HelpPanel`: stepId `review-submission` renders Step Guide, then `BrandReviewPanel`, then the existing Checklist details block (condition changes from `stepId === 'html-email'` to `'review-submission'`). Add `STEP_HELP_BY_ID['review-submission']`; keep `content` copy; drop `brand-review` and `html-email` entries.
+- [ ] **Step 3:** `HelpPanel`: stepId `review` renders Step Guide, then `BrandReviewPanel`, then the existing Checklist details block (condition changes from `stepId === 'html-email'` to `'review'`). Add `STEP_HELP_BY_ID['review']`; keep `content` copy; drop `brand-review` and `html-email` entries.
 - [ ] **Step 4:** Footer on tab 3: Back to Layout & Content only (Submit lives inside `StepHtmlReview`); wire `blocked`/`reason` into its Submit button next to the existing `submitError`.
 - [ ] **Step 5:** `npx tsc --noEmit`, `npm test`. Expected: clean, all tests pass. Delete `StepBrandReview.tsx` once nothing imports it (`grep -rn StepBrandReview src`).
 - [ ] **Step 6: Commit** `feat(brief): three tabs, with Brand Review in the sidebar`.

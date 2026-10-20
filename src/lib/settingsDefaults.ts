@@ -1,3 +1,4 @@
+import { resolveTabs } from './briefTabs'
 import type {
   AppSettings,
   PowerAutomateConfig,
@@ -197,11 +198,7 @@ export const DEFAULT_HTML_MODULES: HtmlModuleConfig[] = [
 
 // ─── Default Form Steps ─────────────────────────────────────
 
-export const DEFAULT_FORM_STEPS: FormStepConfig[] = [
-  { id: 'campaign', label: 'Campaign', order: 0, visible: true },
-  { id: 'content', label: 'Content', order: 1, visible: true },
-  { id: 'review', label: 'Brief Review', order: 2, visible: true },
-]
+export const DEFAULT_FORM_STEPS: FormStepConfig[] = resolveTabs()
 
 // ─── Default Form Fields ────────────────────────────────────
 

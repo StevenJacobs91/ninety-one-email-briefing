@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import type { AppSettings, HeaderTypeConfig, BrandThemeConfig } from '../types/settings.types'
 import { createDefaultSettings, mergePowerAutomate, DEFAULT_HEADER_TYPES, DEFAULT_BRAND_THEMES } from '../lib/settingsDefaults'
+import { mergeFormSteps } from '../lib/briefTabs'
 import { useAuth } from './AuthContext'
 import { fetchSettings, upsertSettings } from '../lib/supabaseQueries'
 
@@ -59,6 +60,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           formDefaults: { ...defaults.formDefaults, ...remote.formDefaults },
           pardot: { ...defaults.pardot, ...(remote.pardot ?? {}) },
           powerAutomate: mergePowerAutomate(remote.powerAutomate),
+          formSteps: mergeFormSteps(remote.formSteps),
           campaigns: remote.campaigns ?? defaults.campaigns,
           signoffs: remote.signoffs ?? defaults.signoffs,
           customEmailTypes: remote.customEmailTypes ?? defaults.customEmailTypes,
