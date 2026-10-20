@@ -496,6 +496,8 @@ export interface PowerAutomateConfig {
   listAnalysisFlow: PowerAutomateFlowEndpoint
   /** Triggered to request Pardot campaign performance insights */
   campaignInsightsFlow: PowerAutomateFlowEndpoint
+  /** Triggered to send a test email to a single recipient */
+  testEmailFlow: PowerAutomateFlowEndpoint
 
   // ── Security ────────────────────────────────────────────────
   /** Optional custom header name to pass a shared secret (e.g. "x-api-key") */

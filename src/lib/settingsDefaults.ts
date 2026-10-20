@@ -494,6 +494,7 @@ export const DEFAULT_POWER_AUTOMATE_CONFIG = {
   briefSubmissionFlow:  { webhookUrl: '', enabled: false },
   listAnalysisFlow:     { webhookUrl: '', enabled: false },
   campaignInsightsFlow: { webhookUrl: '', enabled: false },
+  testEmailFlow:        { webhookUrl: '', enabled: false },
   secretHeaderName:  'x-api-key',
   secretHeaderValue: '',
   includeFullBrief:      true,
