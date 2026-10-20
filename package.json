@@ -7,6 +7,7 @@
     "catalogue": "tsx scripts/build-module-catalogue.ts",
     "predev": "npm run catalogue",
     "prebuild": "npm run catalogue",
+    "prebuild:prod": "npm run catalogue",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
