@@ -34,6 +34,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
   )
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [submitError, setSubmitError] = useState('')
   const [pardotStatus, setPardotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [pardotResult, setPardotResult] = useState<PardotSubmitResult | null>(null)
   const [testRecipient, setTestRecipient] = useState('')
@@ -206,6 +207,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
 
   const handleSubmitBriefAndTemplate = async () => {
     setSubmitStatus('sending')
+    setSubmitError('')
 
     try {
       if (isBriefSubmissionFlowReady(settings.powerAutomate)) {
@@ -258,6 +260,7 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       setTimeout(() => setSubmitStatus('idle'), 5000)
     } catch (err) {
       console.error('Brief submission failed:', err)
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed.')
       setSubmitStatus('error')
       setTimeout(() => setSubmitStatus('idle'), 3000)
     }
@@ -539,6 +542,9 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
                 ? 'Sends the brief and rendered HTML to your Power Automate flow'
                 : 'Downloads files and opens your email client'}
             </p>
+          )}
+          {submitError && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">{submitError}</p>
           )}
         </div>
       </div>

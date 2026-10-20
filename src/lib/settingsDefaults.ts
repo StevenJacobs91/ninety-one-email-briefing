@@ -1,5 +1,6 @@
 import type {
   AppSettings,
+  PowerAutomateConfig,
   BrandThemeConfig,
   HtmlTemplateConfig,
   HtmlModuleConfig,
@@ -502,6 +503,25 @@ export const DEFAULT_POWER_AUTOMATE_CONFIG = {
   retryOnFailure:   true,
   timeoutSeconds:   30,
   fieldMappings:    [] as import('../types/settings.types').PowerAutomateFieldMapping[],
+}
+
+/**
+ * Merges a saved Power Automate config over the defaults, one level deeper than
+ * a spread: each flow endpoint is an object, so a config saved before an
+ * endpoint existed (or missing a field of one) takes the default for the gap.
+ * A plain spread replaced the whole object and left readers with
+ * `undefined.enabled`, which threw during render.
+ */
+export function mergePowerAutomate(remote?: Partial<PowerAutomateConfig>): PowerAutomateConfig {
+  const d = DEFAULT_POWER_AUTOMATE_CONFIG
+  return {
+    ...d,
+    ...remote,
+    briefSubmissionFlow:  { ...d.briefSubmissionFlow,  ...remote?.briefSubmissionFlow },
+    listAnalysisFlow:     { ...d.listAnalysisFlow,     ...remote?.listAnalysisFlow },
+    campaignInsightsFlow: { ...d.campaignInsightsFlow, ...remote?.campaignInsightsFlow },
+    testEmailFlow:        { ...d.testEmailFlow,        ...remote?.testEmailFlow },
+  }
 }
 
 // ─── Default Header Types ────────────────────────────────────
