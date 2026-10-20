@@ -15,13 +15,13 @@ afterEach(() => {
 
 const setup = () => userEvent.setup({ delay: null })
 const subjectBox = () => screen.getByLabelText('Subject line') as HTMLInputElement
-const gauge = () => screen.getByRole('img', { name: /score|no score/i })
+const chart = () => screen.getByRole('img', { name: /score|no score/i })
 const settle = (ms = 300) => act(() => { vi.advanceTimersByTime(ms) })
 
 describe('empty state (AC-14)', () => {
   it('shows no score and no errors when the input is empty', () => {
     render(<SubjectLineTester />)
-    expect(gauge().getAttribute('aria-label')).toBe('No score yet')
+    expect(chart().getAttribute('aria-label')).toMatch(/^No score yet\./)
     expect(screen.getByText('Awaiting subject line')).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByText(/\d+%/)).toBeNull()
@@ -35,7 +35,7 @@ describe('live scoring (AC-10, AC-11)', () => {
     render(<SubjectLineTester />)
     await user.type(subjectBox(), 'Your 50% off gift is waiting')
     settle(300)
-    expect(gauge().getAttribute('aria-label')).toBe('Score 100 percent, Great')
+    expect(chart().getAttribute('aria-label')).toMatch(/^Score 100 percent, Great\./)
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
@@ -44,7 +44,7 @@ describe('live scoring (AC-10, AC-11)', () => {
     render(<SubjectLineTester />)
     await user.type(subjectBox(), 'FREE MONEY!!! Act now')
     settle()
-    expect(gauge().getAttribute('aria-label')).toBe('Score 60 percent, Needs work')
+    expect(chart().getAttribute('aria-label')).toMatch(/^Score 60 percent, Needs work\./)
     expect(screen.getByText('60%')).toBeTruthy()
     expect(screen.getByText('Needs work')).toBeTruthy()
   })
@@ -54,7 +54,45 @@ describe('live scoring (AC-10, AC-11)', () => {
     render(<SubjectLineTester showTestNow />)
     await user.type(subjectBox(), 'FREE MONEY!!! Act now')
     await user.click(screen.getByRole('button', { name: 'Test now' }))
-    expect(gauge().getAttribute('aria-label')).toBe('Score 60 percent, Needs work')
+    expect(chart().getAttribute('aria-label')).toMatch(/^Score 60 percent, Needs work\./)
+  })
+})
+
+describe('score chart', () => {
+  it('names the three bands in text, so colour is not the only cue', () => {
+    render(<SubjectLineTester />)
+    for (const name of ['Great', 'Good', 'Needs work']) expect(screen.getAllByText(name).length).toBeGreaterThan(0)
+  })
+
+  it('adds a point for each settled edit and describes the trend', async () => {
+    const user = setup()
+    render(<SubjectLineTester />)
+    await user.type(subjectBox(), 'FREE MONEY!!! Act now')
+    settle()
+    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
+    await user.clear(subjectBox())
+    await user.type(subjectBox(), 'Your 50% off gift is waiting')
+    settle()
+    expect(screen.getAllByTestId('chart-point')).toHaveLength(2)
+    expect(chart().getAttribute('aria-label')).toMatch(/2 tests, from 60 to 100 percent\./)
+    expect(screen.getByText('100%')).toBeTruthy()
+  })
+
+  it('does not add a point for a repeat of the same subject', async () => {
+    const user = setup()
+    render(<SubjectLineTester showTestNow />)
+    await user.type(subjectBox(), 'Your 50% off gift is waiting')
+    settle()
+    await user.click(screen.getByRole('button', { name: 'Test now' }))
+    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
+  })
+
+  it('starts with one point for a pre-filled subject and none when empty', () => {
+    const { unmount } = render(<SubjectLineTester initial={{ subject: 'Your 50% off gift is waiting' }} />)
+    expect(screen.getAllByTestId('chart-point')).toHaveLength(1)
+    unmount()
+    render(<SubjectLineTester />)
+    expect(screen.queryAllByTestId('chart-point')).toHaveLength(0)
   })
 })
 

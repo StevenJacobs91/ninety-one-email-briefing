@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createMockDeps } from '../adapters/mock/createMockDeps'
 import { renderMergeTags } from '../engine/mergeTags'
 import type { SuggestionProvider } from '../adapters/SuggestionProvider'
@@ -14,7 +14,9 @@ import { useSubjectLineAnalysis } from '../hooks/useSubjectLineAnalysis'
 import { BAND_LABEL } from './bandStyles'
 import { CategoryCard } from './CategoryCard'
 import { HighlightedEcho } from './HighlightedEcho'
-import { ScoreGauge } from './ScoreGauge'
+import { ScoreChart } from './ScoreChart'
+import { appendScore, type ScorePoint } from './scoreHistory'
+import { resolveConfig } from '../engine/config'
 import { SubjectInput, type SubjectFields } from './SubjectInput'
 
 const DEFAULT_DEPS = createMockDeps()
@@ -52,6 +54,13 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
   })
   const input = useMemo<AnalysisInput>(() => ({ subject: fields.subject, senderName: fields.senderName, preheader: fields.preheader }), [fields])
   const { result, analyzeNow } = useSubjectLineAnalysis(input, deps, config)
+  const bands = useMemo(() => resolveConfig(config).bands, [config])
+
+  // One point per settled subject, so the chart shows the score climbing as issues are fixed.
+  const [history, setHistory] = useState<ScorePoint[]>([])
+  useEffect(() => {
+    if (!result.empty) setHistory((h) => appendScore(h, result.score, result.rendered))
+  }, [result])
 
   // Announce the score once the user pauses, not on every keystroke.
   const announcement = result.empty ? '' : `Score ${result.score} percent, ${BAND_LABEL[result.band]}.${result.cappedByCritical ? ' Capped by a critical issue.' : ''}`
@@ -67,19 +76,15 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
       <SubjectInput value={fields} onChange={update} onTestNow={showTestNow ? analyzeNow : undefined} />
       <HighlightedEcho result={result} />
 
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-        <ScoreGauge result={result} />
-        <div className="flex-1 text-sm sm:min-h-[132px] text-gray-600 dark:text-gray-300">
-          {result.empty ? (
-            <p>Type a subject line to see how it scores for length, wording and scannability.</p>
-          ) : (
-            <p>
-              {result.cappedByCritical
-                ? 'A critical issue is holding the score down. Fix the flagged wording first.'
-                : 'Open a category below to see what to improve.'}
-            </p>
-          )}
-        </div>
+      <div className="space-y-2">
+        <ScoreChart result={result} history={history} bands={bands} />
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          {result.empty
+            ? 'Type a subject line to see how it scores for length, wording and scannability.'
+            : result.cappedByCritical
+              ? 'A critical issue is holding the score down. Fix the flagged wording first.'
+              : 'Open a category below to see what to improve.'}
+        </p>
       </div>
 
       <p role="status" aria-live="polite" className="sr-only">{announced}</p>
