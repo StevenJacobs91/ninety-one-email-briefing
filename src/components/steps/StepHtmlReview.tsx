@@ -9,6 +9,7 @@ import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
+import { triggerTestEmail, isTestEmailFlowReady } from '../../lib/powerAutomateService'
 
 type ViewportMode = 'desktop' | 'mobile'
 type ViewMode = 'preview' | 'source' | 'text'
@@ -145,25 +146,17 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
     }
     setTestError('')
     setTestStatus('sending')
-    const webhookUrl = settings.n8nWebhookUrl?.trim()
 
     try {
-      if (webhookUrl) {
-        const payload = {
-          isTest: true,
-          testRecipient: recipient,
-          brief: data,
-          html,
+      if (isTestEmailFlowReady(settings.powerAutomate)) {
+        const result = await triggerTestEmail(settings.powerAutomate, {
+          recipient,
           subject: data.campaign.subjectLine || `[TEST] ${emailName}`,
+          html,
           emailName,
-          sentAt: new Date().toISOString(),
-        }
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
         })
-        if (!response.ok) throw new Error(`Webhook returned ${response.status}`)
+        // The flow's own refusal (status and body) reaches the user, not a bare "failed".
+        if (!result.ok) throw new Error(result.error)
         setTestStatus('sent')
         setTimeout(() => setTestStatus('idle'), 4000)
       } else {
@@ -173,14 +166,14 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
           `This is a test send of the following email brief.\n\n` +
           `Campaign: ${data.campaign.campaignName}\n` +
           `Subject: ${data.campaign.subjectLine}\n\n` +
-          `Note: No n8n webhook is configured. Copy the HTML from the platform and paste it into your ESP to send a proper test.`
+          `Note: No Power Automate test-email flow is configured. Copy the HTML from the platform and paste it into your ESP to send a proper test.`
         )
         window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`
         setTestStatus('sent')
         setTimeout(() => setTestStatus('idle'), 4000)
       }
     } catch (err) {
-      setTestError(err instanceof Error ? err.message : 'Send failed — check your n8n webhook configuration.')
+      setTestError(err instanceof Error ? err.message : 'Send failed — check the Test Email flow in Settings → Power Automate.')
       setTestStatus('error')
       setTimeout(() => { setTestStatus('idle'); setTestError('') }, 4000)
     }
@@ -448,9 +441,9 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Test Email</p>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {settings.n8nWebhookUrl?.trim()
-            ? 'Sends the rendered HTML to the specified address via your n8n workflow.'
-            : 'No n8n webhook configured — will open your email client with a pre-filled message.'}
+          {isTestEmailFlowReady(settings.powerAutomate)
+            ? 'Sends the rendered HTML to the specified address via your Power Automate flow.'
+            : 'No Power Automate test-email flow configured — will open your email client with a pre-filled message.'}
         </p>
         <div className="flex gap-2">
           <input
@@ -475,8 +468,8 @@ export function StepHtmlReview({ onComplete }: StepHtmlReviewProps) {
         )}
         {testStatus === 'sent' && !testError && (
           <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-            {settings.n8nWebhookUrl?.trim()
-              ? `Test email dispatched to ${testRecipient} via n8n.`
+            {isTestEmailFlowReady(settings.powerAutomate)
+              ? `Test email dispatched to ${testRecipient} via Power Automate.`
               : 'Email client opened — attach the HTML file before sending.'}
           </p>
         )}

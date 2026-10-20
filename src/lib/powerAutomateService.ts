@@ -170,6 +170,18 @@ export async function triggerCampaignInsights(
 }
 
 /**
+ * Whether Send Test Email can use its flow: the master toggle, the flow's own
+ * toggle and a non-blank URL. When false the caller falls back to the mail
+ * client rather than reporting an error, since a disabled flow is how a user
+ * switches the integration off without deleting the URL.
+ */
+export function isTestEmailFlowReady(config: PowerAutomateConfig): boolean {
+  return config.enabled
+    && config.testEmailFlow.enabled
+    && config.testEmailFlow.webhookUrl.trim() !== ''
+}
+
+/**
  * Fires the Test Email flow.
  * Called by Send Test Email on the Review and Submission step; the flow
  * sends the rendered HTML to a single recipient.

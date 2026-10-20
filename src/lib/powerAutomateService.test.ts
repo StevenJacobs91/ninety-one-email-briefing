@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { triggerTestEmail } from './powerAutomateService.ts'
+import { triggerTestEmail, isTestEmailFlowReady } from './powerAutomateService.ts'
 import { DEFAULT_POWER_AUTOMATE_CONFIG } from './settingsDefaults.ts'
 import type { PowerAutomateConfig } from '../types/settings.types'
 
@@ -85,4 +85,13 @@ test('sends the shared secret as a header and never in the body', async () => {
   assert.equal(headers['x-api-key'], 'topsecret')
   assert.ok(!String(calls[0].init.body).includes('topsecret'),
     'the secret must not appear in the request body')
+})
+
+test('the test-email flow is ready only when the master toggle, the flow and its url are all set', () => {
+  assert.equal(isTestEmailFlowReady(config()), true)
+  assert.equal(isTestEmailFlowReady(config({ enabled: false })), false)
+  assert.equal(isTestEmailFlowReady(
+    config({ testEmailFlow: { webhookUrl: URL, enabled: false } })), false)
+  assert.equal(isTestEmailFlowReady(
+    config({ testEmailFlow: { webhookUrl: '   ', enabled: true } })), false)
 })
