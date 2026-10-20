@@ -2,7 +2,8 @@
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { BRAND_THEMES } from '../src/lib/constants.ts'
-import { themeFolderName } from '../src/lib/moduleEngine/catalogue.ts'
+import { themeFolderName, type ThemeCatalogue } from '../src/lib/moduleEngine/catalogue.ts'
+import { whiten } from '../src/lib/moduleEngine/whiten.ts'
 
 const ROOT = join(process.cwd(), 'Themes and Modules')
 const OUT = join(process.cwd(), 'public', 'module-catalogue')
@@ -30,6 +31,16 @@ function splitShell(master: string, label: string): { head: string; tail: string
   return { head: master.slice(0, headEnd), tail: master.slice(closeTbody) }
 }
 
+// White themes with an exact Springbok Cream sibling (same accent, same images).
+// Coral, Yellowwood and Gold have no sibling: their accent-coloured logo, stripes
+// and icons do not exist for a light background, so they stay unavailable.
+const WHITE_FROM: Record<string, string> = {
+  'white-red': 'springbok-red',
+  'white-teal': 'springbok-teal',
+  'white-pinotage': 'springbok-burgundy',
+}
+const built = new Map<string, ThemeCatalogue>()
+
 mkdirSync(OUT, { recursive: true })
 const readmePath = join(ROOT, 'Modules', 'README.md')
 const order = existsSync(readmePath) ? templateOrder(readFileSync(readmePath, 'utf8')) : []
@@ -50,7 +61,22 @@ for (const theme of BRAND_THEMES) {
   const shell = splitShell(readFileSync(masterPath, 'utf8'), theme.id)
 
   const ordered = [...order.filter((n) => n in modules), ...names.filter((n) => !order.includes(n)).sort()]
-  writeFileSync(join(OUT, `${theme.id}.json`), JSON.stringify({ themeId: theme.id, shell, order: ordered, modules }))
+  const catalogue: ThemeCatalogue = { themeId: theme.id, shell, order: ordered, modules }
+  built.set(theme.id, catalogue)
+  writeFileSync(join(OUT, `${theme.id}.json`), JSON.stringify(catalogue))
 }
-writeFileSync(join(OUT, 'index.json'), JSON.stringify({ themes: BRAND_THEMES.map((t) => t.id) }))
-console.log(`Wrote ${BRAND_THEMES.length} theme catalogues to ${OUT}`)
+
+for (const [whiteId, baseId] of Object.entries(WHITE_FROM)) {
+  const base = built.get(baseId)
+  if (!base) throw new Error(`${whiteId}: base theme ${baseId} was not built`)
+  const modules = Object.fromEntries(Object.entries(base.modules).map(([n, html]) => [n, whiten(html)]))
+  const derived: ThemeCatalogue = {
+    themeId: whiteId,
+    shell: { head: whiten(base.shell.head), tail: whiten(base.shell.tail) },
+    order: base.order,
+    modules,
+  }
+  writeFileSync(join(OUT, `${whiteId}.json`), JSON.stringify(derived))
+}
+writeFileSync(join(OUT, 'index.json'), JSON.stringify({ themes: [...BRAND_THEMES.map((t) => t.id), ...Object.keys(WHITE_FROM)] }))
+console.log(`Wrote ${BRAND_THEMES.length + Object.keys(WHITE_FROM).length} theme catalogues to ${OUT}`)

@@ -25,6 +25,9 @@ export function ModulePreview({ html, title }: Props) {
     return () => ro.disconnect()
   }, [])
 
+  // The library's own dark-mode rules follow the app's theme; the builder shows the light email.
+  const lightHtml = html.replace(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/gi, '@media not all')
+
   const measure = () => {
     const doc = frame.current?.contentDocument
     if (doc) setHeight(Math.max(doc.documentElement.scrollHeight, 24))
@@ -36,11 +39,11 @@ export function ModulePreview({ html, title }: Props) {
       <iframe
         ref={frame}
         title={`Preview: ${title}`}
-        srcDoc={html}
+        srcDoc={lightHtml}
         onLoad={measure}
         scrolling="no"
         className="block border-0 pointer-events-none"
-        style={{ width: EMAIL_WIDTH, height, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+        style={{ width: EMAIL_WIDTH, height, transform: `scale(${scale})`, transformOrigin: 'top left', colorScheme: 'light' }}
       />
       </div>
     </div>
