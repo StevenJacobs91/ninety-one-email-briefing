@@ -3,7 +3,7 @@ import { useWatch, type Control } from 'react-hook-form'
 import type { BriefFormData } from '../lib/schema'
 import type { BriefPayload } from '../types/brief.types'
 import { runBrandGuardianReview, type BrandReview } from '../lib/brandGuardian'
-import { evaluateGate, type GateResult } from '../lib/brandReviewGate'
+import { evaluateGate, shouldAutoRunAI, type GateResult } from '../lib/brandReviewGate'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAIBrandGuardian } from './useAIBrandGuardian'
 
@@ -16,7 +16,7 @@ export interface BrandReviewState extends GateResult {
 }
 
 // Static rules review, optional AI review, and the submit gate built from both.
-export function useBrandReviewGate(control: Control<BriefFormData>): BrandReviewState {
+export function useBrandReviewGate(control: Control<BriefFormData>, onReviewTab: boolean): BrandReviewState {
   const { settings } = useSettings()
   const cfg = settings.brandGuardian
   const watched = useWatch({ control }) as unknown as BriefPayload
@@ -31,10 +31,8 @@ export function useBrandReviewGate(control: Control<BriefFormData>): BrandReview
   const aiMode = cfg.aiGuardian.mode
 
   useEffect(() => {
-    if ((aiMode === 'pre-submission' || aiMode === 'post-submission') && ai.isAvailable && ai.status === 'idle') {
-      ai.run(data)
-    }
-  }, [aiMode, ai.isAvailable]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (shouldAutoRunAI({ aiMode, aiAvailable: ai.isAvailable, aiStatus: ai.status, onReviewTab })) ai.run(data)
+  }, [aiMode, ai.isAvailable, onReviewTab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const gate = evaluateGate({
     score: review.score,

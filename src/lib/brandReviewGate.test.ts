@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { evaluateGate, fieldToTab } from './brandReviewGate.ts'
+import { evaluateGate, fieldToTab, shouldAutoRunAI } from './brandReviewGate.ts'
 import { runBrandGuardianReview } from './brandGuardian.ts'
 import type { BriefPayload } from '../types/brief.types'
 
@@ -62,4 +62,14 @@ test('fieldToTab maps brief field paths onto tabs', () => {
 test('reviewing a brand-new, untouched brief produces a score and does not throw', () => {
   const r = runBrandGuardianReview(FRESH_BRIEF)
   assert.equal(typeof r.score, 'number')
+})
+
+test('the AI review auto-runs only once the user is on the review tab', () => {
+  const base = { aiMode: 'pre-submission', aiAvailable: true, aiStatus: 'idle', onReviewTab: true }
+  assert.equal(shouldAutoRunAI(base), true)
+  assert.equal(shouldAutoRunAI({ ...base, onReviewTab: false }), false)
+  assert.equal(shouldAutoRunAI({ ...base, aiMode: 'post-submission' }), true)
+  assert.equal(shouldAutoRunAI({ ...base, aiMode: 'optional' }), false)
+  assert.equal(shouldAutoRunAI({ ...base, aiAvailable: false }), false)
+  assert.equal(shouldAutoRunAI({ ...base, aiStatus: 'success' }), false)
 })

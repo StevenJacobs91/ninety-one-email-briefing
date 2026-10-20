@@ -39,3 +39,10 @@ export function fieldToTab(field: string): BriefTabId | null {
   for (const [prefix, tab] of TAB_BY_PREFIX) if (field.startsWith(prefix)) return tab
   return null
 }
+
+export function shouldAutoRunAI(i: { aiMode: string; aiAvailable: boolean; aiStatus: string; onReviewTab: boolean }): boolean {
+  return i.onReviewTab
+    && i.aiAvailable
+    && i.aiStatus === 'idle'
+    && (i.aiMode === 'pre-submission' || i.aiMode === 'post-submission')
+}

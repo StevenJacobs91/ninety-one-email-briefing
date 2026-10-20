@@ -479,7 +479,6 @@ export function FormShell() {
   }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]))
 
   const { clearDraft, saveStatus } = useDraftPersistence(form)
-  const brandReview = useBrandReviewGate(form.control)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
 
@@ -614,6 +613,7 @@ export function FormShell() {
   const isFirstStep = currentStep === 0
   const isLastBriefStep = currentStep === lastBriefStep
   const isReviewTab = currentBriefStepId === 'review'
+  const brandReview = useBrandReviewGate(form.control, isReviewTab)
 
   const currentTheme = form.watch('campaign.theme')
   const watchedCampaignName = form.watch('campaign.campaignName') ?? ''
