@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
   addModule, duplicateModule, moveModule, removeModule, setImage, setRegion, setRepeat, setTheme, swapModule,
   type BuildModule, type EmailBuild,
@@ -20,7 +22,9 @@ type BoundField = 'headline' | 'subHeadline' | 'bodyIntro'
 
 export function LibraryBuilder() {
   const { watch, setValue, getValues, formState: { errors } } = useFormContext<BriefFormData>()
-  const { settings } = useSettings()
+  const { settings, updateSettings } = useSettings()
+  const { profile } = useAuth()
+  const [saveNote, setSaveNote] = useState('')
 
   const theme = watch('campaign.theme')
   const regions = (watch('audience.region') ?? []) as string[]
@@ -123,6 +127,27 @@ export function LibraryBuilder() {
     setPickerAt(null)
   }
 
+  const campaignName = getValues('campaign.campaignName')
+  const campaign = (settings.campaigns ?? []).find((c) => c.name === campaignName)
+  const canSave = canSaveCampaignBuild(profile?.role, settings.rolePermissions)
+
+  const saveTemplate = () => {
+    if (!campaign) return
+    const existing = campaign.contentPreset
+    if (existing?.build && !window.confirm(`Overwrite the saved layout for “${campaign.name}”?`)) return
+    const template = { ...templateFromBuild(build), headerTypeId: headerTypeId }
+    const preset = {
+      theme: theme, subjectLine: '', previewText: '', heroImageUrl: '', headline: '', subHeadline: '',
+      signatureId: '', disclaimerId: '', distributionList: '', pardotListId: '',
+      ...existing,
+      build: template,
+    }
+    updateSettings({
+      campaigns: (settings.campaigns ?? []).map((c) => (c.id === campaign.id ? { ...c, contentPreset: preset } : c)),
+    })
+    setSaveNote(`Saved as the “${campaign.name}” template.`)
+  }
+
   const headlineError = errors.content?.headline?.message
   const bodyError = errors.content?.bodyIntro?.message
 
@@ -132,6 +157,21 @@ export function LibraryBuilder() {
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Choose the modules this email needs, then click a module to edit its content.
       </p>
+
+      {canSave && (
+        <div className="mb-4 flex items-center gap-3 text-sm">
+          <button
+            type="button"
+            onClick={saveTemplate}
+            disabled={!campaign}
+            title={campaign ? undefined : 'Select a configured campaign on the Campaign tab first'}
+            className="border border-brand-primary/40 text-brand-primary dark:text-brand-accent px-3 py-1.5 text-xs font-medium hover:bg-brand-primary/5 disabled:opacity-40"
+          >
+            Save as campaign template
+          </button>
+          {saveNote && <span role="status" className="text-green-700 dark:text-green-400 text-xs">{saveNote}</span>}
+        </div>
+      )}
 
       {(headlineError || bodyError) && (
         <div role="alert" className="mb-4 border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">

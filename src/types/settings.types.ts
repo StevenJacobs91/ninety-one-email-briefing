@@ -218,6 +218,8 @@ export interface CampaignContentPreset {
   distributionList: string   // Distribution list name/identifier
   pardotListId: string       // Pardot list ID
   greetingId?: string        // References GreetingConfig.id
+  /** Saved email layout for this campaign; loaded, ready for new copy, when the campaign is selected. */
+  build?: import('../lib/moduleEngine/build').EmailBuild
 }
 
 export interface CampaignEntry {

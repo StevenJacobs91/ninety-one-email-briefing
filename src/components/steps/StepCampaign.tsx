@@ -13,6 +13,7 @@ import { SubSection } from '../ui/SubSection'
 import { SupportingMaterial } from './SupportingMaterial'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { instantiateTemplate, isBuildEmpty } from '../../lib/campaignTemplate'
 import { StepAudience } from './StepAudience'
 import { SendTimeSuggestion } from './SendTimeSuggestion'
 
@@ -49,7 +50,7 @@ function buildTags(data: BriefFormData, themes: BrandThemeConfig[] = []): string
 
 // ─── Main StepCampaign ─────────────────────────────────────────────────────────
 export function StepCampaign() {
-  const { register, watch, formState: { errors }, setValue } = useFormContext<BriefFormData>()
+  const { register, watch, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
   const { profile } = useAuth()
 
@@ -153,6 +154,16 @@ export function StepCampaign() {
       if (cp.disclaimerId) {
         const disclaimerEntry = (settings.legalDisclaimers ?? []).find((d) => d.id === cp.disclaimerId)
         if (disclaimerEntry) set('content.legalDisclaimer', disclaimerEntry.text)
+      }
+
+      // The campaign's saved layout. Never replaces work the user has already done without asking.
+      if (cp.build) {
+        const proceed = isBuildEmpty(getValues('content.build'))
+          || window.confirm(`Replace the current layout and content with the saved “${campaign?.name}” template?`)
+        if (proceed) {
+          if (cp.build.headerTypeId) setValue('assets.headerType', cp.build.headerTypeId, { shouldDirty: true })
+          setValue('content.build', instantiateTemplate(cp.build, cp.theme || getValues('campaign.theme')), { shouldDirty: true })
+        }
       }
     }
   }
