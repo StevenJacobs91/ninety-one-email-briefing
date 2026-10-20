@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { BRAND_THEMES } from '../src/lib/constants.ts'
 import { themeFolderName, type ThemeCatalogue } from '../src/lib/moduleEngine/catalogue.ts'
 import { whiten } from '../src/lib/moduleEngine/whiten.ts'
+import { fixModuleStyles } from '../src/lib/moduleEngine/styleFixes.ts'
 
 const ROOT = join(process.cwd(), 'Themes and Modules')
 const OUT = join(process.cwd(), 'public', 'module-catalogue')
@@ -54,7 +55,7 @@ for (const theme of BRAND_THEMES) {
   const names = all.filter((n) => !(n.endsWith(' 2') && all.includes(n.slice(0, -2))))
   if (names.length < MIN_MODULES) throw new Error(`${theme.id}: only ${names.length} modules in ${dir}`)
   const modules: Record<string, string> = {}
-  for (const n of names) modules[n] = readFileSync(join(dir, `${n}.html`), 'utf8')
+  for (const n of names) modules[n] = fixModuleStyles(n, readFileSync(join(dir, `${n}.html`), 'utf8'))
 
   const masterPath = join(ROOT, 'HTML Templates', `${folder} - All Modules.html`)
   if (!existsSync(masterPath)) throw new Error(`Missing master template for ${theme.id}: ${masterPath}`)
