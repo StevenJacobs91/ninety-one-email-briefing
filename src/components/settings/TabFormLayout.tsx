@@ -57,45 +57,13 @@ export function TabFormLayout() {
     })
   }
 
-  const moveStep = (stepIndex: number, direction: -1 | 1) => {
-    const sorted = [...steps].sort((a, b) => a.order - b.order)
-    const index = sorted.findIndex((s) => s.order === stepIndex)
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= sorted.length) return
-
-    const updatedSteps = steps.map((s) => {
-      if (s.order === sorted[index].order) return { ...s, order: sorted[newIndex].order }
-      if (s.order === sorted[newIndex].order) return { ...s, order: sorted[index].order }
-      return s
-    })
-
-    // Also remap field stepIndex values
-    const oldStepOrder = sorted[index].order
-    const newStepOrder = sorted[newIndex].order
-    const updatedFields = fields.map((f) => {
-      if (f.stepIndex === oldStepOrder) return { ...f, stepIndex: newStepOrder }
-      if (f.stepIndex === newStepOrder) return { ...f, stepIndex: oldStepOrder }
-      return f
-    })
-
-    updateSettings({ formSteps: updatedSteps, formFields: updatedFields })
-  }
-
-  const toggleStepVisible = (stepOrder: number) => {
-    updateSettings({
-      formSteps: steps.map((s) =>
-        s.order === stepOrder ? { ...s, visible: !s.visible } : s
-      ),
-    })
-  }
-
   return (
     <div>
       {/* Step reordering */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Form Steps</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Reorder the main form steps and toggle their visibility. The Brand Review and HTML Email steps are always shown after these.
+          The brief has three fixed tabs. Select one to configure its fields below.
         </p>
         <div className="space-y-1">
           {sortedSteps.map((step, index) => (
@@ -105,18 +73,8 @@ export function TabFormLayout() {
                 activeStepId === step.id
                   ? 'bg-brand-primary/10 dark:bg-brand-accent/10 ring-1 ring-brand-primary/30 dark:ring-brand-accent/30'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-              } ${!step.visible ? 'opacity-50' : ''}`}
+              }`}
             >
-              {/* Reorder controls */}
-              <div className="flex flex-col gap-0.5 shrink-0">
-                <button type="button" onClick={() => moveStep(step.order, -1)} disabled={index === 0} className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6"/></svg>
-                </button>
-                <button type="button" onClick={() => moveStep(step.order, 1)} disabled={index === sortedSteps.length - 1} className="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-              </div>
-
               {/* Step number */}
               <span className="w-6 h-6 rounded-full bg-brand-primary dark:bg-brand-accent text-white dark:text-gray-900 text-xs font-bold flex items-center justify-center shrink-0">
                 {index + 1}
@@ -132,20 +90,6 @@ export function TabFormLayout() {
                 <p className="text-xs text-gray-400">
                   {fields.filter((f) => f.stepIndex === step.order && f.visible).length} fields visible
                 </p>
-              </button>
-
-              {/* Visibility toggle */}
-              <button
-                type="button"
-                onClick={() => toggleStepVisible(step.order)}
-                className={`w-8 h-[18px] rounded-full relative transition-colors shrink-0 ${
-                  step.visible ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
-                title={step.visible ? 'Hide step' : 'Show step'}
-              >
-                <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${
-                  step.visible ? 'left-[17px]' : 'left-0.5'
-                }`} />
               </button>
             </div>
           ))}
