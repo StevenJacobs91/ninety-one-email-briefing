@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { createMockDeps } from '../adapters/mock/createMockDeps'
+import { renderMergeTags } from '../engine/mergeTags'
+import { InboxPreview } from './InboxPreview/InboxPreview'
 import type { PartialTesterConfig } from '../engine/config'
 import type { AnalyzerDeps } from '../engine/context'
 import type { AnalysisInput, AnalysisResult } from '../engine/types'
@@ -29,11 +31,13 @@ interface Props {
   /** Show the "Test now" button (standalone page). */
   showTestNow?: boolean
   onChange?: (fields: SubjectFields) => void
-  /** Rendered under the results; the inbox preview plugs in here. */
+  /** Hide the inbox preview (the compact variant in the builder shows it only on request). */
+  showPreview?: boolean
+  /** Replaces the default inbox preview. */
   renderPreview?: (input: AnalysisInput, result: AnalysisResult) => ReactNode
 }
 
-export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTestNow = false, onChange, renderPreview }: Props) {
+export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTestNow = false, onChange, showPreview = true, renderPreview }: Props) {
   const [fields, setFields] = useState<SubjectFields>({
     subject: initial?.subject ?? '',
     senderName: initial?.senderName ?? '',
@@ -58,7 +62,7 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
 
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
         <ScoreGauge result={result} />
-        <div className="min-h-[132px] flex-1 text-sm text-gray-600 dark:text-gray-300">
+        <div className="flex-1 text-sm sm:min-h-[132px] text-gray-600 dark:text-gray-300">
           {result.empty ? (
             <p>Type a subject line to see how it scores for length, wording and scannability.</p>
           ) : (
@@ -79,7 +83,17 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
         ))}
       </div>
 
-      {renderPreview?.(input, result)}
+      {renderPreview ? (
+        renderPreview(input, result)
+      ) : (
+        showPreview && (
+          <InboxPreview
+            subject={result.rendered}
+            senderName={renderMergeTags(fields.senderName, deps.mergeTags, deps.sampleContact).rendered}
+            preheader={renderMergeTags(fields.preheader, deps.mergeTags, deps.sampleContact).rendered}
+          />
+        )
+      )}
     </div>
   )
 }
