@@ -107,6 +107,14 @@ export function LibraryBuilder() {
     if (bind && patch.value !== undefined) setValue(`content.${bind}`, patch.value, { shouldValidate: true, shouldDirty: true })
   }
 
+  const pick = (name: string, at: number) => {
+    const next = addModule(build, name, at)
+    commit(next)
+    const added = next.modules.find((x) => !build.modules.some((o) => o.instanceId === x.instanceId))
+    setSelectedId(added?.instanceId ?? null)
+    setPickerAt(null)
+  }
+
   const headlineError = errors.content?.headline?.message
   const bodyError = errors.content?.bodyIntro?.message
 
@@ -135,13 +143,7 @@ export function LibraryBuilder() {
                   <ModulePicker
                     names={catalogue.order}
                     onClose={() => setPickerAt(null)}
-                    onPick={(name) => {
-                      const next = addModule(build, name, i)
-                      commit(next)
-                      const added = next.modules.find((x) => !build.modules.some((o) => o.instanceId === x.instanceId))
-                      setSelectedId(added?.instanceId ?? null)
-                      setPickerAt(null)
-                    }}
+                    onPick={(name) => pick(name, i)}
                   />
                 ) : (
                   i > 0 && (
@@ -173,7 +175,7 @@ export function LibraryBuilder() {
           })}
           <div className="mt-2">
             {pickerAt === build.modules.length ? (
-              <ModulePicker names={catalogue.order} onClose={() => setPickerAt(null)} onPick={(name) => { commit(addModule(build, name, build.modules.length)); setPickerAt(null) }} />
+              <ModulePicker names={catalogue.order} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
             ) : (
               <button type="button" onClick={() => setPickerAt(build.modules.length)} className="w-full py-2 text-sm font-medium text-brand-primary dark:text-brand-accent border border-dashed border-brand-primary/40 hover:bg-brand-primary/5">
                 + Add module
