@@ -37,3 +37,13 @@ test('the error code the function returned is available alongside the message', 
 test('without a code the details carry only the message', async () => {
   assert.deepEqual(await functionErrorDetails(new Error('x'), 'fallback'), { message: 'x', code: undefined })
 })
+
+test('a function the browser cannot reach at all (not deployed) counts as missing', () => {
+  const fetchError = { name: 'FunctionsFetchError', message: 'Failed to send a request to the Edge Function', context: new TypeError('Failed to fetch') }
+  assert.equal(isFunctionMissing(fetchError), true)
+})
+
+test('an ordinary error is not mistaken for a missing function', () => {
+  assert.equal(isFunctionMissing({ name: 'Error', message: 'something else' }), false)
+  assert.equal(isFunctionMissing(httpError(500, 'x')), false)
+})

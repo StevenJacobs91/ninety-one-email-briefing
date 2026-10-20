@@ -32,6 +32,13 @@ export async function functionErrorMessage(error: unknown, fallback: string): Pr
   return (await functionErrorDetails(error, fallback)).message
 }
 
+/**
+ * True when the function does not exist or cannot be reached. A function that is not
+ * deployed answers 404, but without CORS headers, so the browser often reports it as a
+ * failed request (FunctionsFetchError) rather than a 404 response.
+ */
 export function isFunctionMissing(error: unknown): boolean {
-  return asResponse((error as FunctionsErrorLike | null | undefined)?.context)?.status === 404
+  const e = error as (FunctionsErrorLike & { name?: string }) | null | undefined
+  if (e?.name === 'FunctionsFetchError') return true
+  return asResponse(e?.context)?.status === 404
 }
