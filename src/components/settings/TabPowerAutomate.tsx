@@ -513,7 +513,7 @@ export function TabPowerAutomate() {
   }
 
   function updateFlow(
-    key: 'briefSubmissionFlow' | 'listAnalysisFlow' | 'campaignInsightsFlow',
+    key: 'briefSubmissionFlow' | 'listAnalysisFlow' | 'campaignInsightsFlow' | 'testEmailFlow',
     patch: Partial<PowerAutomateFlowEndpoint>,
   ) {
     update({ [key]: { ...cfg[key], ...patch } })
@@ -540,6 +540,7 @@ export function TabPowerAutomate() {
     cfg.briefSubmissionFlow,
     cfg.listAnalysisFlow,
     cfg.campaignInsightsFlow,
+    cfg.testEmailFlow,
   ].filter((f) => f.enabled && f.webhookUrl.trim()).length
 
   const statusBadge = cfg.enabled
@@ -669,6 +670,19 @@ export function TabPowerAutomate() {
             endpoint={cfg.campaignInsightsFlow}
             paConfig={cfg}
             onChange={(patch) => updateFlow('campaignInsightsFlow', patch)}
+          />
+
+          <FlowCard
+            label="Test Email"
+            description="Sends a rendered test email to a single recipient from the Review and Submission step."
+            icon={
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" /><polyline points="22,6 12,13 2,6" />
+              </svg>
+            }
+            endpoint={cfg.testEmailFlow}
+            paConfig={cfg}
+            onChange={(patch) => updateFlow('testEmailFlow', patch)}
           />
         </Section>
 
