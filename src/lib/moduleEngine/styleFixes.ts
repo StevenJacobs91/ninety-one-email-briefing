@@ -2,11 +2,16 @@
 // the library files, so the source stays as designed and the preview and the
 // sent email can never disagree.
 const FIXES: Record<string, [from: string, to: string][]> = {
-  // The greeting sits 30px above the next module and nothing more: no top
-  // padding, and no extra paragraph margin stacking on the cell's bottom padding.
+  // 30px above the greeting and 15px below it, set on the cell (Outlook ignores
+  // padding on a <p>); the paragraph adds no margin of its own.
   Greeting: [
-    ['padding: 30px 40px 30px 40px;', 'padding: 0px 40px 30px 40px;'],
+    ['padding: 30px 40px 30px 40px;', 'padding: 30px 40px 15px 40px;'],
     ['margin: 0px 0 15px;', 'margin: 0px;'],
+  ],
+  // The greeting above supplies the space, so body content starts flush and
+  // keeps 30px below.
+  'Body Content': [
+    ['padding: 30px 40px 30px 40px;', 'padding: 0px 40px 30px 40px;'],
   ],
 }
 
