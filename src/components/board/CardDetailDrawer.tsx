@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { boardLinks } from '../../lib/submissionDraft'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
@@ -37,22 +38,44 @@ function formatDateTime(iso: string): string {
   }
 }
 
-interface KanbanCardDetailProps {
+function timeAgo(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+interface CardDetailDrawerProps {
   card: KanbanCard
   onClose: () => void
 }
 
-export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
-  const { moveCard, updateCardNotes, removeCard } = useKanban()
+export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
+  const { moveCard, updateCardNotes, updateCardMeta, addComment, removeCard } = useKanban()
+  const { profile, user } = useAuth()
   const { settings } = useSettings()
   const { getApprovalStatusForBrief, getLatestApprovalForBrief, approvals } = useApprovals()
   const [notes, setNotes] = useState(card.notes)
+  const [assignee, setAssignee] = useState(card.assignee ?? '')
+  const [startDate, setStartDate] = useState(card.startDate ?? '')
+  const [progress, setProgress] = useState(card.progress ?? 0)
+  const [commentText, setCommentText] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showSubmitApproval, setShowSubmitApproval] = useState(false)
   const [briefSnapshot, setBriefSnapshot] = useState<BriefPayload | null>(null)
   const [loadingBrief, setLoadingBrief] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const colours = getThemeColours(card.theme)
+
+  // Keep the editable fields in step with the card (it can change while the drawer is open)
+  useEffect(() => {
+    setNotes(card.notes)
+    setAssignee(card.assignee ?? '')
+    setStartDate(card.startDate ?? '')
+    setProgress(card.progress ?? 0)
+  }, [card])
 
   // Close on Escape
   useEffect(() => {
@@ -75,6 +98,24 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
   function handleNotesBlur() {
     updateCardNotes(card.id, notes)
   }
+
+  function handleMetaBlur() {
+    updateCardMeta(card.id, { assignee: assignee || undefined, startDate: startDate || undefined, progress })
+  }
+
+  function handleAddComment() {
+    const text = commentText.trim()
+    if (!text) return
+    addComment(card.id, {
+      authorId: user?.id ?? 'anon',
+      authorName: profile?.displayName ?? user?.email ?? 'Anonymous',
+      text,
+      createdAt: new Date().toISOString(),
+    })
+    setCommentText('')
+  }
+
+  const comments = card.comments ?? []
 
   function handleMove(column: KanbanColumn) {
     moveCard(card.id, column)
@@ -105,8 +146,8 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
   const today = new Date()
   const sendDate = new Date(card.sendDate)
   const diffDays = Math.ceil((sendDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  const isOverdue = diffDays < 0
-  const isDueSoon = !isOverdue && diffDays <= 7
+  const isOverdue = !!card.sendDate && diffDays < 0
+  const isDueSoon = !!card.sendDate && !isOverdue && diffDays <= 7
 
   const currentColIndex = COLUMN_ORDER.indexOf(card.column)
   const prevCol = currentColIndex > 0 ? COLUMN_ORDER[currentColIndex - 1] : null
@@ -273,6 +314,32 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />
 
+            {/* Planning: who is on it, when production starts, how far along */}
+            <section>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Planning</p>
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="card-assignee" className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Assignee</label>
+                  <input id="card-assignee" type="text" value={assignee} onChange={(e) => setAssignee(e.target.value)} onBlur={handleMetaBlur} placeholder="Person responsible"
+                    className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent" />
+                </div>
+                <div>
+                  <label htmlFor="card-start" className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Production start</label>
+                  <input id="card-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onBlur={handleMetaBlur}
+                    className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="card-progress" className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Progress</label>
+                    <span className="text-xs font-medium text-brand-primary dark:text-brand-accent">{progress}%</span>
+                  </div>
+                  <input id="card-progress" type="range" min="0" max="100" step="5" value={progress} onChange={(e) => setProgress(Number(e.target.value))} onMouseUp={handleMetaBlur} onTouchEnd={handleMetaBlur} onKeyUp={handleMetaBlur} className="w-full accent-brand-primary" />
+                </div>
+              </div>
+            </section>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
             {/* Notes */}
             <section>
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block" htmlFor="card-notes">
@@ -288,6 +355,34 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
                 className="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent focus:border-transparent placeholder-gray-400"
               />
               <p className="text-[11px] text-gray-400 mt-1">Auto-saved on blur</p>
+            </section>
+
+            <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
+            {/* Comments */}
+            <section>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Comments{comments.length > 0 ? ` (${comments.length})` : ''}</p>
+              <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAddComment() }}
+                rows={2} placeholder="Write a comment… (⌘↵ to post)" aria-label="Add a comment"
+                className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent placeholder-gray-400" />
+              <button type="button" onClick={handleAddComment} disabled={!commentText.trim()}
+                className="mt-2 text-xs font-medium bg-brand-primary text-white px-4 py-2 rounded hover:bg-[#0d3232] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Post comment</button>
+              {comments.length > 0 && (
+                <ol className="space-y-3 mt-4">
+                  {comments.map((c) => (
+                    <li key={c.id} className="flex gap-3">
+                      <div className="w-7 h-7 rounded-full bg-brand-primary/15 dark:bg-brand-accent/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-brand-primary dark:text-brand-accent">{c.authorName.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs"><span className="font-medium text-gray-800 dark:text-gray-200">{c.authorName}</span> <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">{timeAgo(c.createdAt)}</span></p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </section>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />

@@ -89,7 +89,7 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
     label: 'Platforms',
     tabs: [
       { id: 'design-briefing', label: 'Design Briefing', description: 'Configure the Design Briefing Platform — asset types, fields, and defaults' },
-      { id: 'campaign-planner', label: 'Campaign Planner', description: 'Configure views, columns and behaviour for the Campaign Planner' },
+      { id: 'campaign-planner', label: 'Campaign Board', description: 'Turn the board on or off, choose its views, and set the fields shown on task cards' },
     ],
   },
 ]

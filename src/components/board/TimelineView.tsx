@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { getThemeColours } from '../../lib/themeColours'
-import { CampaignCardDetail } from './CampaignCardDetail'
+import { CardDetailDrawer } from './CardDetailDrawer'
 
 const COLUMN_COLORS: Record<KanbanColumn, { bar: string; text: string }> = {
   briefed: { bar: 'bg-brand-primary', text: 'text-[#e8e5ce]' },
@@ -54,12 +54,12 @@ function calcBar(card: KanbanCard, rangeStart: Date, rangeEnd: Date): { left: nu
   return { left, width }
 }
 
-interface PlannerTimelineViewProps {
+interface TimelineViewProps {
   cards: KanbanCard[]
   search: string
 }
 
-export function PlannerTimelineView({ cards, search }: PlannerTimelineViewProps) {
+export function TimelineView({ cards, search }: TimelineViewProps) {
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
   const [rangeWeeks, setRangeWeeks] = useState(12)
 
@@ -291,7 +291,7 @@ export function PlannerTimelineView({ cards, search }: PlannerTimelineViewProps)
       </div>
 
       {selectedCard && (
-        <CampaignCardDetail card={selectedCard} onClose={() => setSelectedCard(null)} />
+        <CardDetailDrawer card={selectedCard} onClose={() => setSelectedCard(null)} />
       )}
     </>
   )

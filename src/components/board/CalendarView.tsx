@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { KanbanCard } from '../../types/kanban.types'
-import { CampaignCardDetail } from './CampaignCardDetail'
+import { CardDetailDrawer } from './CardDetailDrawer'
 
 function isoToLocalDate(iso: string): Date | null {
   if (!iso) return null
@@ -14,12 +14,12 @@ function sameDay(a: Date, b: Date): boolean {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-interface PlannerCalendarViewProps {
+interface CalendarViewProps {
   cards: KanbanCard[]
   search: string
 }
 
-export function PlannerCalendarView({ cards, search }: PlannerCalendarViewProps) {
+export function CalendarView({ cards, search }: CalendarViewProps) {
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -260,7 +260,7 @@ export function PlannerCalendarView({ cards, search }: PlannerCalendarViewProps)
       </div>
 
       {selectedCard && (
-        <CampaignCardDetail card={selectedCard} onClose={() => setSelectedCard(null)} />
+        <CardDetailDrawer card={selectedCard} onClose={() => setSelectedCard(null)} />
       )}
     </>
   )

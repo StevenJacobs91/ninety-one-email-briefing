@@ -575,6 +575,22 @@ export interface CampaignPlannerSettings {
   showProgress: boolean
   /** Allow users to add manual campaigns (not from brief submissions) */
   allowManualCampaigns: boolean
+  // Combined Campaign Board options. All optional: older saved settings keep working
+  // (see resolveBoardSettings in lib/boardConfig.ts).
+  /** Whether the Campaign Board is shown at all. Briefs still add cards in the background while it is off. */
+  enabled?: boolean
+  /** Which views the board offers */
+  enabledViews?: ('kanban' | 'list' | 'timeline' | 'calendar')[]
+  /** Card size */
+  density?: 'comfortable' | 'compact'
+  /** Coloured edge on task cards */
+  accent?: 'none' | 'theme' | 'urgency'
+  /** Fields (and their order) shown on task cards */
+  cardFields?: { order: string[]; hidden: string[] }
+  /** Use listFields for the List view instead of cardFields */
+  separateListFields?: boolean
+  /** Fields (and their order) shown as List columns when separateListFields is on */
+  listFields?: { order: string[]; hidden: string[] }
 }
 
 export type SettingsTab =

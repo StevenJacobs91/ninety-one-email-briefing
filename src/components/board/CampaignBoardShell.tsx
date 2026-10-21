@@ -1,27 +1,30 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useKanban } from '../../contexts/KanbanContext'
-import { PlannerKanbanView } from './PlannerKanbanView'
-import { PlannerListView } from './PlannerListView'
-import { PlannerTimelineView } from './PlannerTimelineView'
-import { PlannerCalendarView } from './PlannerCalendarView'
+import { useSettings } from '../../contexts/SettingsContext'
+import { BoardView } from './BoardView'
+import { BoardListView } from './BoardListView'
+import { TimelineView } from './TimelineView'
+import { CalendarView } from './CalendarView'
 import { AddCampaignModal } from './AddCampaignModal'
+import { BOARD_VIEW_LABEL, resolveBoardSettings, type BoardView as BoardViewId } from '../../lib/boardConfig'
 
-type PlannerView = 'kanban' | 'list' | 'timeline' | 'calendar'
+type PlannerView = BoardViewId
 
 const VIEW_PREFERENCE_KEY = 'ni-campaign-planner-view'
 
-function getSavedView(): PlannerView {
+/** The viewer's own last view if it is still on, otherwise the team's default. */
+function getSavedView(enabled: PlannerView[], fallback: PlannerView): PlannerView {
   try {
     const v = localStorage.getItem(VIEW_PREFERENCE_KEY)
-    if (v === 'kanban' || v === 'list' || v === 'timeline' || v === 'calendar') return v
+    if (v && (enabled as string[]).includes(v)) return v as PlannerView
   } catch { /* ignore */ }
-  return 'kanban'
+  return fallback
 }
 
 const VIEW_CONFIG: { id: PlannerView; label: string; icon: React.ReactNode }[] = [
   {
     id: 'kanban',
-    label: 'Kanban',
+    label: BOARD_VIEW_LABEL.kanban,
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -32,7 +35,7 @@ const VIEW_CONFIG: { id: PlannerView; label: string; icon: React.ReactNode }[] =
   },
   {
     id: 'list',
-    label: 'List',
+    label: BOARD_VIEW_LABEL.list,
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
@@ -44,7 +47,7 @@ const VIEW_CONFIG: { id: PlannerView; label: string; icon: React.ReactNode }[] =
   },
   {
     id: 'timeline',
-    label: 'Timeline',
+    label: BOARD_VIEW_LABEL.timeline,
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -55,7 +58,7 @@ const VIEW_CONFIG: { id: PlannerView; label: string; icon: React.ReactNode }[] =
   },
   {
     id: 'calendar',
-    label: 'Calendar',
+    label: BOARD_VIEW_LABEL.calendar,
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -71,12 +74,13 @@ interface CampaignPlannerShellProps {
   onClose: () => void
 }
 
-export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
+export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
   const { cards } = useKanban()
-  const [view, setView] = useState<PlannerView>(getSavedView)
+  const { settings } = useSettings()
+  const board = resolveBoardSettings(settings.campaignPlanner)
+  const [view, setView] = useState<PlannerView>(() => getSavedView(board.enabledViews, board.defaultView))
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [sort, setSort] = useState<'send-asc' | 'send-desc' | 'submitted-desc' | 'urgency-first' | 'progress-desc'>('send-asc')
 
   // Persist view preference
   useEffect(() => {
@@ -122,14 +126,14 @@ export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
         <div className="max-w-[1600px] mx-auto px-6 py-5 flex items-end justify-between gap-6 flex-wrap">
           <div>
             <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
-            <h1 className="font-ni-display text-[#e8e5ce] text-3xl leading-none tracking-tight">Campaign Planner</h1>
-            <p className="text-[#e8e5ce]/60 text-sm mt-2">Plan, track and manage all marketing campaigns across your team.</p>
+            <h1 className="font-ni-display text-[#e8e5ce] text-3xl leading-none tracking-tight">Campaign Board</h1>
+            <p className="text-[#e8e5ce]/60 text-sm mt-2">Track every email brief from briefing through to distribution.</p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             {/* View switcher */}
             <div className="flex items-center rounded-lg border border-white/20 overflow-hidden">
-              {VIEW_CONFIG.map((v, i) => (
+              {VIEW_CONFIG.filter((v) => board.enabledViews.includes(v.id)).map((v, i) => (
                 <button
                   key={v.id}
                   type="button"
@@ -147,17 +151,19 @@ export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
               ))}
             </div>
 
-            {/* Add campaign */}
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-brand-accent text-brand-primary text-xs font-medium tracking-[0.08em] uppercase px-4 py-2 hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Campaign
-            </button>
+            {/* Add campaign (only when manual campaigns are allowed) */}
+            {board.allowManualCampaigns && (
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 bg-brand-accent text-brand-primary text-xs font-medium tracking-[0.08em] uppercase px-4 py-2 hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Campaign
+              </button>
+            )}
 
             {/* Close */}
             <button
@@ -200,8 +206,8 @@ export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
             )}
           </div>
 
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          {/* Search (the list has its own filters) */}
+          {view !== 'list' && <div className="relative flex-1 min-w-[200px] max-w-sm">
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
@@ -216,7 +222,7 @@ export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
               placeholder="Search campaigns, assignees, tags..."
               className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-brand-border-warm dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent focus:border-transparent"
             />
-          </div>
+          </div>}
 
           {/* Current view label */}
           <div className="ml-auto hidden md:flex items-center gap-2">
@@ -229,21 +235,16 @@ export function CampaignPlannerShell({ onClose }: CampaignPlannerShellProps) {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden max-w-[1600px] w-full mx-auto">
         {view === 'kanban' && (
-          <PlannerKanbanView
-            cards={cards}
-            sort={sort}
-            onSortChange={setSort}
-            search={search}
-          />
+          <BoardView cards={cards} board={board} search={search} />
         )}
         {view === 'list' && (
-          <PlannerListView cards={cards} search={search} />
+          <BoardListView />
         )}
         {view === 'timeline' && (
-          <PlannerTimelineView cards={cards} search={search} />
+          <TimelineView cards={cards} search={search} />
         )}
         {view === 'calendar' && (
-          <PlannerCalendarView cards={cards} search={search} />
+          <CalendarView cards={cards} search={search} />
         )}
       </div>
 

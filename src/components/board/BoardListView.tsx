@@ -2,7 +2,12 @@ import { useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { getThemeColours } from '../../lib/themeColours'
-import { KanbanCardDetail } from './KanbanCardDetail'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useApprovals } from '../../contexts/ApprovalsContext'
+import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
+import { CardDetailDrawer } from './CardDetailDrawer'
+import { sendStatus as getSendStatusFor, ageInColumn, formatBoardDate } from '../../lib/boardFormat'
+import { fieldsForSurface, resolveBoardSettings } from '../../lib/boardConfig'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +23,12 @@ type SortField =
   | 'urgency'
   | 'submittedAt'
   | 'submittedByName'
+  | 'assignee'
+  | 'clientGroup'
+  | 'subjectLine'
+  | 'startDate'
+  | 'progress'
+  | 'comments'
   | 'tags'
 
 type SortDir = 'asc' | 'desc'
@@ -60,15 +71,6 @@ const DEFAULT_FILTERS: Filters = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch {
-    return iso
-  }
-}
-
 function getSendStatus(sendDate: string): 'overdue' | 'due-soon' | 'ok' {
   if (!sendDate) return 'ok'
   const today = new Date()
@@ -96,6 +98,12 @@ function getCardValue(card: KanbanCard, field: SortField): string {
     case 'submittedAt':         return card.submittedAt
     case 'submittedByName':     return (card.submittedByName ?? '').toLowerCase()
     case 'tags':                return card.tags.toLowerCase()
+    case 'assignee':            return (card.assignee ?? '').toLowerCase()
+    case 'clientGroup':         return card.clientGroup.join(', ').toLowerCase()
+    case 'subjectLine':         return card.subjectLine.toLowerCase()
+    case 'startDate':           return card.startDate ?? ''
+    case 'progress':            return String(card.progress ?? 0).padStart(3, '0')
+    case 'comments':            return String(card.comments?.length ?? 0).padStart(4, '0')
     default:                    return ''
   }
 }
@@ -121,8 +129,8 @@ function SortIcon({ field, active, dir }: { field: SortField; active: SortField;
   )
 }
 
-function SendStatusBadge({ sendDate }: { sendDate: string }) {
-  const status = getSendStatus(sendDate)
+function SendStatusBadge({ sendDate, column }: { sendDate: string; column?: string }) {
+  const status = getSendStatusFor(sendDate, new Date(), column)
   if (status === 'overdue')
     return <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium whitespace-nowrap">Overdue</span>
   if (status === 'due-soon')
@@ -132,8 +140,11 @@ function SendStatusBadge({ sendDate }: { sendDate: string }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function KanbanListView() {
+export function BoardListView() {
   const { cards, moveCard } = useKanban()
+  const { settings } = useSettings()
+  const { getApprovalStatusForBrief } = useApprovals()
+  const columns = fieldsForSurface(resolveBoardSettings(settings.campaignPlanner), 'list')
   const [sortField, setSortField] = useState<SortField>('sendDate')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
@@ -213,6 +224,52 @@ export function KanbanListView() {
       setSortDir('asc')
     }
   }
+
+  // Each optional column: its heading, how it sorts (if it does) and what a row shows
+  const COLUMN_DEFS: Record<string, { header: string; sort?: SortField; cell: (card: KanbanCard) => React.ReactNode; nowrap?: boolean }> = {
+    urgency: { header: 'Urgency', sort: 'urgency', nowrap: true, cell: (c) => c.urgency === 'urgent'
+      ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Urgent</span>
+      : <span className="text-[10px] text-gray-400 dark:text-gray-500">Standard</span> },
+    emailType: { header: 'Type', sort: 'emailType', nowrap: true, cell: (c) => <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{c.emailType || '—'}</span> },
+    theme: { header: 'Theme', sort: 'theme', cell: (c) => {
+      const colours = getThemeColours(c.theme)
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.primary }} />
+          <span className="w-3 h-3 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.accent }} />
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[100px]" title={c.theme}>{c.theme}</span>
+        </div>
+      )
+    } },
+    submittedBy: { header: 'Submitted by', sort: 'submittedByName', cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-300 truncate block max-w-[140px]" title={c.submittedByEmail ?? ''}>{c.submittedByName ?? '—'}</span> },
+    assignee: { header: 'Assignee', sort: 'assignee', cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-300 truncate block max-w-[120px]">{c.assignee || '—'}</span> },
+    region: { header: 'Region', sort: 'region', cell: (c) => <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]" title={c.region.join(', ')}>{c.region.join(' · ') || '—'}</p> },
+    channel: { header: 'Channel', sort: 'channel', cell: (c) => <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]" title={c.channel.join(', ')}>{c.channel.join(' · ') || '—'}</p> },
+    clientGroup: { header: 'Client group', sort: 'clientGroup', cell: (c) => <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title={c.clientGroup.join(', ')}>{c.clientGroup.join(' · ') || '—'}</p> },
+    subjectLine: { header: 'Subject line', sort: 'subjectLine', cell: (c) => <p className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[220px]" title={c.subjectLine}>{c.subjectLine || '—'}</p> },
+    sendDate: { header: 'Send date', sort: 'sendDate', nowrap: true, cell: (c) => {
+      const st = getSendStatusFor(c.sendDate, new Date(), c.column)
+      return <span className={`text-xs font-medium ${st === 'overdue' ? 'text-red-600 dark:text-red-400' : st === 'due-soon' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}>{formatBoardDate(c.sendDate)}</span>
+    } },
+    sendStatus: { header: 'Status', nowrap: true, cell: (c) => <SendStatusBadge sendDate={c.sendDate} column={c.column} /> },
+    contentApprovalDate: { header: 'Approval date', sort: 'contentApprovalDate', nowrap: true, cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-400">{formatBoardDate(c.contentApprovalDate)}</span> },
+    startDate: { header: 'Start date', sort: 'startDate', nowrap: true, cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-400">{formatBoardDate(c.startDate ?? '')}</span> },
+    progress: { header: 'Progress', sort: 'progress', nowrap: true, cell: (c) => (
+      <div className="flex items-center gap-2 min-w-[90px]">
+        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1"><div className="h-1 rounded-full bg-brand-primary dark:bg-brand-accent" style={{ width: `${c.progress ?? 0}%` }} /></div>
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 tabular-nums">{c.progress ?? 0}%</span>
+      </div>
+    ) },
+    approvalStatus: { header: 'Approval', nowrap: true, cell: (c) => {
+      const a = settings.approvals?.enabled ? getApprovalStatusForBrief(c.briefId) : 'none'
+      return a === 'none' ? <span className="text-gray-300 dark:text-gray-600">—</span> : <ApprovalStatusBadge status={a} size="sm" />
+    } },
+    tags: { header: 'Tags', sort: 'tags', cell: (c) => c.tags ? <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title={c.tags}>{c.tags}</p> : <span className="text-gray-300 dark:text-gray-600">—</span> },
+    ageInColumn: { header: 'In stage', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{ageInColumn(c)}</span> },
+    comments: { header: 'Comments', sort: 'comments', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{c.comments?.length ?? 0}</span> },
+    submittedAt: { header: 'Submitted', sort: 'submittedAt', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{formatBoardDate(c.submittedAt)}</span> },
+  }
+  const shownColumns = columns.filter((id) => COLUMN_DEFS[id])
 
   function Th({ field, children }: { field: SortField; children: React.ReactNode }) {
     return (
@@ -407,17 +464,13 @@ export function KanbanListView() {
               <thead>
                 <tr className="border-b border-brand-border-warm dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
                   <Th field="emailName">Email Name</Th>
-                  <Th field="emailType">Type</Th>
-                  <Th field="theme">Theme</Th>
-                  <Th field="region">Region</Th>
-                  <Th field="channel">Channel</Th>
                   <Th field="column">Stage</Th>
-                  <Th field="urgency">Urgency</Th>
-                  <Th field="contentApprovalDate">Approval Date</Th>
-                  <Th field="sendDate">Send Date</Th>
-                  <Th field="submittedAt">Submitted</Th>
-                  <Th field="submittedByName">Submitted by</Th>
-                  <Th field="tags">Tags</Th>
+                  {shownColumns.map((id) => {
+                    const def = COLUMN_DEFS[id]
+                    return def.sort
+                      ? <Th key={id} field={def.sort}>{def.header}</Th>
+                      : <th key={id} className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{def.header}</th>
+                  })}
                   <th className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
@@ -425,8 +478,6 @@ export function KanbanListView() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {visibleCards.map((card) => {
-                  const colours = getThemeColours(card.theme)
-                  const sendStatus = getSendStatus(card.sendDate)
                   const colConfig = COLUMN_CONFIG[card.column]
                   const colIndex = (['briefed', 'in-progress', 'distributed'] as KanbanColumn[]).indexOf(card.column)
                   const prevCol = colIndex > 0 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex - 1] : null
@@ -442,41 +493,11 @@ export function KanbanListView() {
                         <p className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={card.emailName}>
                           {card.emailName}
                         </p>
-                        {card.subjectLine && (
+                        {card.subjectLine && !shownColumns.includes('subjectLine') && (
                           <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5" title={card.subjectLine}>
                             {card.subjectLine}
                           </p>
                         )}
-                      </td>
-
-                      {/* Type */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                          {card.emailType || '—'}
-                        </span>
-                      </td>
-
-                      {/* Theme */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-3 h-3 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.primary }} />
-                          <span className="w-3 h-3 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.accent }} />
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[100px]" title={card.theme}>{card.theme}</span>
-                        </div>
-                      </td>
-
-                      {/* Region */}
-                      <td className="px-3 py-3">
-                        <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]" title={card.region.join(', ')}>
-                          {card.region.join(' · ') || '—'}
-                        </p>
-                      </td>
-
-                      {/* Channel */}
-                      <td className="px-3 py-3">
-                        <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[120px]" title={card.channel.join(', ')}>
-                          {card.channel.join(' · ') || '—'}
-                        </p>
                       </td>
 
                       {/* Stage */}
@@ -486,50 +507,9 @@ export function KanbanListView() {
                         </span>
                       </td>
 
-                      {/* Urgency */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {card.urgency === 'urgent' ? (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                            Urgent
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500">Standard</span>
-                        )}
-                      </td>
-
-                      {/* Content approval date */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">{formatDate(card.contentApprovalDate)}</span>
-                      </td>
-
-                      {/* Send date */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-medium ${sendStatus === 'overdue' ? 'text-red-600 dark:text-red-400' : sendStatus === 'due-soon' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                            {formatDate(card.sendDate)}
-                          </span>
-                          <SendStatusBadge sendDate={card.sendDate} />
-                        </div>
-                      </td>
-
-                      {/* Submitted */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(card.submittedAt)}</span>
-                      </td>
-
-                      {/* Submitted by */}
-                      <td className="px-3 py-3 max-w-[140px]">
-                        <span className="text-xs text-gray-600 dark:text-gray-300 truncate block" title={card.submittedByEmail ?? ''}>{card.submittedByName ?? '—'}</span>
-                      </td>
-
-                      {/* Tags */}
-                      <td className="px-3 py-3 max-w-[120px]">
-                        {card.tags ? (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={card.tags}>{card.tags}</p>
-                        ) : (
-                          <span className="text-gray-300 dark:text-gray-600">—</span>
-                        )}
-                      </td>
+                      {shownColumns.map((id) => (
+                        <td key={id} className={`px-3 py-3 ${COLUMN_DEFS[id].nowrap ? 'whitespace-nowrap' : ''}`}>{COLUMN_DEFS[id].cell(card)}</td>
+                      ))}
 
                       {/* Actions */}
                       <td className="px-3 py-3 whitespace-nowrap">
@@ -574,7 +554,7 @@ export function KanbanListView() {
 
       {/* Card detail drawer */}
       {selectedCard && (
-        <KanbanCardDetail card={selectedCard} onClose={() => setSelectedCard(null)} />
+        <CardDetailDrawer card={selectedCard} onClose={() => setSelectedCard(null)} />
       )}
     </div>
   )

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 // Feature tests use Vitest (*.spec.ts). The older suites use `npm test` (tsx --test, *.test.ts).
 export default defineConfig({
   test: {
-    include: ['src/features/**/__tests__/**/*.spec.{ts,tsx}'],
+    include: ['src/features/**/__tests__/**/*.spec.{ts,tsx}', 'src/components/**/__tests__/**/*.spec.{ts,tsx}'],
     environment: 'node',
     coverage: {
       provider: 'v8',
