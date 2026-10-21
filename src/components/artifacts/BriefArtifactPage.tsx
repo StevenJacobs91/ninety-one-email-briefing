@@ -6,6 +6,7 @@ import { generateEmailHtml } from '../../lib/emailGenerator'
 import { generateBriefHtml } from '../../lib/generateBriefHtml'
 import { buildEmailName } from '../../lib/emailName'
 import { submissionFiles } from '../../lib/submissionDraft'
+import { selfHostFonts } from '../../lib/previewFonts'
 import { useCatalogue } from '../builder2/useCatalogue'
 
 export type ArtifactView = 'html' | 'summary'
@@ -58,7 +59,7 @@ function ArtifactBody({ brief, view }: { brief: BriefPayload; view: ArtifactView
         <span className="truncate">{view === 'html' ? 'Email HTML' : 'Brief Summary'} · {name}</span>
         <button type="button" onClick={download} className="shrink-0 border border-white/40 px-3 py-1 text-xs hover:bg-white/10">Download</button>
       </div>
-      <iframe title={view === 'html' ? 'Email HTML' : 'Brief Summary'} srcDoc={html} className="flex-1 w-full border-0 bg-white" />
+      <iframe title={view === 'html' ? 'Email HTML' : 'Brief Summary'} srcDoc={selfHostFonts(html, window.location.origin)} className="flex-1 w-full border-0 bg-white" />
     </div>
   )
 }

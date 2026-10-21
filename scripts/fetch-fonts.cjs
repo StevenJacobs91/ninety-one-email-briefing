@@ -12,6 +12,8 @@ const path = require('path')
 const FONTS = {
   'NinetyOneVisueltDisplay_Regular.woff':
     'https://weare.ninetyone.com/l/28902/2020-04-27/8vjg6b/28902/241047/NinetyOneVisueltDisplay_Regular.woff',
+  'NinetyOneVisuelt_Regular.woff':
+    'https://weare.ninetyone.com/l/28902/2020-08-17/8y6kht/28902/252426/NinetyOneVisuelt_Regular.woff',
   'NinetyOneVisuelt_Light.woff':
     'https://weare.ninetyone.com/l/28902/2020-10-19/8zs4jq/28902/1603114661MAzRiC9E/NinetyOneVisuelt_Light.woff',
   'NinetyOneVisuelt_Medium.woff':

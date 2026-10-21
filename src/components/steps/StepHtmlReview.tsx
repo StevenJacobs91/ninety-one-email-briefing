@@ -19,6 +19,7 @@ import { collectAttachments } from '../../lib/attachmentStore'
 import { DRAFT_RECIPIENT, boardLinks, boardNotes, briefSubmittedNotification, buildEml, submissionBriefId, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
+import { selfHostFonts } from '../../lib/previewFonts'
 import {
   triggerTestEmail, isTestEmailFlowReady,
   triggerBriefSubmission, isBriefSubmissionFlowReady,
@@ -86,6 +87,8 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
   const [editMode, setEditMode] = useState(false)
   const [htmlEdits, setHtmlEdits] = useState<HtmlEdit[]>(data.htmlEdits ?? [])
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  // The preview loads the brand fonts from the app's own copies; the Pardot host blocks browsers (see previewFonts.ts).
+  const previewHtml = useMemo(() => selfHostFonts(html, window.location.origin), [html])
 
   // Enable contenteditable on text elements in the iframe
   const enableEditing = useCallback(() => {
@@ -481,7 +484,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           <div className="flex justify-center bg-gray-50 dark:bg-gray-900 p-4">
             <iframe
               ref={iframeRef}
-              srcDoc={html}
+              srcDoc={previewHtml}
               title="Email preview"
               className={`${viewport === 'desktop' ? 'w-[640px]' : 'w-[375px]'} min-h-[700px] border border-gray-200 dark:border-gray-700 bg-white shadow-sm transition-all duration-300`}
               style={{ height: 'calc(100vh - 300px)', maxWidth: '100%' }}

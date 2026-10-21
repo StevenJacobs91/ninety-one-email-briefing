@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { selfHostFonts } from '../../lib/previewFonts'
+
 const EMAIL_WIDTH = 640
 
 interface Props {
@@ -26,7 +28,8 @@ export function ModulePreview({ html, title }: Props) {
   }, [])
 
   // The library's own dark-mode rules follow the app's theme; the builder shows the light email.
-  const lightHtml = html.replace(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/gi, '@media not all')
+  // The email's fonts are loaded from the app's own copies here, as the Pardot host blocks browsers (see previewFonts.ts).
+  const lightHtml = selfHostFonts(html.replace(/@media\s*\(\s*prefers-color-scheme\s*:\s*dark\s*\)/gi, '@media not all'), window.location.origin)
 
   const measure = () => {
     const doc = frame.current?.contentDocument
