@@ -44,6 +44,7 @@ export const CARD_FIELDS: readonly CardFieldDef[] = [
   { id: 'tags', kind: 'cell', label: 'Tags', hint: 'The tags on the brief', defaultOn: true },
   { id: 'submittedAt', kind: 'cell', label: 'Submitted date', hint: 'When the brief was added to the board', defaultOn: false },
   { id: 'ageInColumn', kind: 'meta', label: 'Time in stage', hint: 'How long the card has been in its column', defaultOn: true },
+  { id: 'attachments', kind: 'meta', label: 'Attachments', hint: 'How many files are attached to the brief', defaultOn: true },
   { id: 'comments', kind: 'meta', label: 'Comment count', hint: 'How many comments the card has', defaultOn: true },
 ]
 

@@ -3,6 +3,8 @@ import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { boardLinks } from '../../lib/submissionDraft'
+import { openStoredAttachment } from '../../lib/attachmentStorage'
+import { formatFileSize } from '../../lib/formatFileSize'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -58,6 +60,7 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
   const { settings } = useSettings()
   const { getApprovalStatusForBrief, getLatestApprovalForBrief, approvals } = useApprovals()
   const [notes, setNotes] = useState(card.notes)
+  const [fileError, setFileError] = useState('')
   const [assignee, setAssignee] = useState(card.assignee ?? '')
   const [startDate, setStartDate] = useState(card.startDate ?? '')
   const [progress, setProgress] = useState(card.progress ?? 0)
@@ -339,6 +342,37 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
             </section>
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />
+
+            {/* Files attached to the brief */}
+            {(card.attachments?.length ?? 0) > 0 && (
+              <>
+                <section aria-label="Attachments">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Attachments ({card.attachments!.length})</p>
+                  <ul className="space-y-1.5">
+                    {card.attachments!.map((f) => (
+                      <li key={f.path ?? f.name} className="flex items-center justify-between gap-3 text-sm">
+                        <button
+                          type="button"
+                          aria-label={`Download ${f.name}`}
+                          disabled={!f.path}
+                          onClick={async () => {
+                            setFileError('')
+                            try { await openStoredAttachment(f.path!, f.name) } catch { setFileError(`${f.name} could not be opened.`) }
+                          }}
+                          className="min-w-0 truncate text-left text-brand-primary dark:text-brand-accent hover:underline disabled:text-gray-400 disabled:no-underline"
+                        >
+                          <span aria-hidden="true">📎 </span>{f.name}
+                        </button>
+                        <span className="shrink-0 text-xs text-gray-400">{formatFileSize(f.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {fileError && <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">{fileError}</p>}
+                </section>
+
+                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+              </>
+            )}
 
             {/* Notes */}
             <section>

@@ -462,6 +462,7 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
     draftTo:             'steven.jacobs@ninetyone.com',
     draftSubject:        '2026-04-30 SA Advisors — Taking Stock April 2026',
     attachments:         [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+…' }],
+    attachmentLinks:     [{ name: 'campaign-brief.pdf', type: 'application/pdf', size: 245760, url: 'https://…/sign/brief-attachments/…?token=…' }],
     ...(config.includeFullBrief ? { brief: '{ ...full BriefPayload object... }' } : {}),
   }
 

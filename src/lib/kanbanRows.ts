@@ -25,6 +25,7 @@ export interface KanbanCardRow {
   progress?: number | null
   comments?: Array<{ id: string; authorId: string; authorName: string; text: string; createdAt: string }> | null
   // Who submitted the brief (added via migration; absent on older rows)
+  attachments?: { name: string; size: number; type: string; path?: string }[] | null
   submitted_by_name?: string | null
   submitted_by_email?: string | null
 }
@@ -52,6 +53,7 @@ export function rowToCard(row: KanbanCardRow): KanbanCard {
     startDate: row.start_date ?? undefined,
     progress: row.progress ?? undefined,
     comments: (row.comments ?? []) as KanbanCard['comments'],
+    attachments: row.attachments ?? [],
     submittedByName: row.submitted_by_name ?? undefined,
     submittedByEmail: row.submitted_by_email ?? undefined,
   }
@@ -81,6 +83,8 @@ export function cardToRow(card: KanbanCard, teamId: string): Record<string, unkn
     start_date: card.startDate ?? null,
     progress: card.progress ?? null,
     comments: card.comments ?? [],
+    // Only sent when there are files, so a card without any still saves where the column does not exist yet.
+    ...(card.attachments && card.attachments.length > 0 ? { attachments: card.attachments } : {}),
     submitted_by_name: card.submittedByName ?? null,
     submitted_by_email: card.submittedByEmail ?? null,
   }

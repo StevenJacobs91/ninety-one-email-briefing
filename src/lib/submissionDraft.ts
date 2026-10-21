@@ -15,6 +15,14 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
+/** A time-limited address Power Automate can fetch an attached file from. */
+export interface AttachmentLink {
+  name: string
+  type: string
+  size: number
+  url: string
+}
+
 export function textToBase64(text: string): string {
   return bytesToBase64(new TextEncoder().encode(text))
 }
@@ -131,6 +139,8 @@ export function briefSubmittedNotification(opts: {
   briefHtml: string
   textEmail: string
   attachments: readonly DraftAttachment[]
+  /** Download links for the files attached to the brief, for flows that fetch rather than receive the files */
+  attachmentLinks?: readonly AttachmentLink[]
 }): Record<string, unknown> {
   return {
     briefId: opts.briefId,
@@ -152,6 +162,8 @@ export function briefSubmittedNotification(opts: {
     textEmail: opts.textEmail,
     attachmentCount: opts.attachments.length,
     attachments: opts.attachments,
+    attachmentLinkCount: (opts.attachmentLinks ?? []).length,
+    attachmentLinks: opts.attachmentLinks ?? [],
   }
 }
 
@@ -175,5 +187,6 @@ export function sampleBriefSubmitted(): Record<string, unknown> {
     briefHtml: '<html><body>Sample brief summary</body></html>',
     textEmail: 'Sample plain-text email',
     attachments: [{ name: 'sample-email.html', type: 'text/html', base64: 'PGh0bWw+U2FtcGxlPC9odG1sPg==' }],
+    attachmentLinks: [{ name: 'campaign-brief.pdf', type: 'application/pdf', size: 245760, url: 'https://example.supabase.co/storage/v1/object/sign/brief-attachments/…?token=…' }],
   })
 }

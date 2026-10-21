@@ -607,6 +607,8 @@ function SetupGuide() {
                 'textEmail',
                 'attachmentCount',
                 'attachments',
+                'attachmentLinkCount',
+                'attachmentLinks',
                 'fromColumn',
                 'toColumn',
                 'movedBy',

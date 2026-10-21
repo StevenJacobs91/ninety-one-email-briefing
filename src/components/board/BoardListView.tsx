@@ -29,6 +29,7 @@ type SortField =
   | 'startDate'
   | 'progress'
   | 'comments'
+  | 'attachments'
   | 'tags'
 
 type SortDir = 'asc' | 'desc'
@@ -104,6 +105,7 @@ function getCardValue(card: KanbanCard, field: SortField): string {
     case 'startDate':           return card.startDate ?? ''
     case 'progress':            return String(card.progress ?? 0).padStart(3, '0')
     case 'comments':            return String(card.comments?.length ?? 0).padStart(4, '0')
+    case 'attachments':         return String(card.attachments?.length ?? 0).padStart(4, '0')
     default:                    return ''
   }
 }
@@ -285,6 +287,7 @@ export function BoardListView() {
     } },
     tags: { header: 'Tags', sort: 'tags', cell: (c) => c.tags ? <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title={c.tags}>{c.tags}</p> : <span className="text-gray-300 dark:text-gray-600">—</span> },
     ageInColumn: { header: 'In stage', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{ageInColumn(c)}</span> },
+    attachments: { header: 'Attachments', sort: 'attachments', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{c.attachments?.length ?? 0}</span> },
     comments: { header: 'Comments', sort: 'comments', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{c.comments?.length ?? 0}</span> },
     submittedAt: { header: 'Submitted', sort: 'submittedAt', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{formatBoardDate(c.submittedAt)}</span> },
   }

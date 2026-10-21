@@ -98,6 +98,8 @@ export async function triggerBriefSubmission(
     draftTo?: string
     draftSubject?: string
     attachments?: { name: string; type: string; base64: string }[]
+    /** Time-limited download addresses for the files, for flows that fetch rather than receive them */
+    attachmentLinks?: { name: string; type: string; size: number; url: string }[]
   },
 ): Promise<PATriggerResult> {
   if (!config.enabled) return { ok: false, error: 'Power Automate integration is disabled.' }

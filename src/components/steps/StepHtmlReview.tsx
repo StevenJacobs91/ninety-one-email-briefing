@@ -16,6 +16,7 @@ import { triggerNotification } from '../../lib/notificationService'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { saveBrief } from '../../lib/supabaseQueries'
 import { collectAttachments } from '../../lib/attachmentStore'
+import { downloadStoredAttachment, signedAttachmentLinks } from '../../lib/attachmentStorage'
 import { DRAFT_RECIPIENT, boardLinks, boardNotes, briefSubmittedNotification, buildEml, submissionBriefId, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
@@ -273,6 +274,8 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         warnings.push('The brief could not be saved, so the board links will not open.')
       }
       addCard(submitted as BriefFormData, {
+        // Only saved files can be opened from the card; one kept for this session only has nothing to open.
+        attachments: (data.assets.attachments ?? []).filter((a) => !!a.path),
         submittedBy: { name: createdByName, email: user?.email ?? '' },
         notes: boardNotes({ createdByName, createdByEmail: user?.email ?? '', links, at: now }),
       })
@@ -287,7 +290,9 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     }
 
     // Collected once: the draft email and the notification both attach the same files.
-    const collected = collectAttachments(data.assets.attachments ?? [])
+    const collected = collectAttachments(data.assets.attachments ?? [], downloadStoredAttachment)
+    // Time-limited download addresses, for flows that fetch the files instead of receiving them.
+    const linkedFiles = signedAttachmentLinks(data.assets.attachments ?? []).catch(() => [])
     const allAttachments = async (): Promise<DraftAttachment[]> => [
       { name: names.email, type: 'text/html', base64: textToBase64(html) },
       { name: names.summary, type: 'text/html', base64: textToBase64(briefHtml) },
@@ -315,6 +320,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         briefHtml,
         textEmail: generateTextEmail(data),
         attachments,
+        attachmentLinks: await linkedFiles,
       }), settings.notifications)
       if (result.success) return `Notification sent with the email HTML and ${attachments.length} attachment${attachments.length > 1 ? 's' : ''}.`
       // Not configured is not a failure: the notification simply is not switched on.
@@ -340,6 +346,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           draftTo: DRAFT_RECIPIENT,
           draftSubject: emailName,
           attachments,
+          attachmentLinks: await linkedFiles,
         })
         if (!result.ok) throw new Error(result.error)
         warnings.unshift(`Draft email to ${DRAFT_RECIPIENT} sent to your Power Automate flow with ${attachments.length} attachment${attachments.length > 1 ? 's' : ''}.`)

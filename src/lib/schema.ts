@@ -103,6 +103,7 @@ const assetAttachmentSchema = z.object({
   name: z.string(),
   size: z.number(),
   type: z.string(),
+  path: z.string().optional(),
 })
 
 const assetSchema = z.object({

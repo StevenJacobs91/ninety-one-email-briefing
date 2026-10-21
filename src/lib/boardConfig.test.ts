@@ -133,3 +133,10 @@ test('moving a column puts it in the slot of the column it is dropped on', () =>
   assert.deepEqual(moveColumn(['a', 'b', 'c'], 'b', 'b'), ['a', 'b', 'c'])
   assert.deepEqual(moveColumn(['a', 'b', 'c'], 'q', 'a'), ['a', 'b', 'c'])
 })
+
+test('attachments are a card field, shown by default, laid out as footer text', () => {
+  const f = CARD_FIELDS.find((x) => x.id === 'attachments')!
+  assert.ok(f)
+  assert.equal(f.kind, 'meta')
+  assert.equal(f.defaultOn, true)
+})

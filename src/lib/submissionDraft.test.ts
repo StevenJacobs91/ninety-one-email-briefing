@@ -120,3 +120,22 @@ test('the sample payload includes a sample attachment so Power Automate infers i
   assert.equal(s.attachmentCount, 1)
   assert.deepEqual(Object.keys((s.attachments as object[])[0]).sort(), ['base64', 'name', 'type'])
 })
+
+test('the brief_submitted notification also lists download links for each attachment', () => {
+  const links = [{ name: 'brief.pdf', type: 'application/pdf', size: 1200, url: 'https://x.test/signed/brief.pdf?token=1' }]
+  const p = briefSubmittedNotification({ ...notifyOpts, attachmentLinks: links })
+  assert.deepEqual(p.attachmentLinks, links)
+  assert.equal(p.attachmentLinkCount, 1)
+})
+
+test('without links the notification carries an empty list, not nothing', () => {
+  const p = briefSubmittedNotification(notifyOpts)
+  assert.deepEqual(p.attachmentLinks, [])
+  assert.equal(p.attachmentLinkCount, 0)
+})
+
+test('the sample payload includes a sample link so Power Automate infers its shape', () => {
+  const s = sampleBriefSubmitted()
+  assert.equal(s.attachmentLinkCount, 1)
+  assert.deepEqual(Object.keys((s.attachmentLinks as object[])[0]).sort(), ['name', 'size', 'type', 'url'])
+})

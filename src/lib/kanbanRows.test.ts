@@ -29,3 +29,25 @@ test('the submitter is written back to the row', () => {
   assert.equal(out.submitted_by_name, 'Ayesha Khan')
   assert.equal(out.submitted_by_email, 'ayesha.khan@ninetyone.com')
 })
+
+const files = [{ name: 'brief.pdf', size: 1200, type: 'application/pdf', path: 't1/b1/ab-brief.pdf' }]
+
+test('a card carries the files attached to its brief', () => {
+  const card = rowToCard({ ...row, attachments: files })
+  assert.deepEqual(card.attachments, files)
+})
+
+test('a row from before attachments were recorded has none', () => {
+  assert.deepEqual(rowToCard(row).attachments, [])
+})
+
+test('the attachments are written back to the row', () => {
+  const card = rowToCard({ ...row, attachments: files })
+  assert.deepEqual(cardToRow(card, 't1').attachments, files)
+})
+
+test('a card with no files does not send the attachments column at all (the database defaults it to an empty list)', () => {
+  const none = rowToCard(row)
+  assert.ok(!('attachments' in cardToRow(none, 't1')))
+  assert.ok(!('attachments' in cardToRow({ ...none, attachments: undefined }, 't1')))
+})

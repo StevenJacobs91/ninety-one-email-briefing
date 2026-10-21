@@ -39,3 +39,35 @@ test('a file with no type is attached as a generic binary', async () => {
   const { found } = await collectAttachments([{ name: 'data.bin', size: f.size, type: '' }])
   assert.equal(found[0].type, 'application/octet-stream')
 })
+
+test('a saved attachment is fetched from storage, so it survives a reload', async () => {
+  const downloaded: string[] = []
+  const { found, missing } = await collectAttachments(
+    [{ name: 'brief.pdf', size: 5, type: 'application/pdf', path: 't/b/1-brief.pdf' }],
+    async (path) => { downloaded.push(path); return new Blob(['PDF!!'], { type: 'application/pdf' }) },
+  )
+  assert.deepEqual(downloaded, ['t/b/1-brief.pdf'])
+  assert.deepEqual(missing, [])
+  assert.equal(Buffer.from(found[0].base64, 'base64').toString(), 'PDF!!')
+  assert.equal(found[0].name, 'brief.pdf')
+  assert.equal(found[0].type, 'application/pdf')
+})
+
+test('a saved attachment that cannot be fetched is reported as missing, not dropped silently', async () => {
+  const { found, missing } = await collectAttachments(
+    [{ name: 'a.pdf', size: 1, type: 'application/pdf', path: 't/b/1-a.pdf' }],
+    async () => { throw new Error('offline') },
+  )
+  assert.deepEqual(found, [])
+  assert.deepEqual(missing, ['a.pdf'])
+})
+
+test('a saved attachment is preferred over a copy in memory, and unsaved ones still use memory', async () => {
+  const mem = new File(['mem'], 'm.txt', { type: 'text/plain' })
+  rememberFiles([mem])
+  const { found } = await collectAttachments(
+    [{ name: 'm.txt', size: mem.size, type: 'text/plain' }, { name: 's.txt', size: 3, type: 'text/plain', path: 'p' }],
+    async () => new Blob(['sto'], { type: 'text/plain' }),
+  )
+  assert.deepEqual(found.map((f) => Buffer.from(f.base64, 'base64').toString()), ['mem', 'sto'])
+})

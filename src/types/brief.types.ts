@@ -75,6 +75,8 @@ export interface AssetAttachment {
   name: string
   size: number
   type: string
+  /** Where the file is kept in storage (absent for a file only held in this browser session) */
+  path?: string
 }
 
 export interface AssetDetails {

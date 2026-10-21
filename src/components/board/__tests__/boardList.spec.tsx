@@ -47,6 +47,16 @@ describe('BoardListView', () => {
     expect(within(screen.getByRole('dialog')).getByText('detail: Advisor Impact')).toBeTruthy()
   })
 
+  it('can show how many files each brief has attached', () => {
+    state.settings = { approvals: { enabled: false }, campaignPlanner: { cardFields: only('attachments') } }
+    state.cards = [card({ attachments: [{ name: 'a.pdf', size: 1, type: 'application/pdf', path: 'p' }, { name: 'b.pdf', size: 1, type: 'application/pdf', path: 'q' }] }), card({ id: 'c2', briefId: 'b2', emailName: 'No files' })]
+    render(<BoardListView />)
+    expect(headers()).toEqual(['Email Name', 'Stage', 'Attachments', 'Actions'])
+    const rows = screen.getAllByRole('row')
+    expect(within(rows[1]).getAllByRole('cell')[2].textContent?.trim()).toBe('2')
+    expect(within(rows[2]).getAllByRole('cell')[2].textContent?.trim()).toBe('0')
+  })
+
   it('is as wide as the Board and Calendar views, not held to a narrow column', () => {
     const { container } = render(<BoardListView />)
     expect(container.querySelector('.max-w-7xl')).toBeNull()

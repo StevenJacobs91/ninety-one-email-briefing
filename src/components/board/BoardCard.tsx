@@ -129,6 +129,10 @@ export function BoardCard({ card, board, onView, onDragStart, approvalOverride, 
 
   const meta = (id: string): ReactNode => {
     if (id === 'ageInColumn') return <span key={id}>{ageInColumn(card)} in {COLUMN_LABEL[card.column]}</span>
+    if (id === 'attachments') {
+      const n = card.attachments?.length ?? 0
+      return n > 0 ? <span key={id} title={`${n} attachment${n > 1 ? 's' : ''}`}>📎 {n}</span> : null
+    }
     if (id === 'comments' && comments > 0) return <span key={id} title={`${comments} comment${comments > 1 ? 's' : ''}`}>💬 {comments}</span>
     return null
   }

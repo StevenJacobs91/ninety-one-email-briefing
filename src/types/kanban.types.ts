@@ -49,6 +49,7 @@ export interface KanbanCard {
   columnHistory: KanbanColumnHistory[]
   notes: string
   tags: string
+  attachments?: { name: string; size: number; type: string; path?: string }[]   // files attached to the brief
   submittedByName?: string   // who submitted the brief
   submittedByEmail?: string
   // Campaign Planner extensions (optional — backward compatible)

@@ -94,6 +94,18 @@ describe('BoardCard', () => {
     expect((none.container.firstChild as HTMLElement).style.borderLeftWidth).toBe('')
   })
 
+  it('shows how many files are attached, when that field is on and there are some', () => {
+    const files = [{ name: 'a.pdf', size: 1, type: 'application/pdf', path: 'p1' }, { name: 'b.png', size: 2, type: 'image/png', path: 'p2' }]
+    const { unmount } = render(<BoardCard card={{ ...card, attachments: files }} board={resolveBoardSettings({ cardFields: only('attachments') } as never)} />)
+    expect(screen.getByTitle('2 attachments').textContent).toContain('2')
+    unmount()
+    const off = render(<BoardCard card={{ ...card, attachments: files }} board={resolveBoardSettings({ cardFields: only('region') } as never)} />)
+    expect(off.queryByTitle('2 attachments')).toBeNull()
+    off.unmount()
+    render(<BoardCard card={card} board={resolveBoardSettings({ cardFields: only('attachments') } as never)} />)
+    expect(screen.queryByTitle(/attachment/)).toBeNull()
+  })
+
   it('has no quick-move or view buttons in read-only mode', () => {
     render(<BoardCard card={card} board={resolveBoardSettings({} as never)} readOnly />)
     expect(screen.queryByRole('button')).toBeNull()
