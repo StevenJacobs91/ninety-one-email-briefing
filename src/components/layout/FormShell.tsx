@@ -21,6 +21,8 @@ import { useBrandReviewGate, type BrandReviewState } from '../../hooks/useBrandR
 import { resolveTabs, type BriefTabId } from '../../lib/briefTabs'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { CampaignBoardShell } from '../board/CampaignBoardShell'
+import { PAGE_X } from './pageGrid'
+import { FitText } from '../ui/FitText'
 import { resolveBoardSettings } from '../../lib/boardConfig'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
@@ -656,7 +658,7 @@ export function FormShell() {
     <div className="min-h-screen bg-brand-bg-warm dark:bg-[#1a1714] flex flex-col">
       {/* ── Sticky navigation bar ── */}
       <header className="sticky top-0 z-40 bg-brand-primary dark:bg-brand-primary-dark">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+        <div className={`${PAGE_X} h-14 flex items-center justify-between gap-4`}>
           {/* Logo + platform dropdown */}
           <div className="flex items-center gap-0 shrink-0">
             <img src="https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png" alt="Ninety One" className="h-5 w-auto" />
@@ -927,18 +929,19 @@ export function FormShell() {
         const dynamicName = buildEmailName(watchedCampaignName, watchedRegions, watchedChannels, watchedDescription)
         const hasData = watchedCampaignName || watchedRegions.length > 0 || watchedChannels.length > 0
         return (
-          <div className={`bg-brand-primary dark:bg-brand-primary-dark px-4 ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
-            <div className="max-w-7xl mx-auto flex items-end justify-between gap-6">
-              <div className="min-w-0">
+          <div className={`bg-brand-primary dark:bg-brand-primary-dark ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
+            <div className={`${PAGE_X} flex items-end justify-between gap-6`}>
+              <div className="min-w-0 flex-1">
                 <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
-                <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : 'text-2xl lg:text-3xl'}`}>
+                <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : ''}`}>
                   {!showTemplatePicker && hasData ? (
                     <>
-                      <span className="text-white/50">Email Briefing:</span>{' '}
-                      <span className="truncate">{dynamicName}</span>
+                      <span className="block text-white/50 text-2xl lg:text-3xl mb-1">Email Briefing:</span>
+                      {/* The name shrinks to fit the width beside the step counter; it never wraps or runs off the band. */}
+                      <FitText text={dynamicName} max={30} min={14} className="leading-tight pb-0.5" />
                     </>
                   ) : (
-                    'Email Briefing'
+                    <span className={showTemplatePicker ? '' : 'text-2xl lg:text-3xl'}>Email Briefing</span>
                   )}
                 </h1>
                 {showTemplatePicker && (
@@ -967,7 +970,7 @@ export function FormShell() {
 
       {/* ── Step tabs (sticky below nav) ── */}
       {!showBoard && <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className={PAGE_X}>
           <StepIndicator
             currentStep={indicatorStep}
             highestStepReached={highestStep}
@@ -978,7 +981,7 @@ export function FormShell() {
       </div>}
 
       {/* ── Main content ── */}
-      {!showBoard && <div ref={cardRef} className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
+      {!showBoard && <div ref={cardRef} className={`flex-1 ${PAGE_X} w-full py-8`}>
         <FormProvider {...form}>
           <form onSubmit={(e) => e.preventDefault()}>
             {showTemplatePicker ? (
@@ -1050,7 +1053,7 @@ export function FormShell() {
       {/* ── Sticky footer navigation — brief steps only ── */}
       {!showBoard && !showTemplatePicker && (
         <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+          <div className={`${PAGE_X} py-3 flex items-center justify-between gap-4`}>
             {!isFirstStep ? (
               <button
                 type="button"

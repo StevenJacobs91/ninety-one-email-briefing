@@ -36,7 +36,7 @@ export function StepIndicator({
             disabled={!isReachable || isCurrent}
             aria-current={isCurrent ? 'step' : undefined}
             aria-label={`Step ${index + 1}: ${label}${isCurrent ? ' (current)' : isCompleted ? ' (completed)' : ''}`}
-            className={`relative flex items-center gap-2 px-4 py-4 text-xs font-ni-heading tracking-[0.12em] uppercase whitespace-nowrap transition-colors border-b-[3px] min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent ${
+            className={`relative flex items-center gap-2 pr-4 ${index === 0 ? 'pl-0' : 'pl-4'} py-4 text-xs font-ni-heading tracking-[0.12em] uppercase whitespace-nowrap transition-colors border-b-[3px] min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent ${
               isCurrent
                 ? 'text-brand-primary dark:text-brand-accent border-brand-primary dark:border-brand-accent'
                 : isCompleted
