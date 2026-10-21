@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  briefSubmittedNotification,
   submissionBriefId,
   DRAFT_RECIPIENT, buildEml, submissionFiles, boardLinks, boardNotes, textToBase64,
 } from './submissionDraft.ts'
@@ -75,4 +76,34 @@ test('a brief whose id is already on the board gets a fresh id, so the new submi
 test('a fresh id that also collides is replaced until it is unused', () => {
   const ids = ['a', 'b', 'c']
   assert.equal(submissionBriefId('a', new Set(['a', 'b']), () => ids.shift()!), 'c')
+})
+
+const notifyOpts = {
+  briefId: 'b1', campaignName: 'Q3 update', emailName: '2026-10-21 Q3 update', emailType: 'campaign', subjectLine: 'Hello',
+  sendDate: '2026-11-01', contentApprovalDate: '2026-10-28', urgency: 'standard',
+  regions: ['ZA', 'UK'], channels: ['INTERMEDIARY'], requesterName: 'Ayesha Khan', requesterEmail: 'ayesha@ninetyone.com',
+  links: { html: 'https://app/?brief=b1&view=html', summary: 'https://app/?brief=b1&view=summary' },
+  html: '<html>email</html>', briefHtml: '<html>brief</html>', textEmail: 'plain',
+  attachments: [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+' }, { name: 'brief.html', type: 'text/html', base64: 'PGI+' }],
+}
+
+test('the brief_submitted notification keeps its existing fields, with regions and channels as text', () => {
+  const p = briefSubmittedNotification(notifyOpts)
+  assert.equal(p.briefId, 'b1')
+  assert.equal(p.campaignName, 'Q3 update')
+  assert.equal(p.regions, 'ZA, UK')
+  assert.equal(p.channels, 'INTERMEDIARY')
+  assert.equal(p.requesterEmail, 'ayesha@ninetyone.com')
+})
+
+test('the brief_submitted notification carries the email HTML, the summary and the attachments for Power Automate', () => {
+  const p = briefSubmittedNotification(notifyOpts)
+  assert.equal(p.emailName, '2026-10-21 Q3 update')
+  assert.equal(p.html, '<html>email</html>')
+  assert.equal(p.briefHtml, '<html>brief</html>')
+  assert.equal(p.textEmail, 'plain')
+  assert.equal(p.emailHtmlUrl, 'https://app/?brief=b1&view=html')
+  assert.equal(p.briefSummaryUrl, 'https://app/?brief=b1&view=summary')
+  assert.equal(p.attachmentCount, 2)
+  assert.deepEqual(p.attachments, notifyOpts.attachments)
 })

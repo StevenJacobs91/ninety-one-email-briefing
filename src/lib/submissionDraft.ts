@@ -108,3 +108,49 @@ export function submissionBriefId(current: string, taken: ReadonlySet<string>, m
   while (taken.has(id)) id = mint()
   return id
 }
+
+/**
+ * The data for the `brief_submitted` Power Automate notification: the existing text fields plus the
+ * rendered email, the brief summary and the files, so the flow can attach them to its email.
+ */
+export function briefSubmittedNotification(opts: {
+  briefId: string
+  campaignName: string
+  emailName: string
+  emailType: string
+  subjectLine: string
+  sendDate: string
+  contentApprovalDate: string
+  urgency: string
+  regions: readonly string[]
+  channels: readonly string[]
+  requesterName: string
+  requesterEmail: string
+  links: { html: string; summary: string }
+  html: string
+  briefHtml: string
+  textEmail: string
+  attachments: readonly DraftAttachment[]
+}): Record<string, unknown> {
+  return {
+    briefId: opts.briefId,
+    campaignName: opts.campaignName,
+    emailName: opts.emailName,
+    emailType: opts.emailType,
+    subjectLine: opts.subjectLine,
+    sendDate: opts.sendDate,
+    contentApprovalDate: opts.contentApprovalDate,
+    urgency: opts.urgency,
+    regions: opts.regions.join(', '),
+    channels: opts.channels.join(', '),
+    requesterName: opts.requesterName,
+    requesterEmail: opts.requesterEmail,
+    emailHtmlUrl: opts.links.html,
+    briefSummaryUrl: opts.links.summary,
+    html: opts.html,
+    briefHtml: opts.briefHtml,
+    textEmail: opts.textEmail,
+    attachmentCount: opts.attachments.length,
+    attachments: opts.attachments,
+  }
+}

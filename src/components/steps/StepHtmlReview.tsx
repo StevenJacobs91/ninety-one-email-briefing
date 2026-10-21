@@ -12,10 +12,11 @@ import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useKanban } from '../../contexts/KanbanContext'
+import { triggerNotification } from '../../lib/notificationService'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { saveBrief } from '../../lib/supabaseQueries'
 import { collectAttachments } from '../../lib/attachmentStore'
-import { DRAFT_RECIPIENT, boardLinks, boardNotes, buildEml, submissionBriefId, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
+import { DRAFT_RECIPIENT, boardLinks, boardNotes, briefSubmittedNotification, buildEml, submissionBriefId, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
 import {
@@ -35,6 +36,9 @@ interface StepHtmlReviewProps {
 
 // Briefs built in the library builder need that theme's catalogue before the
 // email can be rendered; older briefs render straight away.
+// What triggerNotification reports when the event simply is not switched on or has nowhere to post.
+const NOT_CONFIGURED = ['Notifications disabled', 'Event not enabled', 'No webhook URL configured']
+
 export function StepHtmlReview(props: StepHtmlReviewProps) {
   const { getValues } = useFormContext<BriefFormData>()
   const values = getValues()
@@ -279,17 +283,49 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
       return warnings
     }
 
+    // Collected once: the draft email and the notification both attach the same files.
+    const collected = collectAttachments(data.assets.attachments ?? [])
+    const allAttachments = async (): Promise<DraftAttachment[]> => [
+      { name: names.email, type: 'text/html', base64: textToBase64(html) },
+      { name: names.summary, type: 'text/html', base64: textToBase64(briefHtml) },
+      ...(await collected).found,
+    ]
+
+    const notifyBriefSubmitted = async (): Promise<string | null> => {
+      if (!settings.notifications) return null
+      const attachments = await allAttachments()
+      const result = await triggerNotification('brief_submitted', briefSubmittedNotification({
+        briefId,
+        campaignName: data.campaign.campaignName,
+        emailName,
+        emailType: data.campaign.emailType,
+        subjectLine: data.campaign.subjectLine,
+        sendDate: data.deadlines.sendDate,
+        contentApprovalDate: data.deadlines.contentApprovalDate,
+        urgency: data.deadlines.urgency,
+        regions: data.audience.region ?? [],
+        channels: data.audience.channel ?? [],
+        requesterName: createdByName,
+        requesterEmail: user?.email ?? '',
+        links,
+        html,
+        briefHtml,
+        textEmail: generateTextEmail(data),
+        attachments,
+      }), settings.notifications)
+      if (result.success) return `Notification sent with the email HTML and ${attachments.length} attachment${attachments.length > 1 ? 's' : ''}.`
+      // Not configured is not a failure: the notification simply is not switched on.
+      if (NOT_CONFIGURED.includes(result.error ?? '')) return null
+      throw new Error(result.error)
+    }
+
     const createDraft = async (): Promise<string[]> => {
       const warnings: string[] = []
-      const { found, missing } = await collectAttachments(data.assets.attachments ?? [])
+      const { missing } = await collected
       if (missing.length > 0) {
         warnings.push(`${missing.length} attachment${missing.length > 1 ? 's were' : ' was'} not attached because the page was reloaded after adding ${missing.length > 1 ? 'them' : 'it'}: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} again on the Campaign tab.`)
       }
-      const attachments: DraftAttachment[] = [
-        { name: names.email, type: 'text/html', base64: textToBase64(html) },
-        { name: names.summary, type: 'text/html', base64: textToBase64(briefHtml) },
-        ...found,
-      ]
+      const attachments = await allAttachments()
 
       if (isBriefSubmissionFlowReady(settings.powerAutomate)) {
         const result = await triggerBriefSubmission(settings.powerAutomate, submitted, {
@@ -324,7 +360,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
       return warnings
     }
 
-    const [board, draft] = await Promise.allSettled([addToBoard(), createDraft()])
+    const [board, draft, notified] = await Promise.allSettled([addToBoard(), createDraft(), notifyBriefSubmitted()])
     const notes: { ok: boolean; text: string }[] = []
     if (board.status === 'fulfilled') {
       notes.push({ ok: true, text: 'Added to the Campaign Board in Briefed, with links to the email HTML and brief summary.' })
@@ -339,6 +375,8 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     } else {
       notes.push({ ok: false, text: `The draft email was not created: ${draft.reason instanceof Error ? draft.reason.message : String(draft.reason)}` })
     }
+    if (notified.status === 'fulfilled' && notified.value) notes.push({ ok: true, text: notified.value })
+    if (notified.status === 'rejected') notes.push({ ok: false, text: `The notification was not sent: ${notified.reason instanceof Error ? notified.reason.message : String(notified.reason)}` })
     setSubmitNotes(notes)
 
     if (board.status === 'fulfilled' && draft.status === 'fulfilled') {
