@@ -4,6 +4,8 @@ import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
 import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
 import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
+import { campaignSearchParts, matchesSearch } from '../../lib/settingsSearch'
+import { SettingsSearchField } from './SettingsSearchField'
 
 const CHANNEL_LABELS: Record<string, string> = {
   Advisor: 'Advisor',
@@ -540,6 +542,7 @@ function CampaignForm({
 export function TabCampaigns() {
   const { settings, updateSettings } = useSettings()
   const campaigns = settings.campaigns ?? []
+  const themeLabels = new Map((settings.brandThemes ?? []).map((t) => [t.id, t.label]))
   const signoffs = (settings.signoffs ?? []).map((s) => ({ id: s.id, name: s.name }))
   const disclaimers = (settings.legalDisclaimers ?? []).map((d) => ({ id: d.id, label: d.label }))
 
@@ -550,6 +553,9 @@ export function TabCampaigns() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [importDone, setImportDone] = useState(false)
   const [importConfirm, setImportConfirm] = useState(false)
+  const [query, setQuery] = useState('')
+  // A campaign being edited stays on screen even if the search stops matching it.
+  const shown = campaigns.filter((c) => c.id === editingId || matchesSearch(query, campaignSearchParts(c, themeLabels.get(c.contentPreset?.theme ?? ''))))
 
   function handleImportPresets() {
     const existingNames = new Set(campaigns.map((c) => c.name))
@@ -648,6 +654,16 @@ export function TabCampaigns() {
         </div>
       )}
 
+      {/* Search */}
+      {campaigns.length > 0 && (
+        <div>
+          <SettingsSearchField value={query} onChange={setQuery} label="Search campaigns" placeholder="Search campaigns by name, audience, sender, theme or Pardot id…" />
+          {query.trim() !== '' && (
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400" aria-live="polite">{shown.length} of {campaigns.length} campaigns</p>
+          )}
+        </div>
+      )}
+
       {/* Empty state */}
       {campaigns.length === 0 && !addingNew && (
         <p className="text-sm text-gray-400 dark:text-gray-500 italic text-center py-8">
@@ -655,9 +671,16 @@ export function TabCampaigns() {
         </p>
       )}
 
+      {query.trim() !== '' && shown.length === 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+          No campaigns match “{query.trim()}”.{' '}
+          <button type="button" onClick={() => setQuery('')} className="text-brand-primary dark:text-brand-accent hover:underline">Show all campaigns</button>
+        </p>
+      )}
+
       {/* Campaign list */}
       <div className="space-y-2">
-        {campaigns.map((c) => (
+        {shown.map((c) => (
           <div key={c.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             {editingId === c.id ? (
               <div className="p-4 bg-gray-50 dark:bg-gray-800/60">

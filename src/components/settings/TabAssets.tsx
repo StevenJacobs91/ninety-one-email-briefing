@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { AssetEntry, AssetCategory } from '../../types/settings.types'
 import { v4 as uuidv4 } from 'uuid'
+import { assetSearchParts, matchesSearch } from '../../lib/settingsSearch'
+import { SettingsSearchField } from './SettingsSearchField'
 
 const CATEGORIES: { value: AssetCategory; label: string }[] = [
   { value: 'header',   label: 'Headers' },
@@ -170,6 +172,7 @@ function parseCSVLine(line: string): string[] {
 export function TabAssets() {
   const { settings, updateSettings } = useSettings()
   const [activeCategory, setActiveCategory] = useState<AssetCategory | 'all'>('all')
+  const [query, setQuery] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -179,9 +182,10 @@ export function TabAssets() {
 
   const assets = settings.assets ?? []
 
-  const filtered = activeCategory === 'all'
+  const inCategory = activeCategory === 'all'
     ? assets
     : assets.filter((a) => a.category === activeCategory)
+  const filtered = inCategory.filter((a) => matchesSearch(query, assetSearchParts(a)))
 
   const countFor = (cat: AssetCategory) => assets.filter((a) => a.category === cat).length
 
@@ -253,6 +257,7 @@ export function TabAssets() {
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {assets.length} asset{assets.length !== 1 ? 's' : ''} in library
         </p>
+        <SettingsSearchField className="flex-1 min-w-[200px] max-w-md" value={query} onChange={setQuery} label="Search assets" placeholder="Search by name, description, address or colour…" />
         <div className="flex items-center gap-2 shrink-0">
           {/* Hidden CSV file input */}
           <input
@@ -344,6 +349,10 @@ export function TabAssets() {
         ))}
       </div>
 
+      {query.trim() !== '' && (
+        <p className="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">{filtered.length} of {inCategory.length} assets</p>
+      )}
+
       {/* Add form */}
       {isAdding && (
         <AssetForm
@@ -355,7 +364,12 @@ export function TabAssets() {
       )}
 
       {/* Asset grid */}
-      {filtered.length === 0 && !isAdding ? (
+      {filtered.length === 0 && !isAdding && query.trim() !== '' ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-12">
+          No assets match “{query.trim()}”.{' '}
+          <button type="button" onClick={() => setQuery('')} className="text-brand-primary dark:text-brand-accent hover:underline">Show all assets</button>
+        </p>
+      ) : filtered.length === 0 && !isAdding ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <svg className="text-gray-300 dark:text-gray-600 mb-3" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
