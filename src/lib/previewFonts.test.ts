@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { selfHostFonts } from './previewFonts.ts'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { BRAND_FONT_FILES, selfHostFonts } from './previewFonts.ts'
 
 const PARDOT = 'https://weare.ninetyone.com/l/28902/2020-10-19/8zs4jq/28902/1603114661MAzRiC9E'
 const face = (family: string, url: string, q = '"') => `@font-face { font-family: ${q}${family}${q}; src: url(${q}${url}${q}); }`
@@ -36,4 +38,12 @@ test('images and links on the same host, and fonts that are not the brand\'s, ar
 test('rewriting twice changes nothing more', () => {
   const once = selfHostFonts(face('L', `${PARDOT}/NinetyOneVisuelt_Light.woff`), 'http://localhost:5173')
   assert.equal(selfHostFonts(once, 'http://localhost:5173'), once)
+})
+
+test('every brand font file the previews point at is actually in the app\'s /fonts folder, as a real WOFF', () => {
+  for (const file of BRAND_FONT_FILES) {
+    const path = join(process.cwd(), 'public', 'fonts', file)
+    assert.ok(existsSync(path), `${file} is missing from public/fonts (run npm run fonts:fetch)`)
+    assert.equal(readFileSync(path).subarray(0, 4).toString('ascii'), 'wOFF', file)
+  }
 })

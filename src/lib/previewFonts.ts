@@ -3,7 +3,7 @@
 // font files at the app's own copies in /fonts (see index.css and `npm run fonts:fetch`). The HTML that is sent or
 // downloaded keeps the Pardot URLs, which email clients load without CORS.
 
-const BRAND_FONT_FILES = [
+export const BRAND_FONT_FILES = [
   'NinetyOneVisueltDisplay_Regular.woff',
   'NinetyOneVisuelt_Regular.woff',
   'NinetyOneVisuelt_Light.woff',
