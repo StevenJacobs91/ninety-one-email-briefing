@@ -48,7 +48,6 @@ export function HeroImagePicker({ url, alt, themeId, headline, subHeadline, onCh
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Background image</p>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold uppercase tracking-wider">Required for this header</span>
       </div>
       <p className="text-xs text-gray-400 dark:text-gray-500">Recommended 640 × 270 px.</p>
 
@@ -177,12 +176,12 @@ export function HeroImagePicker({ url, alt, themeId, headline, subHeadline, onCh
       )}
 
       <div>
-        <label htmlFor="hero-alt" className={LABEL}>Image alt text{url ? ' *' : ''}</label>
+        <label htmlFor="hero-alt" className={LABEL}>Image alt text</label>
         <input
           id="hero-alt"
           className={INPUT}
           value={alt}
-          placeholder={url ? 'Required — describe the image for accessibility' : 'Required once an image is set'}
+          placeholder={'Describe the image for accessibility'}
           onChange={(e) => onChange({ alt: e.target.value })}
         />
       </div>

@@ -83,7 +83,7 @@ const emailBuildSchema = z.object({
 })
 
 export const contentSchema = z.object({
-  headline: z.string().min(1, 'Headline is required').max(80, 'Max 80 characters'),
+  headline: z.string().max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
   greetingId: z.string().optional(),
   bodyIntro: z.string(),
@@ -138,15 +138,7 @@ export const briefSchema = z.object({
   audience: audienceSchema,
   content: contentSchema,
   htmlEdits: z.array(htmlEditSchema).optional(),
-  assets: assetSchema.superRefine((data, ctx) => {
-    if (data.heroImageUrl && !data.heroImageAlt) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Alt text is required when a hero image URL is provided',
-        path: ['heroImageAlt'],
-      })
-    }
-  }),
+  assets: assetSchema,
   deadlines: deadlineSchema,
 })
 

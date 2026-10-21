@@ -21,9 +21,7 @@ const STEP_FIELDS_BY_ID: Record<string, FieldPath<BriefFormData>[]> = {
     'deadlines.sendDate',
     'deadlines.urgency',
   ],
-  content: [
-    'content.headline',
-  ],
+  content: [],
   review: [],
 }
 

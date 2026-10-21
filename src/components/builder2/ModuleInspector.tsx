@@ -37,7 +37,7 @@ export function ModuleInspector({
       <div className="flex items-start justify-between gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{m.moduleName}</p>
-          {m.slot && <p className="text-xs text-gray-400 capitalize">{m.slot} · required</p>}
+          {m.slot && <p className="text-xs text-gray-400 capitalize">{m.slot}</p>}
         </div>
         <button type="button" onClick={onClose} aria-label="Close module editor" className="text-gray-400 hover:text-gray-600 px-1">&times;</button>
       </div>
