@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -7,7 +7,7 @@ import { useApprovals } from '../../contexts/ApprovalsContext'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
 import { CardDetailDrawer } from './CardDetailDrawer'
 import { sendStatus as getSendStatusFor, ageInColumn, formatBoardDate } from '../../lib/boardFormat'
-import { fieldsForSurface, resolveBoardSettings } from '../../lib/boardConfig'
+import { applyColumnOrder, fieldsForSurface, moveColumn, resolveBoardSettings } from '../../lib/boardConfig'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,11 +140,27 @@ function SendStatusBadge({ sendDate, column }: { sendDate: string; column?: stri
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const COLUMN_ORDER_KEY = 'ni-board-list-columns'
+
+function loadColumnOrder(): string[] | undefined {
+  try {
+    const raw = localStorage.getItem(COLUMN_ORDER_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : undefined
+    return Array.isArray(parsed) && parsed.every((x) => typeof x === 'string') ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function BoardListView() {
   const { cards, moveCard } = useKanban()
   const { settings } = useSettings()
   const { getApprovalStatusForBrief } = useApprovals()
   const columns = fieldsForSurface(resolveBoardSettings(settings.campaignPlanner), 'list')
+  // Each person can drag the columns into the order they like; it is remembered in this browser.
+  const [savedOrder, setSavedOrder] = useState<string[] | undefined>(loadColumnOrder)
+  const dragging = useRef<string | null>(null)
+  const [dropOver, setDropOver] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('sendDate')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
@@ -227,6 +243,9 @@ export function BoardListView() {
 
   // Each optional column: its heading, how it sorts (if it does) and what a row shows
   const COLUMN_DEFS: Record<string, { header: string; sort?: SortField; cell: (card: KanbanCard) => React.ReactNode; nowrap?: boolean }> = {
+    column: { header: 'Stage', sort: 'column', nowrap: true, cell: (c) => (
+      <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${COLUMN_CONFIG[c.column].colour}`}>{COLUMN_CONFIG[c.column].label}</span>
+    ) },
     urgency: { header: 'Urgency', sort: 'urgency', nowrap: true, cell: (c) => c.urgency === 'urgent'
       ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Urgent</span>
       : <span className="text-[10px] text-gray-400 dark:text-gray-500">Standard</span> },
@@ -269,7 +288,57 @@ export function BoardListView() {
     comments: { header: 'Comments', sort: 'comments', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{c.comments?.length ?? 0}</span> },
     submittedAt: { header: 'Submitted', sort: 'submittedAt', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{formatBoardDate(c.submittedAt)}</span> },
   }
-  const shownColumns = columns.filter((id) => COLUMN_DEFS[id])
+  const configured = ['column', ...columns.filter((id) => COLUMN_DEFS[id] && id !== 'column')]
+  const shownColumns = applyColumnOrder(configured, savedOrder)
+  const customOrder = shownColumns.some((id, i) => id !== configured[i])
+
+  function saveOrder(next: string[] | undefined) {
+    setSavedOrder(next)
+    try {
+      if (next) localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(next))
+      else localStorage.removeItem(COLUMN_ORDER_KEY)
+    } catch { /* the order just is not remembered */ }
+  }
+
+  function shift(id: string, by: -1 | 1) {
+    const target = shownColumns[shownColumns.indexOf(id) + by]
+    if (target) saveOrder(moveColumn(shownColumns, id, target))
+  }
+
+  /** A column heading you can sort by clicking and move by dragging (or Alt + arrow keys). */
+  // A function, not a component: re-rendering must not remount the heading mid-drag or drop its focus.
+  function columnTh(id: string) {
+    const def = COLUMN_DEFS[id]
+    return (
+      <th
+        key={id}
+        draggable
+        tabIndex={0}
+        title="Drag to move this column, or press Alt and an arrow key"
+        onDragStart={(e) => { dragging.current = id; e.dataTransfer?.setData('text/plain', id) }}
+        onDragOver={(e) => { if (dragging.current && dragging.current !== id) { e.preventDefault(); setDropOver(id) } }}
+        onDragLeave={() => setDropOver((o) => (o === id ? null : o))}
+        onDrop={(e) => {
+          e.preventDefault()
+          const from = dragging.current
+          dragging.current = null
+          setDropOver(null)
+          if (from && from !== id) saveOrder(moveColumn(shownColumns, from, id))
+        }}
+        onDragEnd={() => { dragging.current = null; setDropOver(null) }}
+        onKeyDown={(e) => {
+          if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return
+          e.preventDefault()
+          shift(id, e.key === 'ArrowLeft' ? -1 : 1)
+        }}
+        onClick={def.sort ? () => handleSort(def.sort!) : undefined}
+        className={`px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap select-none transition-colors cursor-grab active:cursor-grabbing hover:text-brand-primary dark:hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${dropOver === id ? 'bg-brand-accent/20 shadow-[inset_3px_0_0_0_var(--tw-shadow-color)] shadow-brand-primary' : ''}`}
+      >
+        {def.header}
+        {def.sort && <SortIcon field={def.sort} active={sortField} dir={sortDir} />}
+      </th>
+    )
+  }
 
   function Th({ field, children }: { field: SortField; children: React.ReactNode }) {
     return (
@@ -284,9 +353,9 @@ export function BoardListView() {
   }
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       {/* Toolbar */}
-      <div className="px-6 py-4 max-w-7xl mx-auto w-full">
+      <div className="px-6 py-4 w-full">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 min-w-[220px] max-w-sm">
@@ -336,6 +405,9 @@ export function BoardListView() {
 
           {/* Result count */}
           <p className="ml-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+            {customOrder && (
+              <button type="button" onClick={() => saveOrder(undefined)} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset column order</button>
+            )}
             {visibleCards.length} of {cards.length} brief{cards.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -445,7 +517,7 @@ export function BoardListView() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 px-6 pb-8 overflow-x-auto max-w-7xl mx-auto w-full">
+      <div className="px-6 pb-8 overflow-x-auto w-full">
         {visibleCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <svg className="text-gray-300 dark:text-gray-600 mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -464,13 +536,7 @@ export function BoardListView() {
               <thead>
                 <tr className="border-b border-brand-border-warm dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
                   <Th field="emailName">Email Name</Th>
-                  <Th field="column">Stage</Th>
-                  {shownColumns.map((id) => {
-                    const def = COLUMN_DEFS[id]
-                    return def.sort
-                      ? <Th key={id} field={def.sort}>{def.header}</Th>
-                      : <th key={id} className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{def.header}</th>
-                  })}
+                  {shownColumns.map((id) => columnTh(id))}
                   <th className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
@@ -478,7 +544,6 @@ export function BoardListView() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {visibleCards.map((card) => {
-                  const colConfig = COLUMN_CONFIG[card.column]
                   const colIndex = (['briefed', 'in-progress', 'distributed'] as KanbanColumn[]).indexOf(card.column)
                   const prevCol = colIndex > 0 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex - 1] : null
                   const nextCol = colIndex < 2 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex + 1] : null
@@ -490,21 +555,19 @@ export function BoardListView() {
                     >
                       {/* Email name */}
                       <td className="px-3 py-3 max-w-[200px]">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={card.emailName}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCard(card)}
+                          title={card.emailName}
+                          className="block max-w-full text-left font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-brand-primary dark:hover:text-brand-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-sm"
+                        >
                           {card.emailName}
-                        </p>
+                        </button>
                         {card.subjectLine && !shownColumns.includes('subjectLine') && (
                           <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5" title={card.subjectLine}>
                             {card.subjectLine}
                           </p>
                         )}
-                      </td>
-
-                      {/* Stage */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${colConfig.colour}`}>
-                          {colConfig.label}
-                        </span>
                       </td>
 
                       {shownColumns.map((id) => (

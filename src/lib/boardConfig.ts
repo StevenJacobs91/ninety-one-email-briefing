@@ -168,3 +168,30 @@ export function groupFields(ids: readonly string[]): { kind: FieldKind; ids: str
   }
   return groups
 }
+
+/**
+ * The order to show list columns in: a viewer's saved order for the columns still shown, and any column
+ * shown since appears next to its default neighbour rather than being dropped at the end.
+ */
+export function applyColumnOrder(columns: readonly string[], saved: readonly string[] | undefined): string[] {
+  const result: string[] = []
+  for (const id of saved ?? []) if (columns.includes(id) && !result.includes(id)) result.push(id)
+  if (result.length === 0) return [...columns]
+  columns.forEach((id, i) => {
+    if (result.includes(id)) return
+    const before = columns.slice(0, i).reverse().find((c) => result.includes(c))
+    result.splice(before === undefined ? 0 : result.indexOf(before) + 1, 0, id)
+  })
+  return result
+}
+
+/** Puts `from` in the slot that `to` occupies. */
+export function moveColumn(order: readonly string[], from: string, to: string): string[] {
+  const i = order.indexOf(from)
+  const j = order.indexOf(to)
+  if (i < 0 || j < 0 || i === j) return [...order]
+  const next = [...order]
+  next.splice(i, 1)
+  next.splice(j, 0, from)
+  return next
+}

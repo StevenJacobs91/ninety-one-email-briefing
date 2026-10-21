@@ -109,3 +109,27 @@ test('moving a field between kinds starts a new row', () => {
 test('every field in the registry has a kind', () => {
   for (const f of CARD_FIELDS) assert.ok(['chip', 'cell', 'block', 'meta'].includes(f.kind), f.id)
 })
+
+import { applyColumnOrder, moveColumn } from './boardConfig.ts'
+
+test('with no saved order the columns keep their default order', () => {
+  assert.deepEqual(applyColumnOrder(['a', 'b', 'c'], undefined), ['a', 'b', 'c'])
+  assert.deepEqual(applyColumnOrder(['a', 'b', 'c'], []), ['a', 'b', 'c'])
+})
+
+test('a saved order is followed, ignoring columns that are no longer shown', () => {
+  assert.deepEqual(applyColumnOrder(['a', 'b', 'c'], ['c', 'z', 'a', 'b']), ['c', 'a', 'b'])
+  assert.deepEqual(applyColumnOrder(['a', 'b'], ['b', 'b', 'a']), ['b', 'a'])
+})
+
+test('a column switched on since the order was saved appears next to its default neighbour', () => {
+  assert.deepEqual(applyColumnOrder(['a', 'b', 'c'], ['c', 'a']), ['c', 'a', 'b'])
+  assert.deepEqual(applyColumnOrder(['x', 'a', 'b'], ['b', 'a']), ['x', 'b', 'a'])
+})
+
+test('moving a column puts it in the slot of the column it is dropped on', () => {
+  assert.deepEqual(moveColumn(['a', 'b', 'c'], 'a', 'c'), ['b', 'c', 'a'])
+  assert.deepEqual(moveColumn(['a', 'b', 'c'], 'c', 'a'), ['c', 'a', 'b'])
+  assert.deepEqual(moveColumn(['a', 'b', 'c'], 'b', 'b'), ['a', 'b', 'c'])
+  assert.deepEqual(moveColumn(['a', 'b', 'c'], 'q', 'a'), ['a', 'b', 'c'])
+})
