@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { normaliseTints } from '../lib/brandTints'
 import type { AppSettings, HeaderTypeConfig, BrandThemeConfig } from '../types/settings.types'
 import { createDefaultSettings, mergePowerAutomate, DEFAULT_HEADER_TYPES, DEFAULT_BRAND_THEMES } from '../lib/settingsDefaults'
 import { mergeFormSteps } from '../lib/briefTabs'
@@ -51,7 +52,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           brandThemes: (() => {
             if (!remote.brandThemes) return DEFAULT_BRAND_THEMES
             const remoteMap = new Map((remote.brandThemes as BrandThemeConfig[]).map((t) => [t.id, t]))
-            const merged = DEFAULT_BRAND_THEMES.map((d) => remoteMap.has(d.id) ? { ...d, ...remoteMap.get(d.id) } : d)
+            // Saved tints that are still the old calculated ones move to the brand's exact tints.
+            const merged = DEFAULT_BRAND_THEMES.map((d) => remoteMap.has(d.id) ? normaliseTints({ ...d, ...remoteMap.get(d.id) }) : d)
             const customThemes = (remote.brandThemes as BrandThemeConfig[]).filter((t) => !DEFAULT_BRAND_THEMES.some((d) => d.id === t.id))
             return [...merged, ...customThemes]
           })(),

@@ -1,4 +1,5 @@
 import { resolveTabs } from './briefTabs'
+import { brandTints } from './brandTints'
 import type {
   AppSettings,
   PowerAutomateConfig,
@@ -68,16 +69,8 @@ const FOOTER_OCEAN_TEAL  = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nq
 const FOOTER_PINOTAGE    = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nqw/28902/16251315196vK7Ae81/Footer_logo_Pinotage_Burgundy_IFAWOC_HEXlogo_91_300x324px.png'
 const FOOTER_LEATHERBACK = 'https://weare.ninetyone.com/l/28902/2021-07-01/978nqy/28902/1625131519rCwRRl65/Footer_logo_Leatherback_Green_IFAWOC_HEXlogo_91_300x324px.png'
 
-function tints(hex: string): { tint01: string; tint02: string; tint03: string } {
-  const adj = (h: string, pct: number) => {
-    const n = parseInt(h.replace('#', ''), 16)
-    const r = Math.min(255, Math.max(0, ((n >> 16) & 0xff) + Math.round(2.55 * pct)))
-    const g = Math.min(255, Math.max(0, ((n >> 8)  & 0xff) + Math.round(2.55 * pct)))
-    const b = Math.min(255, Math.max(0, ( n        & 0xff) + Math.round(2.55 * pct)))
-    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
-  }
-  return { tint01: adj(hex, 10), tint02: adj(hex, -5), tint03: adj(hex, -20) }
-}
+// Tints come from the brand guideline (see brandTints.ts), not from a formula.
+const tints = brandTints
 
 export const DEFAULT_BRAND_THEMES: BrandThemeConfig[] = [
   // ── Dark primary backgrounds — cream text ────────────────────────────────
