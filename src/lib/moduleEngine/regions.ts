@@ -1,4 +1,4 @@
-import { setStyleProp } from './inlineStyle'
+import { parseStyle, serializeStyle, setStyleProp } from './inlineStyle'
 
 export type RegionKind = 'text' | 'rich' | 'button' | 'image'
 
@@ -174,6 +174,14 @@ export function sanitizeRich(html: string): string {
       const val = m[2] ?? m[3] ?? ''
       if (!ALLOWED_ATTRS.has(attr)) continue
       if (attr === 'href' && /^\s*javascript:/i.test(val)) continue
+      if (attr === 'style') {
+        // Text size comes from the module, not from pasted content.
+        const decls = parseStyle(val)
+        const withoutSize = decls.filter(([prop]) => prop !== 'font-size')
+        if (withoutSize.length === 0) continue
+        kept.push(`style="${withoutSize.length === decls.length ? val : serializeStyle(withoutSize)}"`)
+        continue
+      }
       kept.push(`${attr}="${val}"`)
     }
     return `<${tag}${kept.length ? ' ' + kept.join(' ') : ''}>`
@@ -234,15 +242,28 @@ export function richToParagraphs(html: string): string[] {
   return paras.length > 0 ? paras : ['']
 }
 
+/** The size the module sets for this element's text: its own, else the nearest ancestor's, else 16px. */
+export const DEFAULT_FONT_SIZE = '16px'
+
+export function effectiveFontSize(el: Element): string {
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    const size = parseStyle(node.getAttribute('style')).find(([prop]) => prop === 'font-size')?.[1]
+    if (size) return size
+  }
+  return DEFAULT_FONT_SIZE
+}
+
 /** The space left under each paragraph except the last when a region is split into several. */
 export const PARAGRAPH_GAP_PX = 16
 
 function setRichParagraphs(el: Element, html: string): Element[] {
   const paras = richToParagraphs(html).map(sanitizeRich)
   const tag = el.tagName.toLowerCase()
+  const size = effectiveFontSize(el)
   // Only a <p> or <div> can be repeated as a sibling; anything else keeps its paragraphs as line breaks.
   if (paras.length === 1 || (tag !== 'p' && tag !== 'div')) {
     el.innerHTML = paras.join('<br>')
+    if (tag === 'p' || tag === 'div') setStyleProp(el, 'font-size', size)
     return [el]
   }
   el.innerHTML = paras[0]
@@ -256,6 +277,8 @@ function setRichParagraphs(el: Element, html: string): Element[] {
     made.push(copy)
     after = copy
   }
+  // Every paragraph states the module's text size, whatever the email client inherits.
+  for (const p of made) setStyleProp(p, 'font-size', size)
   // Space the paragraphs apart; the last keeps the region's own spacing.
   let p: Element | null = el
   for (let i = 0; i < paras.length - 1 && p; i++) {

@@ -26,7 +26,8 @@ test('a paragraph edit changes only that region and survives a round trip', () =
   applyRegions(d, { 'root.0': { value: '<b>New</b> copy' } })
   const after = moduleHtml(d)
   assert.ok(after.includes('<b>New</b> copy'))
-  assert.equal(after.replace('<b>New</b> copy', original), before)
+  // The edited paragraph now also states the module's text size; nothing else changes.
+  assert.equal(after.replace('<b>New</b> copy', original).replace('margin: 0px 0 0px; font-size: 16px;', 'margin: 0px 0 0px;'), before)
 })
 
 test('Single Primary CTA exposes a button, not the wrapping detail region', () => {
@@ -163,4 +164,41 @@ test('regions are still found by their original keys after a region was split in
   const fields = parseRegions(parseModuleDom(moduleHtml(d), parse))
   assert.equal(fields.length, 1)
   assert.equal(fields[0].key, 'root.0')
+})
+
+const sizes = (html: string) => [...html.matchAll(/<p\b[^>]*style="([^"]*)"/g)].map((m) => /font-size:\s*([^;]+)/.exec(m[1])?.[1])
+
+test('every paragraph of an edited region carries the module\'s font size explicitly (16px for Body Content)', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'One<br>Two<br>Three' } })
+  assert.deepEqual(sizes(moduleHtml(d)), ['16px', '16px', '16px'])
+})
+
+test('a single edited paragraph also carries its font size', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'Just one' } })
+  assert.deepEqual(sizes(moduleHtml(d)), ['16px'])
+})
+
+test('a module with another text size keeps that size on every paragraph, defaulting to 16px when none is set', () => {
+  const small = parseModuleDom('<tr><td style="font-size: 14px; color: #000"><p pardot-region="paragraph" style="margin: 0;">x</p></td></tr>', parse)
+  applyRegions(small, { 'root.0': { value: 'A<br>B' } })
+  assert.deepEqual(sizes(moduleHtml(small)), ['14px', '14px'])
+  const none = parseModuleDom('<tr><td><p pardot-region="paragraph" style="margin: 0;">x</p></td></tr>', parse)
+  applyRegions(none, { 'root.0': { value: 'A<br>B' } })
+  assert.deepEqual(sizes(moduleHtml(none)), ['16px', '16px'])
+})
+
+test('pasted text cannot change the size: font sizes are stripped from inline styles but other formatting stays', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: '<span style="font-size: 28px; color: #ff0000">Big red</span><br><span style="font-size: 9pt">Small</span>' } })
+  const html = moduleHtml(d)
+  assert.ok(!/font-size:\s*(28px|9pt)/.test(html))
+  assert.match(html, /<span style="color: #ff0000;">Big red<\/span>/)
+  assert.deepEqual(sizes(html), ['16px', '16px'])
+})
+
+test('sanitizeRich drops font-size but keeps the rest of an inline style', () => {
+  assert.equal(sanitizeRich('<span style="color:red; font-size:30px; font-weight:bold">x</span>'), '<span style="color: red; font-weight: bold;">x</span>')
+  assert.equal(sanitizeRich('<span style="font-size:30px">x</span>'), '<span>x</span>')
 })
