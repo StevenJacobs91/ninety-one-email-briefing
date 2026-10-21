@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  sampleBriefSubmitted,
   briefSubmittedNotification,
   submissionBriefId,
   DRAFT_RECIPIENT, buildEml, submissionFiles, boardLinks, boardNotes, textToBase64,
@@ -106,4 +107,16 @@ test('the brief_submitted notification carries the email HTML, the summary and t
   assert.equal(p.briefSummaryUrl, 'https://app/?brief=b1&view=summary')
   assert.equal(p.attachmentCount, 2)
   assert.deepEqual(p.attachments, notifyOpts.attachments)
+})
+
+test('the sample brief_submitted payload has exactly the fields the real notification sends', () => {
+  const real = Object.keys(briefSubmittedNotification(notifyOpts)).sort()
+  const sample = Object.keys(sampleBriefSubmitted()).sort()
+  assert.deepEqual(sample, real)
+})
+
+test('the sample payload includes a sample attachment so Power Automate infers its shape', () => {
+  const s = sampleBriefSubmitted()
+  assert.equal(s.attachmentCount, 1)
+  assert.deepEqual(Object.keys((s.attachments as object[])[0]).sort(), ['base64', 'name', 'type'])
 })

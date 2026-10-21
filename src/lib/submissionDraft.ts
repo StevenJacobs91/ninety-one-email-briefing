@@ -154,3 +154,26 @@ export function briefSubmittedNotification(opts: {
     attachments: opts.attachments,
   }
 }
+
+/** A sample `brief_submitted` payload, for the Settings preview and the test button: same fields as the real one. */
+export function sampleBriefSubmitted(): Record<string, unknown> {
+  return briefSubmittedNotification({
+    briefId: '00000000-0000-0000-0000-000000000000',
+    campaignName: 'SA Advisors — Taking Stock April 2026',
+    emailName: '2026-04-30 SA Advisors — Taking Stock April 2026',
+    emailType: 'newsletter',
+    subjectLine: 'Taking Stock — April 2026',
+    sendDate: '2026-04-30',
+    contentApprovalDate: '2026-04-28',
+    urgency: 'standard',
+    regions: ['ZA', 'UK'],
+    channels: ['INTERMEDIARY'],
+    requesterName: 'Demo User',
+    requesterEmail: 'demo@ninetyone.com',
+    links: { html: 'https://example.com/?brief=0000&view=html', summary: 'https://example.com/?brief=0000&view=summary' },
+    html: '<html><body>Sample email HTML</body></html>',
+    briefHtml: '<html><body>Sample brief summary</body></html>',
+    textEmail: 'Sample plain-text email',
+    attachments: [{ name: 'sample-email.html', type: 'text/html', base64: 'PGh0bWw+U2FtcGxlPC9odG1sPg==' }],
+  })
+}

@@ -454,6 +454,14 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
     contentApprovalDate: '2026-04-28',
     urgency:             'standard',
     notes:               '',
+    submittedBy:         'Demo User',
+    emailName:           '2026-04-30 SA Advisors — Taking Stock April 2026',
+    html:                '<html>…the email HTML…</html>',
+    briefHtml:           '<html>…the brief summary…</html>',
+    textEmail:           'The plain-text version of the email',
+    draftTo:             'steven.jacobs@ninetyone.com',
+    draftSubject:        '2026-04-30 SA Advisors — Taking Stock April 2026',
+    attachments:         [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+…' }],
     ...(config.includeFullBrief ? { brief: '{ ...full BriefPayload object... }' } : {}),
   }
 

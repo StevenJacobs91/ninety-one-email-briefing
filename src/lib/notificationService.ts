@@ -1,3 +1,4 @@
+import { sampleBriefSubmitted } from './submissionDraft'
 import type {
   NotificationsSettings,
   NotificationEventType,
@@ -155,6 +156,9 @@ export async function testNotification(
       additional: [],
     },
   }
+
+  // The submitted-brief test carries the same fields as the real one, including the HTML and attachments.
+  if (eventType === 'brief_submitted') Object.assign(testBody, sampleBriefSubmitted())
 
   return postWithRetry(webhookUrl, testBody, 0, eventType)
 }
