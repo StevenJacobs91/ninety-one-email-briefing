@@ -15,6 +15,21 @@ const FIXES: Record<string, [from: string, to: string][]> = {
   ],
 }
 
-export function fixModuleStyles(moduleName: string, html: string): string {
-  return (FIXES[moduleName] ?? []).reduce((out, [from, to]) => out.split(from).join(to), html)
+// Corrections to the supplied library found in the brand audit.
+const UNSUBSCRIBE_LINK = ['<a href="{{Unsubscribe}}" style="color:#424224; text-decoration: none"', '<a href="{{Unsubscribe}}" class="link" style="color:#424242; text-decoration: none"'] as [string, string]
+// "#424224" is a typo for the brand grey #424242, and with no class the dark-mode rules never reach the link,
+// so it stayed near-invisible on the dark footer. `.link` is the shell's dark-mode link colour.
+for (const name of ['Disclaimer', 'Disclaimer - UK']) FIXES[name] = [UNSUBSCRIBE_LINK]
+// Brand cream is #e8e5ce.
+FIXES['Plain Logo Header'] = [['color: #e8e5cf;', 'color: #e8e5ce;']]
+
+// Fixes for one theme only. Warm Yellowwood is a Leatherback Green theme, but its Small Header was built in
+// Marula Green; its Cape Coral sibling uses Leatherback's darkest tint, #0d3232.
+const THEME_FIXES: Record<string, Record<string, [from: string, to: string][]>> = {
+  'leatherback-yellowood': { 'Small Header': [['#0a3323', '#0d3232'], ['#0A3323', '#0d3232']] },
+}
+
+export function fixModuleStyles(moduleName: string, html: string, themeId?: string): string {
+  const fixes = [...(FIXES[moduleName] ?? []), ...(themeId ? THEME_FIXES[themeId]?.[moduleName] ?? [] : [])]
+  return fixes.reduce((out, [from, to]) => out.split(from).join(to), html)
 }
