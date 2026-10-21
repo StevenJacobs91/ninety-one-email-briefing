@@ -58,3 +58,68 @@ test('the brand cream is #e8e5ce everywhere (no #e8e5cf typo)', { skip: !existsS
     assert.ok(!/#e8e5cf\b/i.test(shell.head + shell.tail + Object.values(modules).join('\n')), id)
   }
 })
+
+test('every font file an email asks for is an absolute address, so no heading falls back to Arial', { skip: !existsSync(DIR) }, () => {
+  for (const id of ids) {
+    const head = load(id).shell.head
+    for (const m of head.matchAll(/@font-face\s*\{[^}]*\}/g)) {
+      for (const u of m[0].matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)) {
+        assert.match(u[2], /^https?:\/\//, `${id}: relative font url "${u[2]}"`)
+      }
+    }
+  }
+})
+
+test('the normal-weight Display face (what headings ask for) can actually load', { skip: !existsSync(DIR) }, () => {
+  for (const id of ids) {
+    const faces = [...load(id).shell.head.matchAll(/@font-face\s*\{[^}]*\}/g)].map((m) => m[0]).filter((f) => /Visuelt Display/.test(f))
+    const normal = faces.filter((f) => !/font-weight:\s*(?!normal|400)\d+/i.test(f))
+    assert.ok(normal.length > 0, id)
+    for (const f of normal) assert.match(f, /url\(\s*["']?https:\/\/[^)]*NinetyOneVisueltDisplay_Regular\.woff/, id)
+  }
+})
+
+// Per-module font check: the font each piece of visible text is actually set in, following the cascade.
+import { parse } from './fixtures.ts'
+
+const VISUELT = /^ninety one visuelt( light| medium| display)?$/i
+// Supplied as Arial: the legal small print, and text that is never shown.
+const ARIAL_BY_DESIGN = new Set(['Disclaimer', 'Disclaimer - UK', 'Visually Hidden Preheader Text'])
+
+function textFonts(html: string): { family: string; text: string }[] {
+  const wrapped = /^\s*(?:<!--[\s\S]*?-->\s*)*<tr[\s>]/i.test(html) ? `<table><tbody>${html}</tbody></table>` : `<div>${html}</div>`
+  const doc = parse(`<html><body>${wrapped}</body></html>`)
+  const out: { family: string; text: string }[] = []
+  for (const el of Array.from(doc.querySelectorAll('*'))) {
+    if (['STYLE', 'SCRIPT', 'TITLE'].includes(el.tagName)) continue
+    const own = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.nodeValue ?? '').join('').replace(/\s+/g, ' ').trim()
+    if (own.length < 2 || /^\{\{|^<!|^\[if/.test(own)) continue
+    let family = '(none set)'
+    for (let n: Element | null = el as Element; n; n = n.parentElement) {
+      const m = /font-family:\s*([^;]+)/i.exec(n.getAttribute('style') ?? '')
+      if (m) { family = m[1].split(',')[0].trim().replace(/["']/g, ''); break }
+    }
+    out.push({ family, text: own.slice(0, 30) })
+  }
+  return out
+}
+
+test('all visible text in every module of every theme is set in a Ninety One Visuelt font', { skip: !existsSync(DIR) }, () => {
+  for (const id of ids) {
+    for (const [name, html] of Object.entries(load(id).modules)) {
+      if (ARIAL_BY_DESIGN.has(name)) continue
+      const bad = textFonts(html).filter((t) => !VISUELT.test(t.family))
+      assert.deepEqual(bad, [], `${id} / ${name}`)
+    }
+  }
+})
+
+test('the supplied Arial modules are exactly the legal small print and the hidden preheader', { skip: !existsSync(DIR) }, () => {
+  const arial = new Set<string>()
+  for (const id of ids) {
+    for (const [name, html] of Object.entries(load(id).modules)) {
+      if (textFonts(html).some((t) => !VISUELT.test(t.family))) arial.add(name)
+    }
+  }
+  assert.deepEqual([...arial].sort(), [...ARIAL_BY_DESIGN].sort())
+})

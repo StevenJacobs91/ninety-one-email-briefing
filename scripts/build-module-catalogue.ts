@@ -6,6 +6,7 @@ import { themeFolderName, type ThemeCatalogue } from '../src/lib/moduleEngine/ca
 import { whiten } from '../src/lib/moduleEngine/whiten.ts'
 import { fixModuleStyles } from '../src/lib/moduleEngine/styleFixes.ts'
 import { fixThemeBlock } from '../src/lib/moduleEngine/themeBlock.ts'
+import { fixShellFonts } from '../src/lib/moduleEngine/shellFonts.ts'
 
 const ROOT = join(process.cwd(), 'Themes and Modules')
 const OUT = join(process.cwd(), 'public', 'module-catalogue')
@@ -62,7 +63,7 @@ for (const theme of BRAND_THEMES) {
   if (!existsSync(masterPath)) throw new Error(`Missing master template for ${theme.id}: ${masterPath}`)
   const split = splitShell(readFileSync(masterPath, 'utf8'), theme.id)
   // A master's theme-colour block must be its own theme's (Warm Yellowwood's was Pinotage Burgundy's).
-  const shell = { ...split, head: fixThemeBlock(split.head, theme.primary, theme.accent) }
+  const shell = { ...split, head: fixShellFonts(fixThemeBlock(split.head, theme.primary, theme.accent)) }
 
   const ordered = [...order.filter((n) => n in modules), ...names.filter((n) => !order.includes(n)).sort()]
   const catalogue: ThemeCatalogue = { themeId: theme.id, shell, order: ordered, modules }
