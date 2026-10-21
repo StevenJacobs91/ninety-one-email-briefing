@@ -98,3 +98,13 @@ export function boardNotes(opts: {
     `Brief Summary: ${opts.links.summary}`,
   ].join('\n')
 }
+
+/**
+ * The id a submission goes on the board under. The board keeps one card per brief id, and the form keeps
+ * its id after a submit, so a brief that is already on the board is given a fresh id rather than skipped.
+ */
+export function submissionBriefId(current: string, taken: ReadonlySet<string>, mint: () => string = () => crypto.randomUUID()): string {
+  let id = current
+  while (taken.has(id)) id = mint()
+  return id
+}

@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  submissionBriefId,
   DRAFT_RECIPIENT, buildEml, submissionFiles, boardLinks, boardNotes, textToBase64,
 } from './submissionDraft.ts'
 
@@ -61,4 +62,17 @@ test('card notes say who created it and carry both links', () => {
   const notes = boardNotes({ createdByName: 'Steven Jacobs', createdByEmail: 'steven@x.com', links, at: new Date('2026-10-20T10:00:00Z') })
   assert.match(notes, /Created by: Steven Jacobs \(steven@x\.com\)/)
   assert.ok(notes.includes(links.html) && notes.includes(links.summary))
+})
+
+test('a brief that is not on the board yet keeps its id', () => {
+  assert.equal(submissionBriefId('a', new Set(['b']), () => 'fresh'), 'a')
+})
+
+test('a brief whose id is already on the board gets a fresh id, so the new submission is added instead of skipped', () => {
+  assert.equal(submissionBriefId('a', new Set(['a']), () => 'fresh'), 'fresh')
+})
+
+test('a fresh id that also collides is replaced until it is unused', () => {
+  const ids = ['a', 'b', 'c']
+  assert.equal(submissionBriefId('a', new Set(['a', 'b']), () => ids.shift()!), 'c')
 })

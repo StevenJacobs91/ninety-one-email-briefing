@@ -15,7 +15,7 @@ import { useKanban } from '../../contexts/KanbanContext'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { saveBrief } from '../../lib/supabaseQueries'
 import { collectAttachments } from '../../lib/attachmentStore'
-import { DRAFT_RECIPIENT, boardLinks, boardNotes, buildEml, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
+import { DRAFT_RECIPIENT, boardLinks, boardNotes, buildEml, submissionBriefId, submissionFiles, slug, textToBase64, type DraftAttachment } from '../../lib/submissionDraft'
 import { submitBriefToPardot } from '../../lib/pardotApi'
 import type { PardotSubmitResult } from '../../lib/pardotApi'
 import {
@@ -70,7 +70,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
   const [submitError, setSubmitError] = useState('')
   const [submitNotes, setSubmitNotes] = useState<{ ok: boolean; text: string }[]>([])
   const { profile, user } = useAuth()
-  const { addCard } = useKanban()
+  const { addCard, cards } = useKanban()
   const { log: audit } = useAuditLog()
   const [pardotStatus, setPardotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [pardotResult, setPardotResult] = useState<PardotSubmitResult | null>(null)
@@ -250,11 +250,12 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     setSubmitNotes([])
 
     const now = new Date()
-    const briefHtml = generateBriefHtml(data)
+    const briefId = submissionBriefId(data.meta.briefId, new Set(cards.map((c) => c.briefId)))
+    const briefHtml = generateBriefHtml({ ...data, meta: { ...data.meta, briefId } })
     const names = submissionFiles(data.campaign.campaignName, now.toISOString().slice(0, 10))
-    const links = boardLinks(window.location.origin, data.meta.briefId)
+    const links = boardLinks(window.location.origin, briefId)
     const createdByName = profile?.displayName || user?.email || 'Unknown'
-    const submitted: BriefPayload = { ...data, meta: { ...data.meta, status: 'submitted', updatedAt: now.toISOString() } }
+    const submitted: BriefPayload = { ...data, meta: { ...data.meta, briefId, status: 'submitted', updatedAt: now.toISOString() } }
 
     const addToBoard = async (): Promise<string[]> => {
       const warnings: string[] = []
@@ -271,7 +272,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         action: 'Submitted brief to board',
         category: 'brief',
         entityType: 'brief',
-        entityId: data.meta.briefId,
+        entityId: briefId,
         details: { campaignName: data.campaign.campaignName, emailType: data.campaign.emailType },
       })
       return warnings
