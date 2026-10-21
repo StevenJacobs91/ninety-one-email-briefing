@@ -233,3 +233,10 @@ test('a legacy section heading (a <strong>) comes out in the accent too', () => 
   applyRegions(d, { 'root.0': { value: '<strong>Heading</strong><br>Body copy' } }, undefined, { accent: '#d83949' })
   assert.match(moduleHtml(d), /color: #d83949;">Heading<\/span>/)
 })
+
+test('inline styles cannot carry url(), expression() or javascript: values from pasted text', () => {
+  assert.equal(sanitizeRich('<span style="color: red; background: url(https://x.test/t.gif)">x</span>'), '<span style="color: red;">x</span>')
+  assert.equal(sanitizeRich('<span style="width: expression(alert(1))">x</span>'), '<span>x</span>')
+  assert.equal(sanitizeRich('<span style="behavior: url(#default#x); color: red">x</span>'), '<span style="color: red;">x</span>')
+  assert.equal(sanitizeRich('<span style="color: red">x</span>'), '<span style="color: red">x</span>')
+})

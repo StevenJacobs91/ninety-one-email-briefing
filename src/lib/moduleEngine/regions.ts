@@ -186,9 +186,9 @@ export function sanitizeRich(html: string, accent: string = DEFAULT_ACCENT): str
       if (!ALLOWED_ATTRS.has(attr)) continue
       if (attr === 'href' && /^\s*javascript:/i.test(val)) continue
       if (attr === 'style') {
-        // Text size comes from the module, not from pasted content.
+        // Text size comes from the module, not from pasted content, and a style cannot fetch or run anything.
         const decls = parseStyle(val)
-        const withoutSize = decls.filter(([prop]) => prop !== 'font-size')
+        const withoutSize = decls.filter(([prop, value]) => prop !== 'font-size' && !/url\s*\(|expression\s*\(|javascript:/i.test(value))
         if (withoutSize.length === 0) continue
         kept.push(`style="${withoutSize.length === decls.length ? val : serializeStyle(withoutSize)}"`)
         continue
