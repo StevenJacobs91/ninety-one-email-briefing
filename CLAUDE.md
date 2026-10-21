@@ -362,5 +362,5 @@ Claude Code must produce the following files in order:
 - [x] `heroImageAlt` becomes required when `heroImageUrl` is entered
 - [x] Completed brief can be downloaded as `brief-{campaignName}-{date}.json`
 - [x] Completed brief can be copied to clipboard as JSON
-- [ ] No TypeScript errors (`tsc --noEmit` passes clean)
-- [ ] No `any` types in production code
+- [x] No TypeScript errors (`tsc --noEmit` passes clean)
+- [x] No `any` types in production code

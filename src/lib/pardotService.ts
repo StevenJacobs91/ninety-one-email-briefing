@@ -153,9 +153,34 @@ async function fetchLiveAnalysis(
  * Maps the Pardot v5 API response shape to our internal type.
  * Adjust field names here if the proxy transforms the response.
  */
+/** The Pardot v5 list response, each statistic under its API name or the proxy's snake_case name. */
+interface PardotApiResponse {
+  numberOfProspects?: number
+  total_prospects?: number
+  numberOfMailableProspects?: number
+  mailable_prospects?: number
+  numberOfNeverActiveProspects?: number
+  never_active?: number
+  numberOfHardBouncedProspects?: number
+  hard_bounces?: number
+  numberOfSoftBouncedProspects?: number
+  soft_bounces?: number
+  numberOfUnsubscribedProspects?: number
+  unsubscribed?: number
+  numberOfOptedInProspects?: number
+  opted_in?: number
+  openRate?: number
+  open_rate?: number
+  clickRate?: number
+  click_rate?: number
+  name?: string
+  description?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
 function mapApiResponse(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  json: any,
+  json: PardotApiResponse,
   listId: string,
   config: PardotConfig
 ): PardotListAnalysis {

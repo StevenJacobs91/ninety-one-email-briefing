@@ -184,18 +184,56 @@ async function fetchLiveInsights(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapLiveResponse(json: any, campaignName: string): CampaignInsightsData {
+/** What the live proxy may return: each field under its camelCase or snake_case name, all optional. */
+interface LiveEmail {
+  id?: string
+  subject?: string
+  subjectLine?: string
+  sentAt?: string
+  sent_at?: string
+  delivered?: number
+  uniqueOpens?: number
+  unique_opens?: number
+  uniqueOpenRate?: number
+  unique_open_rate?: number
+  uniqueClicks?: number
+  unique_clicks?: number
+  uniqueCtr?: number
+  unique_ctr?: number
+  totalClicks?: number
+  total_clicks?: number
+  totalCtr?: number
+  total_ctr?: number
+  peakClickHour?: number
+  topClickedUrl?: string | null
+}
+
+interface LiveProspect {
+  id?: string
+  email?: string
+  name?: string | null
+  score?: number
+  opensInCampaign?: number
+  clicksInCampaign?: number
+  lastActivityAt?: string
+  grade?: string | null
+}
+
+interface LiveResponse {
+  emails?: LiveEmail[]
+  topProspects?: LiveProspect[]
+}
+
+function mapLiveResponse(json: LiveResponse, campaignName: string): CampaignInsightsData {
   // Map the live API response to our internal types.
   // Adjust field names as needed based on your proxy's response shape.
   const emails: CampaignEmailRecord[] = (json.emails ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (e: any) => ({
+    (e: LiveEmail) => ({
       id: e.id ?? '',
       subjectLine: e.subject ?? e.subjectLine ?? '',
       sentAt: e.sentAt ?? e.sent_at ?? '',
-      sentDayOfWeek: new Date(e.sentAt ?? e.sent_at).getDay(),
-      sentHour: new Date(e.sentAt ?? e.sent_at).getHours(),
+      sentDayOfWeek: new Date(e.sentAt ?? e.sent_at ?? '').getDay(),
+      sentHour: new Date(e.sentAt ?? e.sent_at ?? '').getHours(),
       delivered: e.delivered ?? 0,
       uniqueOpens: e.uniqueOpens ?? e.unique_opens ?? 0,
       uniqueOpenRate: e.uniqueOpenRate ?? e.unique_open_rate ?? 0,
@@ -209,8 +247,7 @@ function mapLiveResponse(json: any, campaignName: string): CampaignInsightsData 
   )
 
   const topProspects: EngagedProspect[] = (json.topProspects ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (p: any) => ({
+    (p: LiveProspect) => ({
       id: p.id ?? '',
       email: p.email ?? '',
       name: p.name ?? null,

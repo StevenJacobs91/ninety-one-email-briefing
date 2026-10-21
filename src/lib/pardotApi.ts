@@ -220,9 +220,8 @@ export async function submitBriefToPardot(
   // Start from built-in fields, then apply any custom field mappings
   const getField = (path: string): string => {
     const parts = path.split('.')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let val: any = brief
-    for (const p of parts) val = val?.[p]
+    let val: unknown = brief
+    for (const p of parts) val = (val as Record<string, unknown> | null | undefined)?.[p]
     return typeof val === 'string' ? val : Array.isArray(val) ? val.join(', ') : String(val ?? '')
   }
 
