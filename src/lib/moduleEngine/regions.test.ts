@@ -23,11 +23,11 @@ test('a paragraph edit changes only that region and survives a round trip', () =
   const d = dom('Body Content')
   const before = moduleHtml(d)
   const original = parseRegions(d)[0].value
-  applyRegions(d, { 'root.0': { value: '<b>New</b> copy' } })
+  applyRegions(d, { 'root.0': { value: '<i>New</i> copy' } })
   const after = moduleHtml(d)
-  assert.ok(after.includes('<b>New</b> copy'))
+  assert.ok(after.includes('<i>New</i> copy'))
   // The edited paragraph now also states the module's text size; nothing else changes.
-  assert.equal(after.replace('<b>New</b> copy', original).replace('margin: 0px 0 0px; font-size: 16px;', 'margin: 0px 0 0px;'), before)
+  assert.equal(after.replace('<i>New</i> copy', original).replace('margin: 0px 0 0px; font-size: 16px;', 'margin: 0px 0 0px;'), before)
 })
 
 test('Single Primary CTA exposes a button, not the wrapping detail region', () => {
@@ -73,7 +73,8 @@ test('plain text input is escaped', () => {
 test('sanitizeRich removes scripts, handlers and javascript links but keeps formatting', () => {
   const out = sanitizeRich('<b>ok</b><script>alert(1)</script><a href="javascript:x()" onclick="y()">l</a><em>e</em>')
   assert.ok(!/script|onclick|javascript:/i.test(out))
-  assert.ok(out.includes('<b>ok</b>') && out.includes('<em>e</em>'))
+  // Bold is now the brand's accent span rather than a <b> tag; other formatting is kept.
+  assert.ok(out.includes('>ok</span>') && !out.includes('<b>') && out.includes('<em>e</em>'))
 })
 
 test('an editable-image region exposes src and alt and applies both', () => {
@@ -201,4 +202,34 @@ test('pasted text cannot change the size: font sizes are stripped from inline st
 test('sanitizeRich drops font-size but keeps the rest of an inline style', () => {
   assert.equal(sanitizeRich('<span style="color:red; font-size:30px; font-weight:bold">x</span>'), '<span style="color: red; font-weight: bold;">x</span>')
   assert.equal(sanitizeRich('<span style="font-size:30px">x</span>'), '<span>x</span>')
+})
+
+const BOLD = (accent: string) => `<span style="font-family: Ninety One Visuelt Medium, arial, helvetica, sans-serif; font-weight: normal; color: ${accent};">`
+
+test('bold text becomes the brand\'s Medium-weight span in the theme accent, never a plain bold tag', () => {
+  assert.equal(sanitizeRich('a <b>b</b> c', '#009d80'), `a ${BOLD('#009d80')}b</span> c`)
+  assert.equal(sanitizeRich('<strong>Heading</strong>', '#fbaa96'), `${BOLD('#fbaa96')}Heading</span>`)
+})
+
+test('bold with no theme given falls back to Cape Coral', () => {
+  assert.equal(sanitizeRich('<b>x</b>'), `${BOLD('#fbaa96')}x</span>`)
+})
+
+test('a bold span the editor already made is left as it is', () => {
+  const made = `${BOLD('rgb(251, 170, 150)')}Carol</span>`
+  assert.equal(sanitizeRich(made, '#009d80'), made)
+})
+
+test('editing a region wraps pasted bold in the accent span in every paragraph, split or not', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: '<strong>Lead</strong> text<br><b>More</b>' } }, undefined, { accent: '#009d80' })
+  const html = moduleHtml(d)
+  assert.equal([...html.matchAll(/color: #009d80;">/g)].length, 2)
+  assert.ok(!/<(b|strong)>/.test(html))
+})
+
+test('a legacy section heading (a <strong>) comes out in the accent too', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: '<strong>Heading</strong><br>Body copy' } }, undefined, { accent: '#d83949' })
+  assert.match(moduleHtml(d), /color: #d83949;">Heading<\/span>/)
 })

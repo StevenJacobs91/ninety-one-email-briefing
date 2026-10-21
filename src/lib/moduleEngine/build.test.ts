@@ -39,11 +39,11 @@ test('an untouched module is emitted byte-for-byte from the library', () => {
 
 test('an edited region appears in the rendered email', () => {
   const start = base()
-  const b = setRegion(start, start.modules[1].instanceId, 'root.0', { value: 'Hello <b>world</b>' })
+  const b = setRegion(start, start.modules[1].instanceId, 'root.0', { value: 'Hello <i>world</i>' })
   const m = b.modules[1]
-  assert.equal(m.regions['root.0'].value, 'Hello <b>world</b>')
+  assert.equal(m.regions['root.0'].value, 'Hello <i>world</i>')
   const out = renderBuild(b, cat, { parse })
-  assert.ok(out.html.includes('Hello <b>world</b>'))
+  assert.ok(out.html.includes('Hello <i>world</i>'))
 })
 
 test('header, footer and disclaimer slot modules cannot be removed or moved', () => {

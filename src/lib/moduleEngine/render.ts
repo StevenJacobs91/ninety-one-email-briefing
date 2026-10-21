@@ -35,7 +35,7 @@ function applyAssets(html: string, assets?: ThemeAssets): string {
 export function renderBuild(
   build: EmailBuild,
   cat: ThemeCatalogue,
-  opts: { parse: ParseDoc; assets?: ThemeAssets },
+  opts: { parse: ParseDoc; assets?: ThemeAssets; /** The theme's accent colour, used for bold text */ accent?: string },
 ): { html: string; report: RenderReport } {
   const report: RenderReport = { droppedKeys: [], unknownModules: [] }
   const parts: string[] = []
@@ -60,7 +60,7 @@ export function renderBuild(
       for (const key of Object.keys(m.regions)) {
         if (!known.has(key)) report.droppedKeys.push({ instanceId: m.instanceId, key })
       }
-      const regionEls = applyRegions(dom, m.regions, unitOf)
+      const regionEls = applyRegions(dom, m.regions, unitOf, { accent: opts.accent })
       if (m.styles) applyBoxStyles(dom, m.styles, regionEls)
       html = moduleHtml(dom)
     }

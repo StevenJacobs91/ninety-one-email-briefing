@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import { useSettings } from '../../contexts/SettingsContext'
+import { getThemeColours } from '../../lib/themeColours'
 import { useAuth } from '../../contexts/AuthContext'
 import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
@@ -46,6 +47,8 @@ export function LibraryBuilder() {
   const [pickerAt, setPickerAt] = useState<number | null>(null)
 
   const themeSettings = settings.brandThemes?.find((t) => t.id === theme)
+  // Bold text uses the selected theme's accent: the saved override, else the library colour.
+  const accent = themeSettings?.accent ?? getThemeColours(theme).accent
   const assets = useMemo(
     () => ({ logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl }),
     [themeSettings?.logoUrl, themeSettings?.stripeUrl, themeSettings?.footerLogoUrl],
@@ -102,11 +105,11 @@ export function LibraryBuilder() {
     if (!catalogue || !build) return new Map<string, { html: string; dropped: number }>()
     const map = new Map<string, { html: string; dropped: number }>()
     for (const m of build.modules) {
-      const out = renderBuild({ ...build, modules: [m] }, catalogue, { parse: browserParse, assets })
+      const out = renderBuild({ ...build, modules: [m] }, catalogue, { parse: browserParse, assets, accent })
       map.set(m.instanceId, { html: out.html, dropped: out.report.droppedKeys.length })
     }
     return map
-  }, [catalogue, build, assets])
+  }, [catalogue, build, assets, accent])
 
   const selected = build?.modules.find((m) => m.instanceId === selectedId) ?? null
   const info = useMemo(() => {
@@ -256,7 +259,7 @@ export function LibraryBuilder() {
             info={info}
             headerTypes={settings.headers ?? []}
             headerTypeId={headerTypeId}
-            accentColour={themeSettings?.accent}
+            accentColour={accent}
             onRegion={(key, patch) => onRegion(selected, key, patch)}
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
             onImage={(key, src) => commit(setImage(build, selected.instanceId, key, { src }))}

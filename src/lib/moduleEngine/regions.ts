@@ -125,7 +125,9 @@ function setText(el: Element, value: string): void {
 }
 
 /** Applies the saved values and returns, for each region key, the elements it now occupies (a split paragraph region has several). */
-export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>, unitOf?: UnitLookup): Map<string, Element[]> {
+export function applyRegions(
+  dom: ModuleDom, values: Record<string, RegionValue>, unitOf?: UnitLookup, opts: { accent?: string } = {},
+): Map<string, Element[]> {
   const fields = parseRegions(dom, unitOf)
   const els = regionElements(dom)
   const occupied = new Map<string, Element[]>()
@@ -147,7 +149,7 @@ export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>
       return
     }
     if (field.kind === 'rich') {
-      if (patch.value !== undefined) occupied.set(field.key, setRichParagraphs(el, patch.value))
+      if (patch.value !== undefined) occupied.set(field.key, setRichParagraphs(el, patch.value, opts.accent))
       return
     }
     const target = anchorOf(el) ?? el
@@ -160,13 +162,22 @@ export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>
 const ALLOWED_TAGS = new Set(['a', 'b', 'strong', 'i', 'em', 'u', 'br', 'span', 'sup', 'sub'])
 const ALLOWED_ATTRS = new Set(['href', 'style', 'target', 'title', 'class'])
 
-export function sanitizeRich(html: string): string {
+/** Cape Coral, used when no theme accent is known. */
+export const DEFAULT_ACCENT = '#fbaa96'
+
+/** Brand bold: Visuelt Medium in the theme's accent colour, never a browser bold. */
+function boldSpan(accent: string): string {
+  return `<span style="font-family: Ninety One Visuelt Medium, arial, helvetica, sans-serif; font-weight: normal; color: ${accent};">`
+}
+
+export function sanitizeRich(html: string, accent: string = DEFAULT_ACCENT): string {
   const stripped = html
     .replace(/<(script|style|iframe|object|embed)\b[\s\S]*?<\/\1\s*>/gi, '')
     .replace(/<(script|style|iframe|object|embed)\b[^>]*>/gi, '')
   return stripped.replace(/<(\/?)([a-zA-Z][\w:-]*)([^>]*)>/g, (_m, slash: string, name: string, attrs: string) => {
     const tag = name.toLowerCase()
     if (!ALLOWED_TAGS.has(tag)) return ''
+    if (tag === 'b' || tag === 'strong') return slash ? '</span>' : boldSpan(accent)
     if (slash) return `</${tag}>`
     const kept: string[] = []
     for (const m of attrs.matchAll(/([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
@@ -256,8 +267,8 @@ export function effectiveFontSize(el: Element): string {
 /** The space left under each paragraph except the last when a region is split into several. */
 export const PARAGRAPH_GAP_PX = 16
 
-function setRichParagraphs(el: Element, html: string): Element[] {
-  const paras = richToParagraphs(html).map(sanitizeRich)
+function setRichParagraphs(el: Element, html: string, accent?: string): Element[] {
+  const paras = richToParagraphs(html).map((p) => sanitizeRich(p, accent))
   const tag = el.tagName.toLowerCase()
   const size = effectiveFontSize(el)
   // Only a <p> or <div> can be repeated as a sibling; anything else keeps its paragraphs as line breaks.
