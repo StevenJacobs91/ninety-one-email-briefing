@@ -16,7 +16,7 @@ import {
 interface KanbanContextValue {
   cards: KanbanCard[]
   loading: boolean
-  addCard: (brief: BriefFormData, extras?: { notes?: string }) => void
+  addCard: (brief: BriefFormData, extras?: { notes?: string; submittedBy?: { name: string; email: string } }) => void
   addManualCard: (data: ManualCardInput) => void
   moveCard: (id: string, column: KanbanColumn) => void
   updateCardNotes: (id: string, notes: string) => void
@@ -64,7 +64,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [teamId])
 
-  const addCard = useCallback((brief: BriefFormData, extras?: { notes?: string }) => {
+  const addCard = useCallback((brief: BriefFormData, extras?: { notes?: string; submittedBy?: { name: string; email: string } }) => {
     if (!teamId) return
     const briefId = brief.meta?.briefId ?? uuidv4()
 
@@ -89,6 +89,8 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
         columnHistory: [{ column: 'briefed', at: now }],
         notes: extras?.notes ?? '',
         tags: brief.deadlines.tags ?? '',
+        submittedByName: extras?.submittedBy?.name || undefined,
+        submittedByEmail: extras?.submittedBy?.email || undefined,
       }
 
       // Optimistic update
@@ -167,6 +169,8 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       startDate: data.startDate,
       comments: [],
       progress: 0,
+      submittedByName: profile?.displayName || undefined,
+      submittedByEmail: user?.email || undefined,
     }
     setCards((prev) => [newCard, ...prev])
     insertKanbanCard(teamId, newCard).catch((err) =>

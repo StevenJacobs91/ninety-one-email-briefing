@@ -17,6 +17,7 @@ type SortField =
   | 'contentApprovalDate'
   | 'urgency'
   | 'submittedAt'
+  | 'submittedByName'
   | 'tags'
 
 type SortDir = 'asc' | 'desc'
@@ -93,6 +94,7 @@ function getCardValue(card: KanbanCard, field: SortField): string {
     case 'contentApprovalDate': return card.contentApprovalDate
     case 'urgency':             return card.urgency
     case 'submittedAt':         return card.submittedAt
+    case 'submittedByName':     return (card.submittedByName ?? '').toLowerCase()
     case 'tags':                return card.tags.toLowerCase()
     default:                    return ''
   }
@@ -170,7 +172,9 @@ export function KanbanListView() {
           c.channel.some((ch) => ch.toLowerCase().includes(q)) ||
           c.clientGroup.some((g) => g.toLowerCase().includes(q)) ||
           c.tags.toLowerCase().includes(q) ||
-          c.theme.toLowerCase().includes(q)
+          c.theme.toLowerCase().includes(q) ||
+          (c.submittedByName ?? '').toLowerCase().includes(q) ||
+          (c.submittedByEmail ?? '').toLowerCase().includes(q)
       )
     }
 
@@ -412,6 +416,7 @@ export function KanbanListView() {
                   <Th field="contentApprovalDate">Approval Date</Th>
                   <Th field="sendDate">Send Date</Th>
                   <Th field="submittedAt">Submitted</Th>
+                  <Th field="submittedByName">Submitted by</Th>
                   <Th field="tags">Tags</Th>
                   <th className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
@@ -510,6 +515,11 @@ export function KanbanListView() {
                       {/* Submitted */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className="text-xs text-gray-500 dark:text-gray-400">{formatDate(card.submittedAt)}</span>
+                      </td>
+
+                      {/* Submitted by */}
+                      <td className="px-3 py-3 max-w-[140px]">
+                        <span className="text-xs text-gray-600 dark:text-gray-300 truncate block" title={card.submittedByEmail ?? ''}>{card.submittedByName ?? '—'}</span>
                       </td>
 
                       {/* Tags */}

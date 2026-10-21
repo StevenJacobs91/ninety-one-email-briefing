@@ -378,6 +378,12 @@ export function KanbanCardDetail({ card, onClose }: KanbanCardDetailProps) {
 
             {/* Submitted at */}
             <div className="text-[11px] text-gray-400 dark:text-gray-500">
+              {card.submittedByName && (
+                <>
+                  Submitted by: <span className="text-gray-600 dark:text-gray-300">{card.submittedByName}{card.submittedByEmail ? ` (${card.submittedByEmail})` : ''}</span>
+                  <br />
+                </>
+              )}
               Brief ID: <span className="font-mono">{card.briefId}</span>
               <br />
               Added to board: {formatDateTime(card.submittedAt)}

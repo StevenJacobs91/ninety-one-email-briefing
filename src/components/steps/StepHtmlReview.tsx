@@ -266,6 +266,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         warnings.push('The brief could not be saved, so the board links will not open.')
       }
       addCard(submitted as BriefFormData, {
+        submittedBy: { name: createdByName, email: user?.email ?? '' },
         notes: boardNotes({ createdByName, createdByEmail: user?.email ?? '', links, at: now }),
       })
       audit({

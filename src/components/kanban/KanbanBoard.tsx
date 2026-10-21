@@ -114,6 +114,14 @@ function KanbanCardTile({ card, onView, onDragStart }: KanbanCardTileProps) {
         {card.emailType}
       </p>
 
+      {/* Who submitted the brief */}
+      {card.submittedByName && (
+        <p className="text-xs text-gray-600 dark:text-gray-300 mb-2.5 truncate" title={card.submittedByEmail ? `${card.submittedByName} (${card.submittedByEmail})` : card.submittedByName}>
+          <span className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wider mr-1.5">Submitted by</span>
+          {card.submittedByName}
+        </p>
+      )}
+
       {/* Theme swatch */}
       <div className="flex items-center gap-1.5 mb-3">
         <span

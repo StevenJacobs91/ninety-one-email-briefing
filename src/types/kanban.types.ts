@@ -49,6 +49,8 @@ export interface KanbanCard {
   columnHistory: KanbanColumnHistory[]
   notes: string
   tags: string
+  submittedByName?: string   // who submitted the brief
+  submittedByEmail?: string
   // Campaign Planner extensions (optional — backward compatible)
   comments?: CampaignComment[]
   assignee?: string

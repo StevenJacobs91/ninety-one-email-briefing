@@ -3,6 +3,7 @@ import { functionErrorDetails, functionErrorMessage, isFunctionMissing } from '.
 import type { AppSettings } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
 import type { KanbanCard } from '../types/kanban.types'
+import { cardToRow, rowToCard, type KanbanCardRow } from './kanbanRows'
 
 // ─── Settings ───────────────────────────────────────────────
 
@@ -98,85 +99,6 @@ export async function fetchBriefs(teamId: string): Promise<BriefPayload[]> {
 }
 
 // ─── Kanban Cards ───────────────────────────────────────────
-
-interface KanbanCardRow {
-  id: string
-  team_id: string
-  brief_id: string
-  email_name: string
-  email_type: string
-  theme: string
-  subject_line: string
-  region: string[]
-  channel: string[]
-  client_group: string[]
-  send_date: string | null
-  content_approval_date: string | null
-  urgency: string
-  column: string
-  submitted_at: string
-  column_history: Array<{ column: string; at: string }>
-  notes: string
-  tags: string
-  // Campaign Planner extension columns (optional — added via migration)
-  assignee?: string | null
-  start_date?: string | null
-  progress?: number | null
-  comments?: Array<{ id: string; authorId: string; authorName: string; text: string; createdAt: string }> | null
-}
-
-function rowToCard(row: KanbanCardRow): KanbanCard {
-  return {
-    id: row.id,
-    briefId: row.brief_id,
-    emailName: row.email_name,
-    emailType: row.email_type,
-    theme: row.theme,
-    subjectLine: row.subject_line,
-    region: row.region ?? [],
-    channel: row.channel ?? [],
-    clientGroup: row.client_group ?? [],
-    sendDate: row.send_date ?? '',
-    contentApprovalDate: row.content_approval_date ?? '',
-    urgency: row.urgency as 'standard' | 'urgent',
-    column: row.column as KanbanCard['column'],
-    submittedAt: row.submitted_at,
-    columnHistory: (row.column_history ?? []) as KanbanCard['columnHistory'],
-    notes: row.notes ?? '',
-    tags: row.tags ?? '',
-    assignee: row.assignee ?? undefined,
-    startDate: row.start_date ?? undefined,
-    progress: row.progress ?? undefined,
-    comments: (row.comments ?? []) as KanbanCard['comments'],
-  }
-}
-
-function cardToRow(card: KanbanCard, teamId: string): Record<string, unknown> {
-  return {
-    id: card.id,
-    team_id: teamId,
-    brief_id: card.briefId,
-    email_name: card.emailName,
-    email_type: card.emailType,
-    theme: card.theme,
-    subject_line: card.subjectLine,
-    region: card.region,
-    channel: card.channel,
-    client_group: card.clientGroup,
-    send_date: card.sendDate || null,
-    content_approval_date: card.contentApprovalDate || null,
-    urgency: card.urgency,
-    column: card.column,
-    submitted_at: card.submittedAt,
-    column_history: card.columnHistory,
-    notes: card.notes,
-    tags: card.tags,
-    assignee: card.assignee ?? null,
-    start_date: card.startDate ?? null,
-    progress: card.progress ?? null,
-    comments: card.comments ?? [],
-  }
-}
 
 export async function fetchKanbanCards(teamId: string): Promise<KanbanCard[]> {
   const { data, error } = await supabase
