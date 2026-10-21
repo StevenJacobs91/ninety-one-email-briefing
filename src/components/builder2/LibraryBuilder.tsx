@@ -5,7 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
-  addModule, duplicateModule, isLocked, moveModule, removeModule, setImage, setRegion, setRepeat, setTheme, swapModule,
+  addModule, duplicateModule, isLocked, moveModule, removeModule, setImage, setRegion, setRepeat, setStyle, clearStyle, setTheme, swapModule,
   type BuildModule, type EmailBuild,
 } from '../../lib/moduleEngine/build'
 import { describeModule } from '../../lib/moduleEngine/describe'
@@ -260,6 +260,8 @@ export function LibraryBuilder() {
             onRegion={(key, patch) => onRegion(selected, key, patch)}
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
             onImage={(key, src) => commit(setImage(build, selected.instanceId, key, { src }))}
+            onStyle={(key, patch) => commit(setStyle(build, selected.instanceId, key, patch))}
+            onClearStyle={(key) => commit(clearStyle(build, selected.instanceId, key))}
             onHeaderType={(id) => setValue('assets.headerType', id, { shouldDirty: true })}
             greeting={{
               options: greetings.map((g) => ({ id: g.id, label: g.label, value: g.value })),

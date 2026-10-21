@@ -102,3 +102,65 @@ test('a region patched as removed is taken out of the module', () => {
   assert.ok(!html.includes('Broker_Preferred_Name'))
   assert.ok(html.includes('Recipient.FirstName'))
 })
+
+import { richToParagraphs } from './regions.ts'
+
+test('text with no line break is one paragraph', () => {
+  assert.deepEqual(richToParagraphs('Just one paragraph.'), ['Just one paragraph.'])
+})
+
+test('a line break, a blank line or a new editor line each start a new paragraph', () => {
+  assert.deepEqual(richToParagraphs('One<br>Two'), ['One', 'Two'])
+  assert.deepEqual(richToParagraphs('One\n\nTwo'), ['One', 'Two'])
+  assert.deepEqual(richToParagraphs('One<div>Two</div><div><br></div><div>Three</div>'), ['One', 'Two', 'Three'])
+  assert.deepEqual(richToParagraphs('<p>One</p><p>Two</p>'), ['One', 'Two'])
+})
+
+test('blank lines do not make empty paragraphs', () => {
+  assert.deepEqual(richToParagraphs('<br><br>One<br><br><br>Two<br>'), ['One', 'Two'])
+  assert.deepEqual(richToParagraphs('   '), [''])
+  assert.deepEqual(richToParagraphs(''), [''])
+})
+
+test('formatting that spans a break is closed and reopened so both paragraphs keep it', () => {
+  assert.deepEqual(richToParagraphs('<b>One<br>Two</b>'), ['<b>One</b>', '<b>Two</b>'])
+  assert.deepEqual(
+    richToParagraphs('<span style="color:red">a <a href="https://x.test">link<br>more</a></span>'),
+    ['<span style="color:red">a <a href="https://x.test">link</a></span>', '<span style="color:red"><a href="https://x.test">more</a></span>'],
+  )
+})
+
+test('editing a rich region with several paragraphs produces separate <p> elements, not one block with breaks', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'First paragraph.<br><br>Second paragraph.<div>Third.</div>' } })
+  const html = moduleHtml(d)
+  const paras = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map((m) => m[1])
+  assert.deepEqual(paras, ['First paragraph.', 'Second paragraph.', 'Third.'])
+  assert.ok(!/<br/i.test(html.replace(/<!--[\s\S]*?-->/g, '')))
+})
+
+test('every paragraph keeps the region styling and only the first keeps the region marker', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'A<br>B<br>C' } })
+  const ps = [...moduleHtml(d).matchAll(/<p\b([^>]*)>/g)].map((m) => m[1])
+  assert.equal(ps.length, 3)
+  assert.ok(ps.every((a) => /font-size|style=/.test(a) || a.includes('style=')))
+  assert.equal(ps.filter((a) => a.includes('pardot-region')).length, 1)
+})
+
+test('paragraphs are spaced apart, and the last one adds no extra space below', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'A<br>B<br>C' } })
+  const styles = [...moduleHtml(d).matchAll(/<p\b[^>]*style="([^"]*)"/g)].map((m) => m[1])
+  assert.match(styles[0], /margin-bottom:\s*16px/)
+  assert.match(styles[1], /margin-bottom:\s*16px/)
+  assert.ok(!/margin-bottom:\s*16px/.test(styles[2]))
+})
+
+test('regions are still found by their original keys after a region was split into paragraphs', () => {
+  const d = dom('Body Content')
+  applyRegions(d, { 'root.0': { value: 'A<br>B' } })
+  const fields = parseRegions(parseModuleDom(moduleHtml(d), parse))
+  assert.equal(fields.length, 1)
+  assert.equal(fields[0].key, 'root.0')
+})

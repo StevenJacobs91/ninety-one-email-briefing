@@ -40,3 +40,18 @@ test('describing with repeat counts reflects the resized module', () => {
   assert.equal(resized.repeats[0].units, 5)
   assert.ok(resized.fields.some((f) => f.label.startsWith('Item 5')))
 })
+
+test('a module lists the elements whose spacing and class can be changed, with their current values', () => {
+  const boxes = info('Body Content').boxes
+  assert.deepEqual(boxes.map((b) => b.key), ['container', 'root.0'])
+  const [container, text] = boxes
+  assert.equal(container.allowMargin, false)
+  assert.equal(container.read.padding.left, '40px')
+  assert.equal(container.read.class, 'stack-mobile-none darkmode')
+  assert.equal(text.allowMargin, true)
+  assert.equal(text.label, 'Text')
+})
+
+test('images are not offered spacing controls', () => {
+  assert.ok(info('3x Speakers').boxes.every((b) => !b.key.startsWith('root') || b.label !== 'Image'))
+})

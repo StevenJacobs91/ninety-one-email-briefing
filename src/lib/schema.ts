@@ -73,6 +73,7 @@ const buildModuleSchema = z.object({
   regions: z.record(z.object({ value: z.string().optional(), href: z.string().optional(), alt: z.string().optional(), removed: z.boolean().optional() })),
   images: z.record(z.object({ src: z.string().optional() })),
   boundFields: z.record(z.string()),
+  styles: z.record(z.object({ margin: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), padding: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), class: z.string().optional() })).optional(),
 })
 
 const emailBuildSchema = z.object({

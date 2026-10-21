@@ -1,3 +1,5 @@
+import { setStyleProp } from './inlineStyle'
+
 export type RegionKind = 'text' | 'rich' | 'button' | 'image'
 
 export interface RegionField {
@@ -122,15 +124,19 @@ function setText(el: Element, value: string): void {
   node.nodeValue = `${lead}${value}${trail}`
 }
 
-export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>, unitOf?: UnitLookup): void {
+/** Applies the saved values and returns, for each region key, the elements it now occupies (a split paragraph region has several). */
+export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>, unitOf?: UnitLookup): Map<string, Element[]> {
   const fields = parseRegions(dom, unitOf)
   const els = regionElements(dom)
+  const occupied = new Map<string, Element[]>()
   fields.forEach((field, i) => {
+    const el = els[i]
+    occupied.set(field.key, [el])
     const patch = values[field.key]
     if (!patch) return
-    const el = els[i]
     if (patch.removed) {
       el.parentNode?.removeChild(el)
+      occupied.set(field.key, [])
       return
     }
     if (field.kind === 'image') {
@@ -141,13 +147,14 @@ export function applyRegions(dom: ModuleDom, values: Record<string, RegionValue>
       return
     }
     if (field.kind === 'rich') {
-      if (patch.value !== undefined) el.innerHTML = sanitizeRich(patch.value)
+      if (patch.value !== undefined) occupied.set(field.key, setRichParagraphs(el, patch.value))
       return
     }
     const target = anchorOf(el) ?? el
     if (patch.value !== undefined) setText(target, patch.value)
     if (patch.href !== undefined && anchorOf(el)) anchorOf(el)!.setAttribute('href', patch.href)
   })
+  return occupied
 }
 
 const ALLOWED_TAGS = new Set(['a', 'b', 'strong', 'i', 'em', 'u', 'br', 'span', 'sup', 'sub'])
@@ -171,4 +178,89 @@ export function sanitizeRich(html: string): string {
     }
     return `<${tag}${kept.length ? ' ' + kept.join(' ') : ''}>`
   })
+}
+
+const VOID_TAGS = new Set(['br', 'img', 'hr'])
+
+/**
+ * Splits editor HTML into paragraphs: every line break (a <br>, a new line, or the start of a new editor
+ * block) begins a new paragraph and blank lines are dropped. Formatting that spans a break is closed
+ * and reopened, so each paragraph keeps it.
+ */
+export function richToParagraphs(html: string): string[] {
+  const paras: string[] = []
+  let current = ''
+  const stack: { name: string; raw: string }[] = []
+
+  const finish = () => {
+    const text = current.replace(/<[^>]*>/g, '').replace(/&nbsp;|\u00a0/g, ' ').trim()
+    if (text !== '') paras.push(current + [...stack].reverse().map((t) => `</${t.name}>`).join(''))
+    current = stack.map((t) => t.raw).join('')
+  }
+
+  for (const token of html.match(/<[^>]*>|[^<]+/g) ?? []) {
+    if (token[0] !== '<') {
+      token.split(/\r?\n/).forEach((part, i) => {
+        if (i > 0) finish()
+        current += part
+      })
+      continue
+    }
+    const m = token.match(/^<(\/?)([a-zA-Z][\w:-]*)/)
+    if (!m) {
+      current += token
+      continue
+    }
+    const closing = m[1] === '/'
+    const name = m[2].toLowerCase()
+    if (name === 'br' || name === 'div' || name === 'p') {
+      finish()
+      continue
+    }
+    if (VOID_TAGS.has(name) || /\/\s*>$/.test(token)) {
+      current += token
+      continue
+    }
+    if (closing) {
+      const at = stack.map((t) => t.name).lastIndexOf(name)
+      if (at >= 0) stack.splice(at)
+      current += token
+      continue
+    }
+    stack.push({ name, raw: token })
+    current += token
+  }
+  finish()
+  return paras.length > 0 ? paras : ['']
+}
+
+/** The space left under each paragraph except the last when a region is split into several. */
+export const PARAGRAPH_GAP_PX = 16
+
+function setRichParagraphs(el: Element, html: string): Element[] {
+  const paras = richToParagraphs(html).map(sanitizeRich)
+  const tag = el.tagName.toLowerCase()
+  // Only a <p> or <div> can be repeated as a sibling; anything else keeps its paragraphs as line breaks.
+  if (paras.length === 1 || (tag !== 'p' && tag !== 'div')) {
+    el.innerHTML = paras.join('<br>')
+    return [el]
+  }
+  el.innerHTML = paras[0]
+  const made: Element[] = [el]
+  let after: Element = el
+  for (const para of paras.slice(1)) {
+    const copy = el.cloneNode(false) as Element
+    copy.removeAttribute('pardot-region')
+    copy.innerHTML = para
+    after.parentNode?.insertBefore(copy, after.nextSibling)
+    made.push(copy)
+    after = copy
+  }
+  // Space the paragraphs apart; the last keeps the region's own spacing.
+  let p: Element | null = el
+  for (let i = 0; i < paras.length - 1 && p; i++) {
+    setStyleProp(p, 'margin-bottom', `${PARAGRAPH_GAP_PX}px`)
+    p = p.nextElementSibling
+  }
+  return made
 }

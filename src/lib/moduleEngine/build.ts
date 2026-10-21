@@ -1,4 +1,5 @@
 import type { RegionValue } from './regions'
+import type { BoxStyle } from './boxModel'
 
 export type Slot = 'header' | 'body' | 'disclaimer' | 'footer'
 
@@ -10,6 +11,8 @@ export interface BuildModule {
   regions: Record<string, RegionValue>
   images: Record<string, { src?: string }>
   boundFields: Record<string, string>
+  /** Spacing and class overrides, keyed by 'container' (the module's outer cell) or a region key. */
+  styles?: Record<string, BoxStyle>
 }
 
 export interface EmailBuild {
@@ -78,6 +81,7 @@ export function duplicateModule(b: EmailBuild, instanceId: string): EmailBuild {
     repeats: { ...m.repeats },
     images: { ...m.images },
     boundFields: {},
+    ...(m.styles ? { styles: { ...m.styles } } : {}),
   }
   return { ...b, modules: insertAt(b.modules, copy, i + 1) }
 }
@@ -92,7 +96,9 @@ export function swapModule(b: EmailBuild, instanceId: string, moduleName: string
       // Values bound to the brief belong to the old module's keys; drop them.
       const regions = { ...m.regions }
       for (const key of Object.keys(m.boundFields)) delete regions[key]
-      return { ...m, moduleName, regions, boundFields: {}, repeats: {}, images: {} }
+      // Overrides belong to the old module's elements too.
+      const { styles: _gone, ...rest } = m
+      return { ...rest, moduleName, regions, boundFields: {}, repeats: {}, images: {} }
     }),
   }
 }
@@ -111,6 +117,29 @@ export function setRegion(
     if (bind) boundFields[key] = bind
     else delete boundFields[key]
     return { ...m, regions: { ...m.regions, [key]: { ...m.regions[key], ...patch } }, boundFields }
+  })
+}
+
+/** Merges a spacing / class override for one element ('container' or a region key). */
+export function setStyle(b: EmailBuild, instanceId: string, key: string, patch: BoxStyle): EmailBuild {
+  return update(b, instanceId, (m) => {
+    const cur = m.styles?.[key] ?? {}
+    const next: BoxStyle = {
+      ...cur,
+      ...(patch.class !== undefined ? { class: patch.class } : {}),
+      ...(patch.margin ? { margin: { ...cur.margin, ...patch.margin } } : {}),
+      ...(patch.padding ? { padding: { ...cur.padding, ...patch.padding } } : {}),
+    }
+    return { ...m, styles: { ...m.styles, [key]: next } }
+  })
+}
+
+/** Drops every override on one element, back to the library design. */
+export function clearStyle(b: EmailBuild, instanceId: string, key: string): EmailBuild {
+  return update(b, instanceId, (m) => {
+    if (!m.styles?.[key]) return m
+    const { [key]: _removed, ...rest } = m.styles
+    return { ...m, styles: Object.keys(rest).length > 0 ? rest : undefined }
   })
 }
 

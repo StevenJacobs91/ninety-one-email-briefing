@@ -1,6 +1,7 @@
 import type { ThemeCatalogue } from './catalogue'
 import type { EmailBuild } from './build'
 import { parseModuleDom, parseRegions, applyRegions, moduleHtml, type ParseDoc } from './regions'
+import { applyBoxStyles } from './boxModel'
 import { findRepeats, resizeRepeat } from './repeats'
 
 export interface ThemeAssets {
@@ -48,9 +49,10 @@ export function renderBuild(
     const hasRepeats = Object.keys(m.repeats).length > 0
     const hasRegions = Object.keys(m.regions).length > 0
     const hasImages = Object.keys(m.images).length > 0
+    const hasStyles = Object.keys(m.styles ?? {}).length > 0
     let html = original
 
-    if (hasRepeats || hasRegions) {
+    if (hasRepeats || hasRegions || hasStyles) {
       const dom = parseModuleDom(original, opts.parse)
       for (const [group, count] of Object.entries(m.repeats)) resizeRepeat(dom, group, count)
       const { unitOf } = findRepeats(dom)
@@ -58,7 +60,8 @@ export function renderBuild(
       for (const key of Object.keys(m.regions)) {
         if (!known.has(key)) report.droppedKeys.push({ instanceId: m.instanceId, key })
       }
-      applyRegions(dom, m.regions, unitOf)
+      const regionEls = applyRegions(dom, m.regions, unitOf)
+      if (m.styles) applyBoxStyles(dom, m.styles, regionEls)
       html = moduleHtml(dom)
     }
 

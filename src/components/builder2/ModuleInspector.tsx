@@ -4,6 +4,8 @@ import type { RegionValue } from '../../lib/moduleEngine/regions'
 import { headerModuleFor } from '../../lib/moduleEngine/seed'
 import type { HeaderTypeConfig } from '../../types/settings.types'
 import { RegionEditor } from './RegionEditor'
+import { BoxModelEditor } from './BoxModelEditor'
+import type { BoxStyle } from '../../lib/moduleEngine/boxModel'
 import { HeroImagePicker } from './HeroImagePicker'
 
 interface Props {
@@ -15,6 +17,8 @@ interface Props {
   onRegion: (key: string, patch: RegionValue) => void
   onRepeat: (group: string, count: number) => void
   onImage: (key: string, src: string) => void
+  onStyle: (key: string, patch: BoxStyle) => void
+  onClearStyle: (key: string) => void
   onHeaderType: (id: string) => void
   /** Background image for header types that require one (replaces the plain placeholder-image field). */
   hero?: React.ComponentProps<typeof HeroImagePicker>
@@ -24,7 +28,7 @@ interface Props {
 }
 
 export function ModuleInspector({
-  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onHeaderType, hero, greeting, onClose,
+  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onStyle, onClearStyle, onHeaderType, hero, greeting, onClose,
 }: Props) {
   const editable = info.fields.filter((f) => !f.locked)
   const lockedCount = info.fields.length - editable.length
@@ -114,8 +118,10 @@ export function ModuleInspector({
         ))}
 
         {!hasContent && lockedCount === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">This module has no editable content; it is used as designed.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">This module has no editable text or images; it is used as designed.</p>
         )}
+
+        <BoxModelEditor key={m.instanceId} boxes={info.boxes} styles={m.styles ?? {}} onStyle={onStyle} onClear={onClearStyle} />
       </div>
     </aside>
   )

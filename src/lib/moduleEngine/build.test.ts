@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   newModule, addModule, removeModule, moveModule, duplicateModule, swapModule,
-  setRegion, setRepeat, setImage, setTheme, type EmailBuild,
+  setRegion, setRepeat, setImage, setTheme, setStyle, type EmailBuild,
 } from './build.ts'
 import { renderBuild } from './render.ts'
 import type { ThemeCatalogue } from './catalogue.ts'
@@ -142,4 +142,49 @@ test('settings assets override the library logo, stripe and footer logo', () => 
   assert.ok(out.html.includes('https://s.example/logo.png'))
   assert.ok(out.html.includes('https://s.example/stripe.png'))
   assert.ok(out.html.includes('https://s.example/footer.png'))
+})
+
+test('setStyle records a spacing or class override against an element and merges later edits', () => {
+  const start = base()
+  const id = start.modules[1].instanceId
+  let b = setStyle(start, id, 'container', { padding: { top: '10px' } })
+  b = setStyle(b, id, 'container', { padding: { left: '5px' }, class: 'x' })
+  assert.deepEqual(b.modules[1].styles?.container, { padding: { top: '10px', left: '5px' }, class: 'x' })
+})
+
+test('duplicating a module carries its overrides and swapping it starts fresh', () => {
+  const start = base()
+  const id = start.modules[1].instanceId
+  const styled = setStyle(start, id, 'container', { padding: { top: '10px' } })
+  const dup = duplicateModule(styled, id)
+  assert.deepEqual(dup.modules[2].styles?.container, { padding: { top: '10px' } })
+  const swapped = swapModule(styled, id, 'Greeting')
+  assert.equal(swapped.modules[1].styles, undefined)
+})
+
+test('a padding override on the module container is rendered, and other modules are untouched', () => {
+  const start = base()
+  const b = setStyle(start, start.modules[1].instanceId, 'container', { padding: { top: '12px', bottom: '48' } })
+  const out = renderBuild(b, cat, { parse })
+  assert.match(out.html, /padding: 12px 40px 48px 40px/)
+  const plain = renderBuild(start, cat, { parse })
+  assert.ok(plain.html.includes('padding: 0px 40px 30px 40px'))
+})
+
+test('a margin and class override on a text region apply to every paragraph it was split into', () => {
+  const start = base()
+  let b = setRegion(start, start.modules[1].instanceId, 'root.0', { value: 'One<br>Two<br>Three' })
+  b = setStyle(b, b.modules[1].instanceId, 'root.0', { margin: { top: '8px' }, class: 'lead' })
+  const out = renderBuild(b, cat, { parse })
+  const ps = [...out.html.matchAll(/<p\b[^>]*margin:\s*8px[^>]*>/g)]
+  assert.equal(ps.length, 3)
+  assert.equal([...out.html.matchAll(/<p\b[^>]*class="lead"[^>]*>/g)].length, 3)
+})
+
+test('an override for an element the module does not have is ignored', () => {
+  const start = base()
+  const b = setStyle(start, start.modules[1].instanceId, 'root.9', { padding: { top: '99px' } })
+  const out = renderBuild(b, cat, { parse })
+  assert.ok(!out.html.includes('padding: 99px'))
+  assert.equal(out.html, renderBuild(start, cat, { parse }).html)
 })
