@@ -4,7 +4,7 @@ Scores a subject line 0 to 100% across Length, Wording and Scannability, and pre
 desktop and a mobile inbox. Runs entirely in the browser; nothing is sent anywhere (phases 1 to 4).
 
 - Standalone page: `/?tool=subject-line-tester`
-- Embedded: a score pill under Subject Line on the Campaign tab (`SubjectLineScore`), opening the full tester pre-filled.
+- Embedded: an inline score panel at the bottom of the Message Envelope section on the Campaign tab (`SubjectLineScore`): the score bar, the three most important issues (critical first) with their fixes, and a "See full tester" button that opens the full tester pre-filled.
 - Public surface: `index.ts` only. Nothing else in the app imports from the feature's internals.
 - Tests: `npm run test:features` (Vitest, `*.spec.ts(x)`); `npm run test:coverage` for the engine's coverage. The older suites still use `npm test`.
 
