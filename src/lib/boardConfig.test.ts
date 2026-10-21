@@ -140,3 +140,33 @@ test('attachments are a card field, shown by default, laid out as footer text', 
   assert.equal(f.kind, 'meta')
   assert.equal(f.defaultOn, true)
 })
+
+import { resolveListColumns, toggleListColumn } from './boardConfig.ts'
+
+const AVAILABLE = ['column', 'urgency', 'emailType', 'region', 'channel', 'tags']
+
+test('with nothing chosen by the viewer the configured columns are shown in the configured order', () => {
+  assert.deepEqual(resolveListColumns(AVAILABLE, ['column', 'region', 'channel'], undefined, undefined), ['column', 'region', 'channel'])
+})
+
+test('a viewer\'s own choice of columns replaces the configured set', () => {
+  assert.deepEqual(resolveListColumns(AVAILABLE, ['column', 'region'], ['column', 'tags', 'channel'], undefined), ['column', 'channel', 'tags'])
+})
+
+test('chosen columns follow the viewer\'s saved order, and unknown ids are dropped', () => {
+  assert.deepEqual(resolveListColumns(AVAILABLE, ['column'], ['column', 'region', 'tags', 'gone'], ['tags', 'column', 'region']), ['tags', 'column', 'region'])
+})
+
+test('a viewer can show no data columns at all', () => {
+  assert.deepEqual(resolveListColumns(AVAILABLE, ['column', 'region'], [], undefined), [])
+})
+
+test('a choice made of columns that no longer exist falls back to the configured set', () => {
+  assert.deepEqual(resolveListColumns(AVAILABLE, ['column', 'region'], ['gone', 'also-gone'], undefined), ['column', 'region'])
+})
+
+test('turning a column off removes it and turning it on adds it, keeping the others where they are', () => {
+  const shown = ['column', 'region', 'channel']
+  assert.deepEqual(toggleListColumn(shown, 'region'), ['column', 'channel'])
+  assert.deepEqual(toggleListColumn(shown, 'tags'), ['column', 'region', 'channel', 'tags'])
+})

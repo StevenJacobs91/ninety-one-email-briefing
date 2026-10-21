@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -7,7 +7,7 @@ import { useApprovals } from '../../contexts/ApprovalsContext'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
 import { CardDetailDrawer } from './CardDetailDrawer'
 import { sendStatus as getSendStatusFor, ageInColumn, formatBoardDate } from '../../lib/boardFormat'
-import { applyColumnOrder, fieldsForSurface, moveColumn, resolveBoardSettings } from '../../lib/boardConfig'
+import { CARD_FIELDS, fieldsForSurface, moveColumn, resolveBoardSettings, resolveListColumns, toggleListColumn } from '../../lib/boardConfig'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,11 +142,18 @@ function SendStatusBadge({ sendDate, column }: { sendDate: string; column?: stri
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const COLUMN_ORDER_KEY = 'ni-board-list-columns'
+// One definition of a cell's padding and alignment, used by headings and cells alike, so a column's heading and its
+// values always start at the same left edge.
+const CELL = 'px-4 py-3 text-left align-middle'
+const STICKY_HEAD = 'sticky left-0 z-20 bg-gray-50 dark:bg-gray-800 border-r border-brand-border-warm dark:border-gray-700'
+const STICKY_CELL = 'sticky left-0 z-10 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800'
 
-function loadColumnOrder(): string[] | undefined {
+const COLUMN_ORDER_KEY = 'ni-board-list-columns'
+const COLUMN_VISIBLE_KEY = 'ni-board-list-visible'
+
+function loadColumnOrder(key: string = COLUMN_ORDER_KEY): string[] | undefined {
   try {
-    const raw = localStorage.getItem(COLUMN_ORDER_KEY)
+    const raw = localStorage.getItem(key)
     const parsed: unknown = raw ? JSON.parse(raw) : undefined
     return Array.isArray(parsed) && parsed.every((x) => typeof x === 'string') ? parsed : undefined
   } catch {
@@ -160,7 +167,11 @@ export function BoardListView() {
   const { getApprovalStatusForBrief } = useApprovals()
   const columns = fieldsForSurface(resolveBoardSettings(settings.campaignPlanner), 'list')
   // Each person can drag the columns into the order they like; it is remembered in this browser.
-  const [savedOrder, setSavedOrder] = useState<string[] | undefined>(loadColumnOrder)
+  const [savedOrder, setSavedOrder] = useState<string[] | undefined>(() => loadColumnOrder())
+  // ...and which columns to show, on top of what Settings configures.
+  const [savedVisible, setSavedVisible] = useState<string[] | undefined>(() => loadColumnOrder(COLUMN_VISIBLE_KEY))
+  const [columnsOpen, setColumnsOpen] = useState(false)
+  const columnsMenu = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
   const [dropOver, setDropOver] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('sendDate')
@@ -291,9 +302,39 @@ export function BoardListView() {
     comments: { header: 'Comments', sort: 'comments', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{c.comments?.length ?? 0}</span> },
     submittedAt: { header: 'Submitted', sort: 'submittedAt', nowrap: true, cell: (c) => <span className="text-xs text-gray-500 dark:text-gray-400">{formatBoardDate(c.submittedAt)}</span> },
   }
+  const available = ['column', ...CARD_FIELDS.map((f) => f.id).filter((id) => COLUMN_DEFS[id])]
   const configured = ['column', ...columns.filter((id) => COLUMN_DEFS[id] && id !== 'column')]
-  const shownColumns = applyColumnOrder(configured, savedOrder)
-  const customOrder = shownColumns.some((id, i) => id !== configured[i])
+  const shownColumns = resolveListColumns(available, configured, savedVisible, savedOrder)
+  const customised = savedVisible !== undefined || shownColumns.some((id, i) => id !== configured[i]) || shownColumns.length !== configured.length
+
+  function saveVisible(next: string[] | undefined) {
+    setSavedVisible(next)
+    try {
+      if (next) localStorage.setItem(COLUMN_VISIBLE_KEY, JSON.stringify(next))
+      else localStorage.removeItem(COLUMN_VISIBLE_KEY)
+    } catch { /* the choice just is not remembered */ }
+  }
+
+  function toggleColumn(id: string) {
+    const next = toggleListColumn(shownColumns, id, available)
+    saveVisible(next)
+    saveOrder(next)
+  }
+
+  function resetColumns() {
+    saveVisible(undefined)
+    saveOrder(undefined)
+  }
+
+  // The column picker closes on Escape or a click elsewhere.
+  useEffect(() => {
+    if (!columnsOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setColumnsOpen(false) }
+    const onClick = (e: MouseEvent) => { if (!columnsMenu.current?.contains(e.target as Node)) setColumnsOpen(false) }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onClick)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick) }
+  }, [columnsOpen])
 
   function saveOrder(next: string[] | undefined) {
     setSavedOrder(next)
@@ -335,7 +376,7 @@ export function BoardListView() {
           shift(id, e.key === 'ArrowLeft' ? -1 : 1)
         }}
         onClick={def.sort ? () => handleSort(def.sort!) : undefined}
-        className={`px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap select-none transition-colors cursor-grab active:cursor-grabbing hover:text-brand-primary dark:hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${dropOver === id ? 'bg-brand-accent/20 shadow-[inset_3px_0_0_0_var(--tw-shadow-color)] shadow-brand-primary' : ''}`}
+        className={`${CELL} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap select-none transition-colors cursor-grab active:cursor-grabbing hover:text-brand-primary dark:hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${dropOver === id ? 'bg-brand-accent/20 shadow-[inset_3px_0_0_0_var(--tw-shadow-color)] shadow-brand-primary' : ''}`}
       >
         {def.header}
         {def.sort && <SortIcon field={def.sort} active={sortField} dir={sortDir} />}
@@ -346,7 +387,7 @@ export function BoardListView() {
   function Th({ field, children }: { field: SortField; children: React.ReactNode }) {
     return (
       <th
-        className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-brand-primary dark:hover:text-brand-accent select-none transition-colors"
+        className={`${CELL} ${STICKY_HEAD} min-w-[220px] text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-brand-primary dark:hover:text-brand-accent select-none transition-colors`}
         onClick={() => handleSort(field)}
       >
         {children}
@@ -395,6 +436,38 @@ export function BoardListView() {
             )}
           </button>
 
+          {/* Columns picker */}
+          <div className="relative" ref={columnsMenu}>
+            <button
+              type="button"
+              aria-expanded={columnsOpen}
+              aria-haspopup="true"
+              onClick={() => setColumnsOpen((o) => !o)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                columnsOpen ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-900 border-brand-border-warm dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" />
+              </svg>
+              Columns
+            </button>
+            {columnsOpen && (
+              <div role="group" aria-label="Show columns" className="absolute left-0 top-full mt-2 z-30 w-64 max-h-80 overflow-y-auto rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
+                <p className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Show columns</p>
+                {available.map((id) => (
+                  <label key={id} className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
+                    <input type="checkbox" className="w-4 h-4 accent-brand-primary" checked={shownColumns.includes(id)} onChange={() => toggleColumn(id)} />
+                    {COLUMN_DEFS[id].header}
+                  </label>
+                ))}
+                {customised && (
+                  <button type="button" onClick={resetColumns} className="mt-1 w-full text-left px-2 py-1.5 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset to configured columns</button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Clear */}
           {activeFilterCount > 0 && (
             <button
@@ -408,8 +481,8 @@ export function BoardListView() {
 
           {/* Result count */}
           <p className="ml-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-            {customOrder && (
-              <button type="button" onClick={() => saveOrder(undefined)} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset column order</button>
+            {customised && (
+              <button type="button" onClick={resetColumns} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset columns</button>
             )}
             {visibleCards.length} of {cards.length} brief{cards.length !== 1 ? 's' : ''}
           </p>
@@ -520,7 +593,7 @@ export function BoardListView() {
       </div>
 
       {/* Table */}
-      <div className="px-6 pb-8 overflow-x-auto w-full">
+      <div className="px-6 pb-8 w-full">
         {visibleCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <svg className="text-gray-300 dark:text-gray-600 mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -534,13 +607,13 @@ export function BoardListView() {
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-xl overflow-hidden">
-            <table className="w-full text-sm border-collapse">
+          <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-xl overflow-x-auto">
+            <table className="w-full min-w-max text-sm border-collapse">
               <thead>
                 <tr className="border-b border-brand-border-warm dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
                   <Th field="emailName">Email Name</Th>
                   {shownColumns.map((id) => columnTh(id))}
-                  <th className="px-3 py-3 text-left text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className={`${CELL} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
                     Actions
                   </th>
                 </tr>
@@ -557,7 +630,7 @@ export function BoardListView() {
                       className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
                     >
                       {/* Email name */}
-                      <td className="px-3 py-3 max-w-[200px]">
+                      <td className={`${CELL} ${STICKY_CELL} min-w-[220px] max-w-[260px]`}>
                         <button
                           type="button"
                           onClick={() => setSelectedCard(card)}
@@ -574,11 +647,11 @@ export function BoardListView() {
                       </td>
 
                       {shownColumns.map((id) => (
-                        <td key={id} className={`px-3 py-3 ${COLUMN_DEFS[id].nowrap ? 'whitespace-nowrap' : ''}`}>{COLUMN_DEFS[id].cell(card)}</td>
+                        <td key={id} className={`${CELL} ${COLUMN_DEFS[id].nowrap ? 'whitespace-nowrap' : ''}`}>{COLUMN_DEFS[id].cell(card)}</td>
                       ))}
 
                       {/* Actions */}
-                      <td className="px-3 py-3 whitespace-nowrap">
+                      <td className={`${CELL} whitespace-nowrap`}>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {prevCol && (
                             <button

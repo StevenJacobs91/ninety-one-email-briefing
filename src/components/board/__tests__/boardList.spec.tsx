@@ -113,14 +113,101 @@ describe('BoardListView', () => {
     expect(headers()).toEqual(['Email Name', 'Region', 'Stage', 'Channel', 'Actions'])
   })
 
-  it('can put the columns back in the configured order', async () => {
+  it('can put the columns back as configured', async () => {
     const user = userEvent.setup()
     render(<BoardListView />)
-    expect(screen.queryByRole('button', { name: 'Reset column order' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Reset columns' })).toBeNull()
     fireEvent.dragStart(header('Channel'))
     fireEvent.drop(header('Stage'))
-    await user.click(screen.getByRole('button', { name: 'Reset column order' }))
+    await user.click(screen.getByRole('button', { name: 'Reset columns' }))
     expect(headers()).toEqual(['Email Name', 'Stage', 'Region', 'Channel', 'Actions'])
     expect(localStorage.getItem(KEY)).toBeNull()
+  })
+})
+
+describe('BoardListView columns picker, scrolling and alignment', () => {
+  const VIS = 'ni-board-list-visible'
+  const open = async (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Columns' }))
+  const box = () => screen.getByRole('group', { name: 'Show columns' })
+
+  it('offers every column with the shown ones ticked', async () => {
+    const user = userEvent.setup()
+    render(<BoardListView />)
+    expect(screen.queryByRole('group', { name: 'Show columns' })).toBeNull()
+    await open(user)
+    expect((within(box()).getByRole('checkbox', { name: 'Region' }) as HTMLInputElement).checked).toBe(true)
+    expect((within(box()).getByRole('checkbox', { name: 'Channel' }) as HTMLInputElement).checked).toBe(true)
+    expect((within(box()).getByRole('checkbox', { name: 'Tags' }) as HTMLInputElement).checked).toBe(false)
+    expect(within(box()).getByRole('checkbox', { name: 'Attachments' })).toBeTruthy()
+  })
+
+  it('removes a column, with its cells, when it is unticked', async () => {
+    const user = userEvent.setup()
+    render(<BoardListView />)
+    await open(user)
+    await user.click(within(box()).getByRole('checkbox', { name: 'Region' }))
+    expect(headers()).toEqual(['Email Name', 'Stage', 'Channel', 'Actions'])
+    const cells = within(screen.getAllByRole('row')[1]).getAllByRole('cell').map((c) => c.textContent?.trim())
+    expect(cells).not.toContain('South Africa')
+  })
+
+  it('adds a column when it is ticked, next to where it belongs', async () => {
+    const user = userEvent.setup()
+    state.cards = [card({ tags: 'quarterly' })]
+    render(<BoardListView />)
+    await open(user)
+    await user.click(within(box()).getByRole('checkbox', { name: 'Tags' }))
+    expect(headers()).toEqual(['Email Name', 'Stage', 'Region', 'Channel', 'Tags', 'Actions'])
+    expect(screen.getByText('quarterly')).toBeTruthy()
+  })
+
+  it('remembers the choice, and restores the configured columns on reset', async () => {
+    const user = userEvent.setup()
+    const first = render(<BoardListView />)
+    await open(user)
+    await user.click(within(box()).getByRole('checkbox', { name: 'Region' }))
+    expect(JSON.parse(localStorage.getItem(VIS)!)).toEqual(['column', 'channel'])
+    first.unmount()
+    render(<BoardListView />)
+    expect(headers()).toEqual(['Email Name', 'Stage', 'Channel', 'Actions'])
+    await user.click(screen.getByRole('button', { name: 'Reset columns' }))
+    expect(headers()).toEqual(['Email Name', 'Stage', 'Region', 'Channel', 'Actions'])
+    expect(localStorage.getItem(VIS)).toBeNull()
+  })
+
+  it('closes the picker with Escape', async () => {
+    const user = userEvent.setup()
+    render(<BoardListView />)
+    await open(user)
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('group', { name: 'Show columns' })).toBeNull()
+  })
+
+  it('scrolls sideways when there are more columns than fit, instead of clipping them', () => {
+    const { container } = render(<BoardListView />)
+    const table = container.querySelector('table')!
+    const scroller = table.parentElement!
+    expect(scroller.className).toMatch(/overflow-x-auto/)
+    expect(scroller.className).not.toMatch(/overflow-hidden/)
+    expect(table.className).toMatch(/min-w-max/)
+  })
+
+  it('gives every heading and its cells the same padding and left alignment', () => {
+    const { container } = render(<BoardListView />)
+    const ths = Array.from(container.querySelectorAll('thead th'))
+    const row = Array.from(container.querySelectorAll('tbody tr:first-child td'))
+    expect(ths.length).toBe(row.length)
+    ths.forEach((th, i) => {
+      for (const cls of ['px-4', 'text-left']) {
+        expect(th.className, `heading ${i}`).toContain(cls)
+        expect(row[i].className, `cell ${i}`).toContain(cls)
+      }
+    })
+  })
+
+  it('keeps the email name in view while the other columns scroll', () => {
+    const { container } = render(<BoardListView />)
+    expect(container.querySelector('thead th')!.className).toMatch(/sticky/)
+    expect(container.querySelector('tbody tr td')!.className).toMatch(/sticky/)
   })
 })

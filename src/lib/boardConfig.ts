@@ -196,3 +196,32 @@ export function moveColumn(order: readonly string[], from: string, to: string): 
   next.splice(j, 0, from)
   return next
 }
+
+/**
+ * The list columns to show: the viewer's own choice if they have made one (a choice of nothing is respected, a
+ * choice of columns that no longer exist is not), otherwise the configured set; in the viewer's saved order.
+ */
+export function resolveListColumns(
+  available: readonly string[],
+  configured: readonly string[],
+  savedVisible: readonly string[] | undefined,
+  savedOrder: readonly string[] | undefined,
+): string[] {
+  const valid = savedVisible?.filter((id) => available.includes(id)) ?? []
+  const visible =
+    savedVisible === undefined || (savedVisible.length > 0 && valid.length === 0)
+      ? [...configured]
+      : available.filter((id) => valid.includes(id))
+  return applyColumnOrder(visible, savedOrder)
+}
+
+/** Turns a column off, or on: a new column goes after the nearest column that precedes it by default. */
+export function toggleListColumn(shown: readonly string[], id: string, available?: readonly string[]): string[] {
+  if (shown.includes(id)) return shown.filter((c) => c !== id)
+  const next = [...shown]
+  const at = available ? available.indexOf(id) : -1
+  const before = at > 0 ? available!.slice(0, at).reverse().find((c) => shown.includes(c)) : undefined
+  if (available && at >= 0) next.splice(before === undefined ? 0 : next.indexOf(before) + 1, 0, id)
+  else next.push(id)
+  return next
+}
