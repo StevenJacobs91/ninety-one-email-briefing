@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { KanbanCard } from '../../../types/kanban.types'
 
@@ -16,8 +17,11 @@ vi.mock('../../approvals/ApprovalStatusBadge', () => ({ ApprovalStatusBadge: () 
 vi.mock('../../approvals/ApprovalHistoryTimeline', () => ({ ApprovalHistoryTimeline: () => null }))
 vi.mock('../../approvals/SubmitForApprovalModal', () => ({ SubmitForApprovalModal: () => null }))
 vi.mock('../../../lib/approvalsService', () => ({ fetchBriefById: vi.fn() }))
+const email = vi.hoisted(() => ({ useCardEmail: vi.fn(), downloadHtml: vi.fn() }))
+vi.mock('../useCardEmail', () => ({ useCardEmail: email.useCardEmail }))
+vi.mock('../../../lib/downloadHtml', () => ({ downloadHtml: email.downloadHtml }))
 vi.mock('../CardEmailPreview', () => ({
-  CardEmailPreview: ({ briefId, emailName }: { briefId: string; emailName: string }) => <div data-testid="preview" data-brief={briefId} data-name={emailName} />,
+  CardEmailPreview: ({ email: e, title }: { email: { status: string }; title: string }) => <div data-testid="preview" data-status={e.status} data-title={title} />,
 }))
 
 import { CardDetailDrawer } from '../CardDetailDrawer'
@@ -34,15 +38,19 @@ const screenIs = (wide: boolean) => {
   })) as unknown as typeof window.matchMedia
 }
 
-beforeEach(() => screenIs(true))
+beforeEach(() => {
+  screenIs(true)
+  email.useCardEmail.mockReset().mockReturnValue({ status: 'ready', html: '<html>THE EMAIL</html>' })
+  email.downloadHtml.mockReset()
+})
 afterEach(cleanup)
 
 describe('card drawer email preview', () => {
   it('on a wide screen the details widen to sit beside the email', () => {
     render(<CardDetailDrawer card={card} onClose={() => {}} />)
     const side = screen.getByRole('complementary', { name: 'Email preview' })
-    expect(within(side).getByTestId('preview').getAttribute('data-brief')).toBe('b1')
-    expect(within(side).getByTestId('preview').getAttribute('data-name')).toBe('Advisor Impact')
+    expect(within(side).getByTestId('preview').getAttribute('data-title')).toBe('Advisor Impact')
+    expect(email.useCardEmail).toHaveBeenCalledWith('b1')
     expect(screen.getAllByTestId('preview')).toHaveLength(1)
   })
 
@@ -67,5 +75,28 @@ describe('card drawer email preview', () => {
     render(<CardDetailDrawer card={card} onClose={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: /Brief detail: Advisor Impact/ })
     expect(within(dialog).getByRole('complementary', { name: 'Email preview' })).toBeTruthy()
+  })
+
+  it('offers to open the email in the configured editor from the preview header, on a wide screen', async () => {
+    const user = userEvent.setup()
+    render(<CardDetailDrawer card={card} onClose={() => {}} />)
+    const side = screen.getByRole('complementary', { name: 'Email preview' })
+    await user.click(within(side).getByRole('button', { name: 'Open in Dreamweaver' }))
+    expect(email.downloadHtml).toHaveBeenCalledWith('<html>THE EMAIL</html>', 'Advisor-Impact.html')
+  })
+
+  it('and from the stacked email section on a narrow screen', async () => {
+    screenIs(false)
+    const user = userEvent.setup()
+    render(<CardDetailDrawer card={card} onClose={() => {}} />)
+    const section = screen.getByRole('region', { name: 'Email preview' })
+    await user.click(within(section).getByRole('button', { name: 'Open in Dreamweaver' }))
+    expect(email.downloadHtml).toHaveBeenCalledTimes(1)
+  })
+
+  it('cannot open the editor until the email has been built', () => {
+    email.useCardEmail.mockReturnValue({ status: 'loading' })
+    render(<CardDetailDrawer card={card} onClose={() => {}} />)
+    expect((screen.getByRole('button', { name: 'Open in Dreamweaver' }) as HTMLButtonElement).disabled).toBe(true)
   })
 })

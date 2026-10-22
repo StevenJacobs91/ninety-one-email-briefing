@@ -20,6 +20,7 @@ vi.mock('../../approvals/ApprovalHistoryTimeline', () => ({ ApprovalHistoryTimel
 vi.mock('../../approvals/SubmitForApprovalModal', () => ({ SubmitForApprovalModal: () => null }))
 vi.mock('../../../lib/approvalsService', () => ({ fetchBriefById: vi.fn() }))
 vi.mock('../CardEmailPreview', () => ({ CardEmailPreview: () => null }))
+vi.mock('../useCardEmail', () => ({ useCardEmail: () => ({ status: 'loading' }) }))
 
 import { CardDetailDrawer } from '../CardDetailDrawer'
 

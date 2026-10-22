@@ -478,6 +478,8 @@ export interface AppSettings {
   designBriefing: DesignBriefingSettings
   // Campaign Planner
   campaignPlanner: CampaignPlannerSettings
+  /** The application the board's "Open in editor" button is set up for (see lib/emailEditor.ts). Unset means Dreamweaver. */
+  emailEditor?: { app: 'dreamweaver' | 'vscode' | 'other'; appName: string }
   /** Words and phrases the Subject Line Tester flags. Unset means the starting list shipped with the app. */
   spamWordList?: SpamWordEntry[]
 }

@@ -7,6 +7,9 @@ import { openStoredAttachment } from '../../lib/attachmentStorage'
 import { formatFileSize } from '../../lib/formatFileSize'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { CardEmailPreview } from './CardEmailPreview'
+import { useCardEmail } from './useCardEmail'
+import { OpenInEditor } from './OpenInEditor'
+import { safeFileName } from '../../lib/attachmentRules'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -65,6 +68,8 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
   const [fileError, setFileError] = useState('')
   // Wide enough for the details and the email side by side; otherwise the email sits inside the details.
   const wide = useMediaQuery('(min-width: 1180px)')
+  // Built once for whichever of the two places the email is shown, and for the open-in-editor button.
+  const email = useCardEmail(card.briefId)
   const [assignee, setAssignee] = useState(card.assignee ?? '')
   const [startDate, setStartDate] = useState(card.startDate ?? '')
   const [progress, setProgress] = useState(card.progress ?? 0)
@@ -154,6 +159,14 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
     >
       Open full size <span aria-hidden="true">↗</span>
     </a>
+  )
+
+  // The email's actions: open it in the chosen editor (see Settings → General), or full size in a new tab.
+  const emailActions = (onDark: boolean) => (
+    <div className="flex items-center gap-4">
+      <OpenInEditor email={email} fileName={`${safeFileName(card.emailName)}.html`} onDark={onDark} />
+      {fullSizeLink(onDark)}
+    </div>
   )
 
   const approvalStatus = getApprovalStatusForBrief(card.briefId)
@@ -252,10 +265,10 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
                 <section aria-label="Email preview">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email preview</p>
-                    {fullSizeLink(false)}
+                    {emailActions(false)}
                   </div>
                   <div className="max-h-[480px] overflow-y-auto border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                    <CardEmailPreview briefId={card.briefId} emailName={card.emailName} />
+                    <CardEmailPreview email={email} title={card.emailName} />
                   </div>
                 </section>
                 <div className="h-px bg-gray-100 dark:bg-gray-800" />
@@ -620,10 +633,10 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
         <aside aria-label="Email preview" className="flex w-[min(680px,52vw)] flex-col border-l border-white/10 bg-gray-100 dark:bg-gray-950">
           <div className="flex shrink-0 items-center justify-between gap-3 bg-brand-primary px-5 py-3">
             <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading">Email preview</p>
-            {fullSizeLink(true)}
+            {emailActions(true)}
           </div>
           <div className="flex-1 overflow-y-auto">
-            <CardEmailPreview briefId={card.briefId} emailName={card.emailName} />
+            <CardEmailPreview email={email} title={card.emailName} />
           </div>
         </aside>
        )}

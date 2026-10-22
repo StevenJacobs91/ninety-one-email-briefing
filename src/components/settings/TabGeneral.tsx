@@ -3,6 +3,7 @@ import { EMAIL_TYPES, EMAIL_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/const
 import type { EmailType } from '../../lib/constants'
 import { VISIBILITY_OPTIONS, isShown } from '../../lib/uiVisibility'
 import { DEFAULT_SPAM_TERMS, SpamWordListEditor } from '../../features/subject-line-tester'
+import { EmailEditorSetting } from './EmailEditorSetting'
 
 export function TabGeneral() {
   const { settings, updateSettings } = useSettings()
@@ -207,7 +208,10 @@ export function TabGeneral() {
         />
       </section>
 
+      <hr className="border-gray-100 dark:border-gray-800" />
 
+      {/* The application a submitted email's HTML is opened in from the Campaign Board */}
+      <EmailEditorSetting />
     </div>
   )
 }
