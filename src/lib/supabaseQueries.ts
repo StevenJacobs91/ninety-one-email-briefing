@@ -50,16 +50,19 @@ export async function insertBrief(
   if (error) throw new Error(`Failed to save brief: ${error.message}`)
 }
 
-/** Saves the brief under its id: updates the existing record, or inserts the first one. */
+/**
+ * Saves the brief under its id: updates the existing record, or inserts the first one. A brief that has ended up
+ * saved more than once (the JSON export used to add a row every time) has every copy brought up to date, so a
+ * duplicate can never stop it being saved.
+ */
 export async function saveBrief(teamId: string, userId: string, brief: BriefPayload): Promise<void> {
   const { data: existing, error: findError } = await supabase
     .from('briefs')
     .select('id')
     .eq('team_id', teamId)
     .eq('brief_id', brief.meta.briefId)
-    .maybeSingle()
   if (findError) throw new Error(`Failed to save brief: ${findError.message}`)
-  if (!existing) return insertBrief(teamId, userId, brief)
+  if (!existing || existing.length === 0) return insertBrief(teamId, userId, brief)
 
   const { error } = await supabase
     .from('briefs')
@@ -71,7 +74,7 @@ export async function saveBrief(teamId: string, userId: string, brief: BriefPayl
       data: brief,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', existing.id)
+    .in('id', existing.map((row) => row.id))
   if (error) throw new Error(`Failed to save brief: ${error.message}`)
 }
 

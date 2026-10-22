@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { briefSchema, type BriefFormData } from '../lib/schema'
 import { getStepFields } from '../lib/validateStep'
 import { downloadBriefJson, copyBriefToClipboard } from '../lib/exportBrief'
-import { insertBrief } from '../lib/supabaseQueries'
+import { saveBrief } from '../lib/supabaseQueries'
 import type { BriefPayload } from '../types/brief.types'
 
 const DEFAULT_TOTAL_STEPS = 3
@@ -150,7 +150,8 @@ export function useBriefForm(
 
       // Persist to Supabase
       if (supabaseCtx?.teamId && supabaseCtx?.userId) {
-        insertBrief(supabaseCtx.teamId, supabaseCtx.userId, payload).catch((err) =>
+        // Saved under its id (updated if already there), so exporting twice does not add a second copy.
+        saveBrief(supabaseCtx.teamId, supabaseCtx.userId, payload).catch((err) =>
           console.error('Brief persistence failed:', err)
         )
       }

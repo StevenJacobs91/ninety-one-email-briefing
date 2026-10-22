@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../lib/supabaseQueries', () => ({ insertBrief: vi.fn().mockResolvedValue(undefined) }))
+vi.mock('../../lib/supabaseQueries', () => ({ saveBrief: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../../lib/exportBrief', () => ({ downloadBriefJson: vi.fn(), copyBriefToClipboard: vi.fn().mockResolvedValue(undefined) }))
 
 import { useBriefForm } from '../useBriefForm'
