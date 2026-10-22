@@ -19,6 +19,7 @@ vi.mock('../../approvals/ApprovalStatusBadge', () => ({ ApprovalStatusBadge: () 
 vi.mock('../../approvals/ApprovalHistoryTimeline', () => ({ ApprovalHistoryTimeline: () => null }))
 vi.mock('../../approvals/SubmitForApprovalModal', () => ({ SubmitForApprovalModal: () => null }))
 vi.mock('../../../lib/approvalsService', () => ({ fetchBriefById: vi.fn() }))
+vi.mock('../CardEmailPreview', () => ({ CardEmailPreview: () => null }))
 
 import { CardDetailDrawer } from '../CardDetailDrawer'
 

@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import { boardLinks } from '../../lib/submissionDraft'
 import { openStoredAttachment } from '../../lib/attachmentStorage'
 import { formatFileSize } from '../../lib/formatFileSize'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { CardEmailPreview } from './CardEmailPreview'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -61,6 +63,8 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
   const { getApprovalStatusForBrief, getLatestApprovalForBrief, approvals } = useApprovals()
   const [notes, setNotes] = useState(card.notes)
   const [fileError, setFileError] = useState('')
+  // Wide enough for the details and the email side by side; otherwise the email sits inside the details.
+  const wide = useMediaQuery('(min-width: 1180px)')
   const [assignee, setAssignee] = useState(card.assignee ?? '')
   const [startDate, setStartDate] = useState(card.startDate ?? '')
   const [progress, setProgress] = useState(card.progress ?? 0)
@@ -141,6 +145,17 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
     }
   }
 
+  const fullSizeLink = (onDark: boolean) => (
+    <a
+      href={boardLinks(window.location.origin, card.briefId).html}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`text-xs hover:underline ${onDark ? 'text-white/80 hover:text-white' : 'text-brand-primary dark:text-brand-accent'}`}
+    >
+      Open full size <span aria-hidden="true">↗</span>
+    </a>
+  )
+
   const approvalStatus = getApprovalStatusForBrief(card.briefId)
   const latestApproval = getLatestApprovalForBrief(card.briefId)
   const cardApprovals = approvals.filter((a) => a.briefId === card.briefId)
@@ -175,11 +190,12 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
       {/* Slide-over */}
       <div
         ref={drawerRef}
-        className="fixed inset-y-0 right-0 w-full max-w-md z-50 bg-white dark:bg-gray-900 shadow-2xl flex flex-col overflow-hidden"
+        className="fixed inset-y-0 right-0 z-50 flex max-w-full shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-label={`Brief detail: ${card.emailName}`}
       >
+       <div className="w-[min(28rem,100vw)] shrink-0 bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-brand-primary px-6 py-5 flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
@@ -229,6 +245,22 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
               )}
               <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{ageLabel} in {COLUMN_LABELS[card.column]}</span>
             </div>
+
+            {/* The email, inside the details on a narrow screen */}
+            {!wide && (
+              <>
+                <section aria-label="Email preview">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email preview</p>
+                    {fullSizeLink(false)}
+                  </div>
+                  <div className="max-h-[480px] overflow-y-auto border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                    <CardEmailPreview briefId={card.briefId} emailName={card.emailName} />
+                  </div>
+                </section>
+                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+              </>
+            )}
 
             {/* Campaign info */}
             <section>
@@ -581,6 +613,20 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
             )}
           </div>
         </div>
+       </div>
+
+       {/* The email, beside the details on a wide screen */}
+       {wide && (
+        <aside aria-label="Email preview" className="flex w-[min(680px,52vw)] flex-col border-l border-white/10 bg-gray-100 dark:bg-gray-950">
+          <div className="flex shrink-0 items-center justify-between gap-3 bg-brand-primary px-5 py-3">
+            <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading">Email preview</p>
+            {fullSizeLink(true)}
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <CardEmailPreview briefId={card.briefId} emailName={card.emailName} />
+          </div>
+        </aside>
+       )}
       </div>
 
       {/* Submit for Approval modal */}
