@@ -21,6 +21,7 @@ import { useBrandReviewGate, type BrandReviewState } from '../../hooks/useBrandR
 import { resolveTabs, type BriefTabId } from '../../lib/briefTabs'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { CampaignBoardShell } from '../board/CampaignBoardShell'
+import { clearAttachmentStore } from '../../lib/attachmentStore'
 import { PAGE_X } from './pageGrid'
 import { FitText } from '../ui/FitText'
 import { resolveBoardSettings } from '../../lib/boardConfig'
@@ -437,6 +438,7 @@ export function FormShell() {
     goToStep,
     handleNext,
     handleBack,
+    startNewBrief,
     submitBrief,
     submitStatus,
   } = useBriefForm({
@@ -484,6 +486,9 @@ export function FormShell() {
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
 
   const [highestStep, setHighestStep] = useState(0)
+  // Set once the brief has gone through Submit Brief & Template; the footer then offers a fresh brief.
+  const [submitted, setSubmitted] = useState(false)
+  const briefSubmitted = submitted || submitStatus === 'success'
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
   )
@@ -593,6 +598,18 @@ export function FormShell() {
     })))
     setShowTemplatePicker(false)
   }, [form])
+
+  // After a submit: a blank brief from the very start, template choice included. Nothing is lost, since the
+  // submitted brief is already on the board and in the saved drafts.
+  const handleStartNewBrief = useCallback(() => {
+    startNewBrief()
+    clearDraft()
+    clearAttachmentStore()
+    setHighestStep(0)
+    setSubmitted(false)
+    setShowTemplatePicker(true)
+    window.scrollTo({ top: 0 })
+  }, [startNewBrief, clearDraft])
 
   const handleChangeTemplate = useCallback(() => {
     setShowTemplatePicker(true)
@@ -1009,6 +1026,7 @@ export function FormShell() {
                         onComplete={() => {
                           saveDraft(form.getValues(), form.getValues().campaign.campaignName)
                           clearDraft()
+                          setSubmitted(true)
                         }}
                       />
                     )}
@@ -1072,7 +1090,20 @@ export function FormShell() {
               Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">{visibleBriefSteps.length}</strong>
             </span>
             {isLastBriefStep ? (
-              <div />
+              briefSubmitted ? (
+                <button
+                  type="button"
+                  onClick={handleStartNewBrief}
+                  className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Start new brief
+                </button>
+              ) : (
+                <div />
+              )
             ) : currentStep === lastBriefStep - 1 ? (
               <button
                 type="button"

@@ -120,6 +120,13 @@ export function useBriefForm(
     setCurrentStep((s) => Math.max(s - 1, 0))
   }, [])
 
+  /** Throws away everything entered and starts a blank brief (a new id, the sender defaults) at the first step. */
+  const startNewBrief = useCallback(() => {
+    form.reset(createDefaultValues(defaults))
+    setCurrentStep(0)
+    setSubmitStatus('idle')
+  }, [form, defaults])
+
   const submitBrief = useCallback(async (mode: 'download' | 'clipboard') => {
     const valid = await form.trigger()
     if (!valid) return
@@ -163,6 +170,7 @@ export function useBriefForm(
     goToStep,
     handleNext,
     handleBack,
+    startNewBrief,
     submitBrief,
     submitStatus,
     setSubmitStatus,
