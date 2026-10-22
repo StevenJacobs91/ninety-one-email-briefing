@@ -54,6 +54,8 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
   const input = useMemo<AnalysisInput>(() => ({ subject: fields.subject, senderName: fields.senderName, preheader: fields.preheader }), [fields])
   const { result, analyzeNow } = useSubjectLineAnalysis(input, deps, config)
   const bands = useMemo(() => resolveConfig(config).bands, [config])
+  // The three category cards open and close together, so one click shows every check.
+  const [checksOpen, setChecksOpen] = useState(false)
 
   // Announce the score once the user pauses, not on every keystroke.
   const announcement = result.empty ? '' : `Score ${result.score} percent, ${BAND_LABEL[result.band]}.${result.cappedByCritical ? ' Capped by a critical issue.' : ''}`
@@ -84,7 +86,7 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
 
       <div className="grid gap-3 md:grid-cols-3">
         {result.categories.map((c) => (
-          <CategoryCard key={c.id} category={c} metric={metricLine(result, c.id)} />
+          <CategoryCard key={c.id} category={c} metric={metricLine(result, c.id)} open={checksOpen} onToggle={() => setChecksOpen((o) => !o)} />
         ))}
       </div>
 

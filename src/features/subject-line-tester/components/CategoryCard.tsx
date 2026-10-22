@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import type { CategoryResult } from '../engine/types'
 
 function tone(passed: number, total: number): { border: string; badge: string } {
@@ -11,18 +11,19 @@ interface Props {
   category: CategoryResult
   /** The key metric line, e.g. "37 characters · 7 words" */
   metric: string
-  defaultOpen?: boolean
+  /** Whether the checklist is shown. The tester opens and closes every card together. */
+  open: boolean
+  onToggle: () => void
 }
 
-export function CategoryCard({ category, metric, defaultOpen = false }: Props) {
-  const [open, setOpen] = useState(defaultOpen)
+export function CategoryCard({ category, metric, open, onToggle }: Props) {
   const panelId = useId()
   const t = tone(category.passed, category.total)
   return (
     <section className={`rounded-lg border bg-white dark:bg-gray-900 ${t.border}`} aria-label={`${category.label}: ${category.passed} of ${category.total} checks passed`}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         aria-expanded={open}
         aria-controls={panelId}
         className="flex w-full items-start justify-between gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent"

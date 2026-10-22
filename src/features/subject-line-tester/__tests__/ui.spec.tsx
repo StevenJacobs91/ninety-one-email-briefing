@@ -123,6 +123,19 @@ describe('category cards (AC-12)', () => {
     expect(within(wording).getAllByText(/Fix:/).length).toBeGreaterThan(0)
   })
 
+  it('expands all three categories when any one is opened, and collapses them all together', async () => {
+    const user = setup()
+    render(<SubjectLineTester initial={{ subject: 'FREE MONEY!!! Act now' }} />)
+    const toggles = ['Length', 'Wording', 'Scannability'].map((n) => screen.getByRole('button', { name: new RegExp(n) }))
+    expect(toggles.map((t) => t.getAttribute('aria-expanded'))).toEqual(['false', 'false', 'false'])
+    await user.click(toggles[1])
+    expect(toggles.map((t) => t.getAttribute('aria-expanded'))).toEqual(['true', 'true', 'true'])
+    expect(screen.getAllByText(/Not too short|Fits desktop inbox/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Contains a spam or compliance trigger/)).toBeTruthy()
+    await user.click(toggles[2])
+    expect(toggles.map((t) => t.getAttribute('aria-expanded'))).toEqual(['false', 'false', 'false'])
+  })
+
   it('says Passed or Needs fixing in words, not by colour alone (AC-22)', async () => {
     const user = setup()
     render(<SubjectLineTester initial={{ subject: 'FREE MONEY!!! Act now' }} />)
