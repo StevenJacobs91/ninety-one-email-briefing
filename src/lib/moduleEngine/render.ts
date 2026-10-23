@@ -6,6 +6,8 @@ import { findRepeats, resizeRepeat } from './repeats'
 import { applyDisclaimer } from '../disclaimer'
 import { applyFooter } from './footer'
 import { rgbToHex } from '../hexColours'
+import { applyThemeTokens, themeTokensFor } from '../customModules'
+import type { AppSettings } from '../../types/settings.types'
 
 export interface ThemeAssets {
   logoUrl?: string
@@ -100,7 +102,7 @@ function applyAssets(html: string, assets?: ThemeAssets): string {
 export function renderBuild(
   build: EmailBuild,
   cat: ThemeCatalogue,
-  opts: { parse: ParseDoc; assets?: ThemeAssets; /** The theme's accent colour, used for bold text */ accent?: string; /** The brief's preview text, shown beside the subject in an inbox */ previewText?: string },
+  opts: { parse: ParseDoc; assets?: ThemeAssets; /** The theme's accent colour, used for bold text */ accent?: string; /** The brief's preview text, shown beside the subject in an inbox */ previewText?: string; /** Settings' brand themes: the colours and images behind {{primary}}, {{accent}}, {{logo}} and the other tokens */ brandThemes?: AppSettings['brandThemes'] },
 ): { html: string; report: RenderReport } {
   const report: RenderReport = { droppedKeys: [], unknownModules: [] }
   const parts: string[] = []
@@ -148,5 +150,8 @@ export function renderBuild(
 
   // Setting a colour through the DOM comes back as rgb(...), so the finished email is put right here, not module by module.
   const html = (opts.previewText !== undefined ? withPreviewText(cat.shell.head, opts.previewText) : cat.shell.head) + parts.join('\n') + cat.shell.tail
-  return { html: rgbToHex(html), report }
+  // Code written in Settings (a signature, a sign-off, a disclaimer) can use {{accent}} and the other theme tokens too,
+  // and is only added to the email above, so they are filled in for the whole email here. Pardot rejects one left in.
+  const tokens = { ...themeTokensFor(cat, { brandThemes: opts.brandThemes ?? [] }), ...(opts.accent ? { accent: opts.accent } : {}) }
+  return { html: rgbToHex(applyThemeTokens(html, tokens)), report }
 }

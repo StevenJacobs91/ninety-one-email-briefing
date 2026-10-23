@@ -145,7 +145,7 @@ export function LibraryBuilder() {
       map.set(m.instanceId, { html: out.html, dropped: out.report.droppedKeys.length })
     }
     return map
-  }, [catalogue, build, assets, accent])
+  }, [catalogue, build, assets, accent, settings.brandThemes])
 
   const selected = build?.modules.find((m) => m.instanceId === selectedId) ?? null
   const info = useMemo(() => {

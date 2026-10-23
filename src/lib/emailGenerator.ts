@@ -50,6 +50,7 @@ function generateFromBuild(brief: BriefPayload, settings: AppSettings | undefine
   const themeSettings = settings?.brandThemes?.find((t) => t.id === brief.campaign.theme)
   const { html } = renderBuild(build, catalogue, {
     parse,
+    brandThemes: settings?.brandThemes,
     accent: themeSettings?.accent ?? getThemeColors(brief.campaign.theme).accent,
     previewText: brief.campaign.previewText?.trim() ?? '',
     assets: { logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, slimStripeUrl: themeSettings?.slimStripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl },

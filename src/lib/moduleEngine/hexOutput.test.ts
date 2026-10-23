@@ -17,6 +17,22 @@ test('no module or shell in any theme library has a colour that is not hex', () 
   }
 })
 
+test('theme tokens left in code from Settings are filled in, so no {{accent}} reaches Pardot, and other merge tags are kept', () => {
+  const cat = {
+    themeId: 'agulhas-gold',
+    order: ['Plain'],
+    shell: { head: '<html><body><table><tbody>', tail: '</tbody></table></body></html>' },
+    modules: { Plain: '<tr><td><a href="{{Unsubscribe}}" style="color: {{accent}}; background: {{primary}}">Email Sizwe</a></td></tr>' },
+  }
+  const build: EmailBuild = { version: 1, themeId: cat.themeId, modules: [newModule('Plain')] }
+  const themes = [{ id: 'agulhas-gold', primary: '#221b3b', accent: '#cf6f13' }] as never
+  const { html } = renderBuild(build, cat, { parse, brandThemes: themes })
+  assert.ok(html.includes('color: #cf6f13') && html.includes('background: #221b3b'))
+  assert.ok(!html.includes('{{accent}}') && !html.includes('{{primary}}'))
+  assert.ok(html.includes('{{Unsubscribe}}'))
+  assert.ok(renderBuild(build, cat, { parse, accent: '#d83949' }).html.includes('color: #d83949'), 'the accent alone is enough')
+})
+
 test('an email is rendered with hex colours, including ones the DOM wrote as rgb() and ones a module was supplied with', () => {
   const cat = {
     themeId: 'agulhas-gold',
