@@ -12,6 +12,7 @@ export function TabModules() {
   const [draft, setDraft] = useState<HtmlModuleConfig>({ id: '', label: '', description: '', category: 'Content', enabled: true })
   const [isAdding, setIsAdding] = useState(false)
   const [codeError, setCodeError] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState<ModuleCategory | 'all'>('all')
 
   const modules = settings.htmlModules
@@ -34,6 +35,7 @@ export function TabModules() {
     setDraft({ ...mod })
     setIsAdding(false)
     setCodeError(null)
+    setFormError(null)
   }
 
   const startAdd = () => {
@@ -41,12 +43,14 @@ export function TabModules() {
     setEditingId(null)
     setDraft({ id: '', label: '', description: '', category: 'Content', enabled: true })
     setCodeError(null)
+    setFormError(null)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setIsAdding(false)
     setCodeError(null)
+    setFormError(null)
   }
 
   // The code is kept as written, without surrounding blank lines; a built-in module saved with none keeps the library's own.
@@ -57,7 +61,7 @@ export function TabModules() {
   }
 
   const saveEdit = () => {
-    if (!draft.label.trim()) return
+    if (!draft.label.trim()) { setFormError('Give the module a label.'); return }
     const problem = (draft.html ?? '').trim() ? validateModuleHtml(draft.html ?? '') : null
     setCodeError(problem)
     if (problem) return
@@ -68,14 +72,17 @@ export function TabModules() {
   }
 
   const saveNew = () => {
-    if (!draft.label.trim() || !draft.id.trim()) return
-    if (modules.some((m) => m.id === draft.id)) return
+    if (!draft.label.trim()) { setFormError('Give the module a label.'); return }
+    // The ID is only an internal key, so it follows the label unless one was typed.
+    const id = draft.id.trim() || draft.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    if (!id) { setFormError('Give the module an ID using letters or numbers.'); return }
+    if (modules.some((m) => m.id === id)) { setFormError(`A module with the ID "${id}" already exists. Choose a different ID.`); return }
     // A module with no code would never appear in the builder, so a new one needs it.
     const problem = validateModuleHtml(draft.html ?? '')
     setCodeError(problem)
     if (problem) return
     updateSettings({
-      htmlModules: [...modules, withCode(draft)],
+      htmlModules: [...modules, withCode({ ...draft, id })],
     })
     setIsAdding(false)
   }
@@ -150,7 +157,7 @@ export function TabModules() {
 
       {/* Add new module */}
       {isAdding && (
-        <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null) }} onSave={saveNew} onCancel={cancelEdit} isNew codeError={codeError} previewColours={previewColours} />
+        <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null); setFormError(null) }} formError={formError} onSave={saveNew} onCancel={cancelEdit} isNew codeError={codeError} previewColours={previewColours} />
       )}
 
       {/* Module list grouped by category */}
@@ -161,7 +168,7 @@ export function TabModules() {
             {items.map((mod) => (
               <div key={mod.id}>
                 {editingId === mod.id ? (
-                  <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null) }} onSave={saveEdit} onCancel={cancelEdit} codeError={codeError} previewColours={previewColours} />
+                  <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null); setFormError(null) }} formError={formError} onSave={saveEdit} onCancel={cancelEdit} codeError={codeError} previewColours={previewColours} />
                 ) : (
                   <div className={`flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 group transition-colors ${!mod.enabled ? 'opacity-50' : ''}`}>
                     {/* Enable/disable toggle */}
@@ -200,6 +207,7 @@ function ModuleEditRow({
   onCancel,
   isNew,
   codeError,
+  formError,
   previewColours,
 }: {
   draft: HtmlModuleConfig
@@ -208,6 +216,7 @@ function ModuleEditRow({
   onCancel: () => void
   isNew?: boolean
   codeError: string | null
+  formError: string | null
   previewColours: ThemeColours
 }) {
   const [showPreview, setShowPreview] = useState(false)
@@ -225,7 +234,7 @@ function ModuleEditRow({
               type="text"
               value={draft.id}
               onChange={(e) => onChange({ ...draft, id: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-              placeholder="my-custom-module"
+              placeholder="my-custom-module (optional)"
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-mono px-3 py-1.5 dark:text-gray-100"
             />
           </div>
@@ -299,6 +308,7 @@ function ModuleEditRow({
         )}
       </div>
 
+      {formError && <p role="alert" className="text-xs text-red-600 mb-2">{formError}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={onSave} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">
           {isNew ? 'Add Module' : 'Save Changes'}

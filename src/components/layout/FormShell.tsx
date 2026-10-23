@@ -26,6 +26,7 @@ import { PAGE_X } from './pageGrid'
 import { FitText } from '../ui/FitText'
 import { resolveBoardSettings } from '../../lib/boardConfig'
 import { opensOnBoard, resolveCustomRole } from '../../lib/customRoles'
+import { describeFormErrors, type FormProblem } from '../../lib/formErrors'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
@@ -549,8 +550,12 @@ export function FormShell() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [saveStatus, form.formState.isDirty])
 
+  const [advanceProblems, setAdvanceProblems] = useState<FormProblem[]>([])
+  useEffect(() => { setAdvanceProblems([]) }, [currentStep])
+
   const handleBriefSubmitAndAdvance = useCallback(async () => {
     const valid = await form.trigger()
+    setAdvanceProblems([])
     if (!valid) {
       const errors = form.formState.errors
       for (let i = 0; i < visibleBriefSteps.length; i++) {
@@ -572,6 +577,8 @@ export function FormShell() {
           return
         }
       }
+      // The fault is in a field no tab lists (the headline, the button, notes…): say so rather than do nothing.
+      setAdvanceProblems(describeFormErrors(form.formState.errors))
       return
     }
     goToStep(lastBriefStep)
@@ -1096,9 +1103,20 @@ export function FormShell() {
             ) : (
               <div />
             )}
-            <span className="text-xs text-brand-text-muted dark:text-gray-500 hidden sm:block">
-              Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">{visibleBriefSteps.length}</strong>
-            </span>
+            {advanceProblems.length > 0 ? (
+              // Continue checks the whole brief; this says what stopped it when the fault is not on a tab it can jump to.
+              <div role="alert" className="flex-1 min-w-0 text-xs text-red-700 dark:text-red-300">
+                <p className="font-medium">Can&rsquo;t continue yet. Fix {advanceProblems.length === 1 ? 'this' : 'these'}:</p>
+                <ul className="mt-0.5 space-y-0.5">
+                  {advanceProblems.slice(0, 3).map((p) => <li key={p.field} className="truncate">{p.field}: {p.message}</li>)}
+                  {advanceProblems.length > 3 && <li>…and {advanceProblems.length - 3} more</li>}
+                </ul>
+              </div>
+            ) : (
+              <span className="text-xs text-brand-text-muted dark:text-gray-500 hidden sm:block">
+                Step <strong className="text-gray-700 dark:text-gray-300">{currentStep + 1}</strong> of <strong className="text-gray-700 dark:text-gray-300">{visibleBriefSteps.length}</strong>
+              </span>
+            )}
             {isLastBriefStep ? (
               briefSubmitted ? (
                 <button

@@ -12,7 +12,7 @@ interface Props {
 }
 
 const CATEGORY_LABEL: Record<AssetCategory, string> = {
-  header: 'Headers', profile: 'Profiles', stripes: 'Stripes', logos: 'Logos', graphics: 'Graphics',
+  header: 'Headers', profile: 'Profiles', stripes: 'Stripes', logos: 'Logos', graphics: 'Graphics', images: 'Images',
 }
 
 const INPUT = 'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary'

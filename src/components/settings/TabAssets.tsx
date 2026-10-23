@@ -1,4 +1,4 @@
-import { useId, useState, useRef } from 'react'
+import { useEffect, useId, useState, useRef } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { AssetEntry, AssetCategory } from '../../types/settings.types'
 import { v4 as uuidv4 } from 'uuid'
@@ -12,6 +12,7 @@ const CATEGORIES: { value: AssetCategory; label: string }[] = [
   { value: 'stripes',  label: 'Stripes' },
   { value: 'logos',    label: 'Logos' },
   { value: 'graphics', label: 'Graphics' },
+  { value: 'images',   label: 'Images' },
 ]
 
 const CATEGORY_LABELS: Record<AssetCategory, string> = {
@@ -20,6 +21,7 @@ const CATEGORY_LABELS: Record<AssetCategory, string> = {
   stripes:  'Stripes',
   logos:    'Logos',
   graphics: 'Graphics',
+  images:   'Images',
 }
 
 const EMPTY_DRAFT: Omit<AssetEntry, 'id'> = {
@@ -52,8 +54,34 @@ function OverlayChoice({ group, label, colour, selected, onPick }: { group: stri
   )
 }
 
+/** The image's exact size in pixels, read from the file itself once it loads. */
+function useImageSize(url: string): { state: 'none' | 'loading' | 'error' | 'ready'; width: number; height: number } {
+  const [size, setSize] = useState<{ url: string; width: number; height: number } | { url: string; error: true } | null>(null)
+  useEffect(() => {
+    if (!url.trim()) return
+    let current = true
+    const img = new Image()
+    img.onload = () => { if (current) setSize({ url, width: img.naturalWidth, height: img.naturalHeight }) }
+    img.onerror = () => { if (current) setSize({ url, error: true }) }
+    img.src = url
+    return () => { current = false }
+  }, [url])
+  if (!url.trim()) return { state: 'none', width: 0, height: 0 }
+  if (!size || size.url !== url) return { state: 'loading', width: 0, height: 0 }
+  if ('error' in size) return { state: 'error', width: 0, height: 0 }
+  return { state: 'ready', width: size.width, height: size.height }
+}
+
+function dimensionsText(s: ReturnType<typeof useImageSize>): string {
+  if (s.state === 'ready') return `${s.width} × ${s.height} px`
+  if (s.state === 'loading') return 'Reading…'
+  if (s.state === 'error') return 'Could not read the image'
+  return 'Shown once a URL is entered'
+}
+
 function AssetForm({ initial, onSave, onCancel, title }: AssetFormProps) {
   const [draft, setDraft] = useState(initial)
+  const size = useImageSize(draft.url)
   // Each open form is its own group of choices, so picking in one never un-picks another.
   const overlayGroup = useId()
   const [urlError, setUrlError] = useState('')
@@ -139,6 +167,13 @@ function AssetForm({ initial, onSave, onCancel, title }: AssetFormProps) {
         </div>
       </div>
 
+      <div>
+        <label htmlFor="asset-dimensions" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Dimensions</label>
+        <output id="asset-dimensions" className="block w-full text-sm font-mono border border-gray-200 dark:border-gray-700 rounded-md px-3 py-1.5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300">
+          {dimensionsText(size)}
+        </output>
+      </div>
+
       {/* URL preview */}
       {draft.url && !urlError && (
         <div className="rounded-md overflow-hidden border border-gray-200 dark:border-gray-700" style={{ aspectRatio: '640/270' }}>
@@ -188,6 +223,7 @@ export function TabAssets() {
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [naturalSizes, setNaturalSizes] = useState<Record<string, string>>({})
   const [csvImportCount, setCsvImportCount] = useState<number | null>(null)
   const [csvImportError, setCsvImportError] = useState<string | null>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
@@ -335,7 +371,7 @@ export function TabAssets() {
             Each row: <code className="font-mono bg-white dark:bg-gray-700 px-1 rounded border border-gray-200 dark:border-gray-600">name,url,category,colourOverlay,altText</code>
           </p>
           <p className="text-[10px] text-gray-400 dark:text-gray-500">
-            Valid categories: <span className="font-mono">header</span>, <span className="font-mono">profile</span>, <span className="font-mono">stripes</span>, <span className="font-mono">logos</span>, <span className="font-mono">graphics</span>
+            Valid categories: <span className="font-mono">header</span>, <span className="font-mono">profile</span>, <span className="font-mono">stripes</span>, <span className="font-mono">logos</span>, <span className="font-mono">graphics</span>, <span className="font-mono">images</span>
           </p>
         </div>
       )}
@@ -413,6 +449,7 @@ export function TabAssets() {
                       src={asset.url}
                       alt={asset.altText || asset.name}
                       className="w-full h-full object-cover"
+                      onLoad={(e) => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; setNaturalSizes((prev) => ({ ...prev, [asset.id]: `${w} × ${h} px` })) }}
                     />
                     {/* Colour overlay swatch */}
                     {asset.colourOverlay && (
@@ -457,6 +494,7 @@ export function TabAssets() {
                   <div className="px-3 py-2">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{asset.name}</p>
                     {asset.altText && <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{asset.altText}</p>}
+                    {naturalSizes[asset.id] && <p className="text-[11px] font-mono text-gray-400 dark:text-gray-500">{naturalSizes[asset.id]}</p>}
                   </div>
                 </div>
               )}

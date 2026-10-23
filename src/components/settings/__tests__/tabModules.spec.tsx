@@ -29,7 +29,7 @@ const editButton = (label: string) => screen.getByText(label, { selector: 'p' })
 
 function fillNew(html: string) {
   fireEvent.click(screen.getByRole('button', { name: '+ Add Module' }))
-  fireEvent.change(screen.getByPlaceholderText('my-custom-module'), { target: { value: 'new-one' } })
+  fireEvent.change(screen.getByPlaceholderText(/my-custom-module/), { target: { value: 'new-one' } })
   fireEvent.change(screen.getByPlaceholderText('Module display name'), { target: { value: 'New One' } })
   fireEvent.change(code(), { target: { value: html } })
 }
@@ -48,6 +48,28 @@ describe('Email Modules: module code', () => {
     fillNew(`\n  ${ROW}\n`)
     fireEvent.click(screen.getByRole('button', { name: 'Add Module' }))
     expect(saved().find((m: { id: string }) => m.id === 'new-one').html).toBe(ROW)
+  })
+
+  it('makes the ID from the label when none is typed, rather than silently doing nothing', () => {
+    render(<TabModules />)
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Module' }))
+    fireEvent.change(screen.getByPlaceholderText('Module display name'), { target: { value: 'Big Quote!' } })
+    fireEvent.change(code(), { target: { value: ROW } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Module' }))
+    expect(saved().some((m: { id: string }) => m.id === 'big-quote')).toBe(true)
+  })
+
+  it('says why when the label is missing or the ID is already taken', () => {
+    render(<TabModules />)
+    fireEvent.click(screen.getByRole('button', { name: '+ Add Module' }))
+    fireEvent.change(code(), { target: { value: ROW } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Module' }))
+    expect(screen.getByRole('alert').textContent).toBe('Give the module a label.')
+    fireEvent.change(screen.getByPlaceholderText('Module display name'), { target: { value: 'Promo' } })
+    fireEvent.change(screen.getByPlaceholderText(/my-custom-module/), { target: { value: 'promo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Module' }))
+    expect(screen.getByRole('alert').textContent).toMatch(/already exists/)
+    expect(state.updateSettings).not.toHaveBeenCalled()
   })
 
   it('will not add a module with no code, or with code that is not a table row, and says why', () => {
