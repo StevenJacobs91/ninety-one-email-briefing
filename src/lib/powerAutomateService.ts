@@ -97,6 +97,8 @@ export async function triggerBriefSubmission(
     /** The draft email the flow should create: recipient, subject and files (base64) to attach */
     draftTo?: string
     draftSubject?: string
+    /** The body of that draft email, as HTML: the whole brief summary, styled for a mail client */
+    draftBody?: string
     attachments?: { name: string; type: string; base64: string }[]
     /** Time-limited download addresses for the files, for flows that fetch rather than receive them */
     attachmentLinks?: { name: string; type: string; size: number; url: string }[]

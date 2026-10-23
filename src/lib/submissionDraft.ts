@@ -48,8 +48,10 @@ function safeFilename(name: string): string {
  * An unsent draft message (.eml). `X-Unsent: 1` makes Outlook open it as a
  * draft ready to send, with the attachments already on it.
  */
-export function buildEml(opts: { to: string; subject: string; body: string; attachments: DraftAttachment[] }): string {
+export function buildEml(opts: { to: string; subject: string; body: string; /** The same message as HTML, shown by mail clients in place of the plain text */ htmlBody?: string; attachments: DraftAttachment[] }): string {
   const boundary = `----=_NinetyOne_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+  const alternative = `${boundary}_alt`
+  const textPart = ['Content-Type: text/plain; charset="UTF-8"', 'Content-Transfer-Encoding: base64', '', wrap76(textToBase64(opts.body))]
   const lines: string[] = [
     'X-Unsent: 1',
     `To: ${opts.to}`,
@@ -58,10 +60,20 @@ export function buildEml(opts: { to: string; subject: string; body: string; atta
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     '',
     `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: base64',
-    '',
-    wrap76(textToBase64(opts.body)),
+    ...(opts.htmlBody === undefined
+      ? textPart
+      : [
+          `Content-Type: multipart/alternative; boundary="${alternative}"`,
+          '',
+          `--${alternative}`,
+          ...textPart,
+          `--${alternative}`,
+          'Content-Type: text/html; charset="UTF-8"',
+          'Content-Transfer-Encoding: base64',
+          '',
+          wrap76(textToBase64(opts.htmlBody)),
+          `--${alternative}--`,
+        ]),
   ]
   for (const a of opts.attachments) {
     const name = safeFilename(a.name)

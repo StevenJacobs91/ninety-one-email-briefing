@@ -29,7 +29,7 @@ export function campaignSearchParts(c: CampaignEntry, themeLabel?: string): Part
 }
 
 const CATEGORY_NAMES: Record<AssetEntry['category'], string> = {
-  header: 'Header', profile: 'Profile', stripes: 'Stripes', logos: 'Logos', graphics: 'Graphics', images: 'Images',
+  header: 'Header', profile: 'Profile', stripes: 'Stripes', logos: 'Logos', graphics: 'Graphics', images: 'Images', gifs: 'GIFs',
 }
 
 /** What an asset can be found by. */

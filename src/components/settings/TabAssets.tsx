@@ -13,6 +13,7 @@ const CATEGORIES: { value: AssetCategory; label: string }[] = [
   { value: 'logos',    label: 'Logos' },
   { value: 'graphics', label: 'Graphics' },
   { value: 'images',   label: 'Images' },
+  { value: 'gifs',     label: 'GIFs' },
 ]
 
 const CATEGORY_LABELS: Record<AssetCategory, string> = {
@@ -22,6 +23,7 @@ const CATEGORY_LABELS: Record<AssetCategory, string> = {
   logos:    'Logos',
   graphics: 'Graphics',
   images:   'Images',
+  gifs:     'GIFs',
 }
 
 const EMPTY_DRAFT: Omit<AssetEntry, 'id'> = {
@@ -371,7 +373,7 @@ export function TabAssets() {
             Each row: <code className="font-mono bg-white dark:bg-gray-700 px-1 rounded border border-gray-200 dark:border-gray-600">name,url,category,colourOverlay,altText</code>
           </p>
           <p className="text-[10px] text-gray-400 dark:text-gray-500">
-            Valid categories: <span className="font-mono">header</span>, <span className="font-mono">profile</span>, <span className="font-mono">stripes</span>, <span className="font-mono">logos</span>, <span className="font-mono">graphics</span>, <span className="font-mono">images</span>
+            Valid categories: <span className="font-mono">header</span>, <span className="font-mono">profile</span>, <span className="font-mono">stripes</span>, <span className="font-mono">logos</span>, <span className="font-mono">graphics</span>, <span className="font-mono">images</span>, <span className="font-mono">gifs</span>
           </p>
         </div>
       )}

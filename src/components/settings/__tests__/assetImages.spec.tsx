@@ -37,6 +37,17 @@ describe('Asset library: Images and dimensions', () => {
     expect(saved().find((a: { name: string }) => a.name === 'Team').category).toBe('images')
   })
 
+  it('has a GIFs category too, with its own tab', () => {
+    render(<TabAssets />)
+    expect(screen.getByRole('button', { name: /^GIFs \(0\)/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Add Asset/ }))
+    fireEvent.change(screen.getByPlaceholderText(/706930897/), { target: { value: 'Spinner' } })
+    fireEvent.change(screen.getByPlaceholderText('https://...'), { target: { value: 'https://cdn/spin.gif' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'gifs' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Asset' }))
+    expect(saved().find((a: { name: string }) => a.name === 'Spinner').category).toBe('gifs')
+  })
+
   it('shows the exact pixel dimensions of the image in the form once its address is entered', async () => {
     render(<TabAssets />)
     fireEvent.click(screen.getByRole('button', { name: /Add Asset/ }))

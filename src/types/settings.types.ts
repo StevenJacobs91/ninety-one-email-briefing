@@ -283,7 +283,7 @@ export interface SignoffEntry {
 
 // ─── Asset Library ──────────────────────────────────────────
 
-export type AssetCategory = 'header' | 'profile' | 'stripes' | 'logos' | 'graphics' | 'images'
+export type AssetCategory = 'header' | 'profile' | 'stripes' | 'logos' | 'graphics' | 'images' | 'gifs'
 
 export interface AssetEntry {
   id: string

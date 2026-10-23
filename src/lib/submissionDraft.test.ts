@@ -26,6 +26,20 @@ test('the .eml is an unsent draft to the recipient with the subject and every at
   assert.ok(eml.includes('filename="email-q2.html"') && eml.includes('filename="brief-q2.html"'))
 })
 
+test('an HTML body goes in beside the plain text, so the draft opens with the summary formatted', () => {
+  const eml = buildEml({ to: DRAFT_RECIPIENT, subject: 's', body: 'plain words', htmlBody: '<p>formatted words</p>', attachments: files })
+  assert.match(eml, /Content-Type: multipart\/alternative; boundary="/)
+  const decode = (type: string) => {
+    const at = eml.indexOf(`Content-Type: ${type}`)
+    const data = eml.slice(at).split('\r\n\r\n')[1].split('\r\n--')[0].replace(/\r\n/g, '')
+    return Buffer.from(data, 'base64').toString('utf8')
+  }
+  assert.equal(decode('text/plain'), 'plain words')
+  assert.equal(decode('text/html'), '<p>formatted words</p>')
+  assert.equal((eml.match(/Content-Disposition: attachment; filename="/g) ?? []).length, 2, 'the attachments are still there')
+  assert.ok(!buildEml({ to: 'a@b.co', subject: 's', body: 'b', attachments: [] }).includes('multipart/alternative'))
+})
+
 test('a non-ASCII subject is encoded so mail clients show it correctly', () => {
   const eml = buildEml({ to: DRAFT_RECIPIENT, subject: 'Café — Update', body: 'x', attachments: [] })
   const line = eml.split('\r\n').find((l) => l.startsWith('Subject:'))!

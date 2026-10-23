@@ -6,7 +6,7 @@ import { isShown } from '../../lib/uiVisibility'
 import { useCatalogue } from '../builder2/useCatalogue'
 import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
-import { generateBriefHtml } from '../../lib/generateBriefHtml'
+import { generateBriefEmailBody, generateBriefHtml } from '../../lib/generateBriefHtml'
 import { generateTextEmail } from '../../lib/generateTextEmail'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -260,6 +260,8 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     const now = new Date()
     const briefId = submissionBriefId(data.meta.briefId, new Set(cards.map((c) => c.briefId)))
     const briefHtml = generateBriefHtml({ ...data, meta: { ...data.meta, briefId } })
+    // The email Power Automate sends carries the whole summary in its body, as well as the file.
+    const draftBody = generateBriefEmailBody({ ...data, meta: { ...data.meta, briefId } })
     const names = submissionFiles(data.campaign.campaignName, now.toISOString().slice(0, 10))
     const links = boardLinks(window.location.origin, briefId)
     const createdByName = profile?.displayName || user?.email || 'Unknown'
@@ -345,6 +347,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           submittedBy: createdByName,
           draftTo: DRAFT_RECIPIENT,
           draftSubject: emailName,
+          draftBody,
           attachments,
           attachmentLinks: await linkedFiles,
         })
@@ -358,7 +361,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           `Subject line: ${data.campaign.subjectLine}\nSend date: ${data.deadlines.sendDate}\n` +
           `Urgency: ${data.deadlines.urgency}\nSubmitted by: ${createdByName}\n\n` +
           `Email HTML: ${links.html}\nBrief summary: ${links.summary}\n`
-        const eml = buildEml({ to: DRAFT_RECIPIENT, subject: emailName, body, attachments })
+        const eml = buildEml({ to: DRAFT_RECIPIENT, subject: emailName, body, htmlBody: draftBody, attachments })
         const a = Object.assign(document.createElement('a'), {
           href: URL.createObjectURL(new Blob([eml], { type: 'message/rfc822' })),
           download: `draft-${slug(data.campaign.campaignName)}.eml`,

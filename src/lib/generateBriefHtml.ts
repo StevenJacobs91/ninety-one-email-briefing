@@ -170,3 +170,54 @@ export function generateBriefHtml(brief: BriefPayload): string {
 </body>
 </html>`
 }
+
+/**
+ * The same summary as a fragment for the body of an email: no <head> or <style> (mail clients drop them), every
+ * style written on the element, and colours as hex. Power Automate puts this in the draft email it creates.
+ */
+export function generateBriefEmailBody(brief: BriefPayload): string {
+  const theme = BRAND_THEMES.find((t) => t.id === brief.campaign.theme)
+  const primary = theme?.primary ?? '#134848'
+  const accent = theme?.accent ?? '#fbaa96'
+  const font = 'font-family:Arial,Helvetica,sans-serif;'
+  const TAG: Record<string, string> = {
+    p: `${font}margin:0;`,
+    table: 'width:100%;border-collapse:collapse;',
+    td: `${font}padding:5px 8px;vertical-align:top;border-bottom:1px solid #f0ece5;font-size:13px;line-height:1.5;color:#333333;`,
+  }
+  const CLASS: Record<string, string> = {
+    wrapper: 'max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e5e0d8;',
+    header: `background:${primary};padding:28px 32px;`,
+    content: 'padding:28px 32px;',
+    section: 'margin-bottom:28px;',
+    'section-title': `font-size:15px;font-weight:bold;color:${primary};border-bottom:2px solid ${accent};padding-bottom:6px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.04em;`,
+    label: 'color:#6b6660;min-width:160px;width:35%;font-weight:600;',
+    'section-card': `background:#f8f5ee;border-left:3px solid ${accent};padding:12px 14px;margin-bottom:10px;`,
+    'section-label': 'font-size:10px;text-transform:uppercase;color:#999999;margin-bottom:3px;',
+    'section-heading': `font-weight:bold;color:${primary};margin-bottom:4px;`,
+    'section-body': 'color:#555555;line-height:1.5;',
+    'section-image': 'font-size:11px;color:#999999;margin-top:6px;font-style:italic;',
+    badge: `display:inline-block;background:#eef1f1;color:${primary};border-radius:99px;padding:2px 8px;font-size:11px;margin:2px 2px 0 0;`,
+    footer: 'background:#f8f5ee;padding:14px 32px;font-size:11px;color:#999999;border-top:1px solid #e5e0d8;',
+    'colour-swatch': 'display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;margin-right:4px;border:1px solid #d9d9d9;',
+  }
+
+  const whole = generateBriefHtml(brief)
+  const body = whole.slice(whole.indexOf('<body>') + '<body>'.length, whole.indexOf('</body>'))
+  // The two tags in the header that the stylesheet reached by position.
+  const split = body.indexOf('<div class="content">')
+  const head = body.slice(0, split)
+    .replace('<h1>', `<h1 style="${font}font-size:22px;font-weight:bold;color:#ffffff;margin:0 0 4px;">`)
+    .replace('<p>', `<p style="${font}font-size:12px;color:${accent};margin:0;">`)
+  const html = head + body.slice(split)
+
+  const inlined = html.replace(/<(\w+)((?:\s[^>]*)?)>/g, (tag, name: string, attrs: string) => {
+    const classes = /\sclass="([^"]*)"/.exec(attrs)?.[1].split(/\s+/) ?? []
+    const own = /\sstyle="([^"]*)"/.exec(attrs)?.[1] ?? ''
+    const css = [TAG[name] ?? '', ...classes.map((c) => CLASS[c] ?? ''), own].join('')
+    if (!css) return tag
+    const rest = attrs.replace(/\sclass="[^"]*"/, '').replace(/\sstyle="[^"]*"/, '')
+    return `<${name}${rest} style="${css}">`
+  })
+  return `<div style="${font}font-size:13px;color:#333333;">${inlined}</div>`
+}
