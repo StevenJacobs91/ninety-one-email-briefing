@@ -13,7 +13,6 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useSubjectLineAnalysis } from '../hooks/useSubjectLineAnalysis'
 import { BAND_LABEL } from './bandStyles'
 import { CategoryCard } from './CategoryCard'
-import { HighlightedEcho } from './HighlightedEcho'
 import { ScoreBar } from './ScoreBar'
 import { resolveConfig } from '../engine/config'
 import { SubjectInput, type SubjectFields } from './SubjectInput'
@@ -69,7 +68,6 @@ export function SubjectLineTester({ initial, deps = DEFAULT_DEPS, config, showTe
   return (
     <div className="space-y-6">
       <SubjectInput value={fields} onChange={update} onTestNow={showTestNow ? analyzeNow : undefined} />
-      <HighlightedEcho result={result} />
 
       <div className="space-y-2">
         <ScoreBar result={result} bands={bands} />

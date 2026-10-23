@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { HtmlModuleConfig, ModuleCategory } from '../../types/settings.types'
+import { Switch } from '../ui/Switch'
+import { applyThemeTokens, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
 
 const CATEGORIES: ModuleCategory[] = ['Headers', 'Content', 'CTAs', 'Events', 'Speakers', 'Articles', 'Media', 'Navigation', 'Footers']
 
@@ -9,9 +11,13 @@ export function TabModules() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<HtmlModuleConfig>({ id: '', label: '', description: '', category: 'Content', enabled: true })
   const [isAdding, setIsAdding] = useState(false)
+  const [codeError, setCodeError] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState<ModuleCategory | 'all'>('all')
 
   const modules = settings.htmlModules
+  // The code preview is shown in the first theme's colours.
+  const firstTheme = settings.brandThemes?.[0]
+  const previewColours = { primary: firstTheme?.primary ?? '#134848', accent: firstTheme?.accent ?? '#fbaa96', tint01: firstTheme?.tint01, tint02: firstTheme?.tint02, tint03: firstTheme?.tint03 }
 
   const grouped = useMemo(() => {
     const filtered = filterCategory === 'all' ? modules : modules.filter((m) => m.category === filterCategory)
@@ -27,23 +33,36 @@ export function TabModules() {
     setEditingId(mod.id)
     setDraft({ ...mod })
     setIsAdding(false)
+    setCodeError(null)
   }
 
   const startAdd = () => {
     setIsAdding(true)
     setEditingId(null)
     setDraft({ id: '', label: '', description: '', category: 'Content', enabled: true })
+    setCodeError(null)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setIsAdding(false)
+    setCodeError(null)
+  }
+
+  // The code is kept as written, without surrounding blank lines; a built-in module saved with none keeps the library's own.
+  const withCode = (d: HtmlModuleConfig): HtmlModuleConfig => {
+    const html = (d.html ?? '').trim()
+    const { html: _drop, ...rest } = d
+    return html ? { ...rest, html } : rest
   }
 
   const saveEdit = () => {
     if (!draft.label.trim()) return
+    const problem = (draft.html ?? '').trim() ? validateModuleHtml(draft.html ?? '') : null
+    setCodeError(problem)
+    if (problem) return
     updateSettings({
-      htmlModules: modules.map((m) => (m.id === editingId ? { ...draft, id: editingId } : m)),
+      htmlModules: modules.map((m) => (m.id === editingId ? { ...withCode(draft), id: editingId } : m)),
     })
     setEditingId(null)
   }
@@ -51,8 +70,12 @@ export function TabModules() {
   const saveNew = () => {
     if (!draft.label.trim() || !draft.id.trim()) return
     if (modules.some((m) => m.id === draft.id)) return
+    // A module with no code would never appear in the builder, so a new one needs it.
+    const problem = validateModuleHtml(draft.html ?? '')
+    setCodeError(problem)
+    if (problem) return
     updateSettings({
-      htmlModules: [...modules, draft],
+      htmlModules: [...modules, withCode(draft)],
     })
     setIsAdding(false)
   }
@@ -127,7 +150,7 @@ export function TabModules() {
 
       {/* Add new module */}
       {isAdding && (
-        <ModuleEditRow draft={draft} onChange={setDraft} onSave={saveNew} onCancel={cancelEdit} isNew />
+        <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null) }} onSave={saveNew} onCancel={cancelEdit} isNew codeError={codeError} previewColours={previewColours} />
       )}
 
       {/* Module list grouped by category */}
@@ -138,22 +161,11 @@ export function TabModules() {
             {items.map((mod) => (
               <div key={mod.id}>
                 {editingId === mod.id ? (
-                  <ModuleEditRow draft={draft} onChange={setDraft} onSave={saveEdit} onCancel={cancelEdit} />
+                  <ModuleEditRow draft={draft} onChange={(d) => { setDraft(d); setCodeError(null) }} onSave={saveEdit} onCancel={cancelEdit} codeError={codeError} previewColours={previewColours} />
                 ) : (
                   <div className={`flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 group transition-colors ${!mod.enabled ? 'opacity-50' : ''}`}>
                     {/* Enable/disable toggle */}
-                    <button
-                      type="button"
-                      onClick={() => toggleEnabled(mod.id)}
-                      className={`w-8 h-[18px] rounded-full relative transition-colors shrink-0 ${
-                        mod.enabled ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-300 dark:bg-gray-600'
-                      }`}
-                      title={mod.enabled ? 'Disable module' : 'Enable module'}
-                    >
-                      <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${
-                        mod.enabled ? 'left-[17px]' : 'left-0.5'
-                      }`} />
-                    </button>
+                    <Switch size="sm" checked={mod.enabled} label={`${mod.enabled ? 'Disable' : 'Enable'} ${mod.label}`} onChange={() => toggleEnabled(mod.id)} />
 
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-700 dark:text-gray-300">{mod.label}</p>
@@ -187,13 +199,19 @@ function ModuleEditRow({
   onSave,
   onCancel,
   isNew,
+  codeError,
+  previewColours,
 }: {
   draft: HtmlModuleConfig
   onChange: (d: HtmlModuleConfig) => void
   onSave: () => void
   onCancel: () => void
   isNew?: boolean
+  codeError: string | null
+  previewColours: ThemeColours
 }) {
+  const [showPreview, setShowPreview] = useState(false)
+  const code = draft.html ?? ''
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-2 border border-gray-200 dark:border-gray-700">
       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3">
@@ -245,6 +263,42 @@ function ModuleEditRow({
           />
         </div>
       </div>
+
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <label htmlFor="module-code" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+            Module code (HTML){isNew && <span className="text-red-500"> *</span>}
+          </label>
+          <button type="button" onClick={() => setShowPreview((v) => !v)} className="text-xs text-brand-primary dark:text-brand-accent hover:underline">
+            {showPreview ? 'Hide preview' : 'Show preview'}
+          </button>
+        </div>
+        <textarea
+          id="module-code"
+          value={code}
+          onChange={(e) => onChange({ ...draft, html: e.target.value })}
+          rows={10}
+          spellCheck={false}
+          aria-invalid={codeError ? true : undefined}
+          placeholder={isNew ? '<tr>\n  <td bgcolor="{{primary}}" style="padding: 30px 40px;">\n    <p pardot-region="paragraph" style="color: #ffffff;">Your text</p>\n  </td>\n</tr>' : 'Leave empty to keep the library\'s own code for this module'}
+          className={`w-full rounded-md border bg-white dark:bg-gray-700 text-xs font-mono leading-relaxed px-3 py-2 dark:text-gray-100 resize-y ${codeError ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
+        />
+        {codeError && <p role="alert" className="text-xs text-red-600 mt-1">{codeError}</p>}
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+          A table row (<code>&lt;tr&gt;…&lt;/tr&gt;</code>). Add <code>pardot-region</code> to text and buttons you want editable in the builder. Use
+          {' '}<code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code> and <code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for the theme&rsquo;s colours so one module suits every theme.
+          {!isNew && !(draft.html ?? '').trim() && ' This module currently uses the library\'s own code; code saved here with the same name replaces it.'}
+        </p>
+        {showPreview && (
+          <iframe
+            title="Module preview"
+            sandbox=""
+            className="mt-2 w-full h-56 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-white"
+            srcDoc={code.trim() ? `<!doctype html><body style="margin:0;background:#f4f2ea"><table width="640" align="center" cellpadding="0" cellspacing="0" border="0" role="presentation"><tbody>${applyThemeTokens(code, previewColours)}</tbody></table></body>` : '<p style="font:12px sans-serif;color:#888;padding:12px">No code yet.</p>'}
+          />
+        )}
+      </div>
+
       <div className="flex gap-2">
         <button type="button" onClick={onSave} className="text-xs font-medium bg-brand-primary text-white px-3 py-1.5 rounded-md hover:bg-brand-primary-hover transition-colors">
           {isNew ? 'Add Module' : 'Save Changes'}

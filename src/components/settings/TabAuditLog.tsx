@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { fetchAuditLog, clearAuditLog, type AuditEntry } from '../../lib/auditLog'
 import type { AuditCategory, AuditConfig } from '../../types/settings.types'
+import { Switch } from '../ui/Switch'
 
 const CATEGORY_LABELS: Record<AuditCategory, { label: string; description: string }> = {
   auth:     { label: 'Authentication',  description: 'Sign in, sign out, and session events' },
@@ -134,21 +135,7 @@ export function TabAuditLog() {
             Track user actions across the platform. When disabled, no events are recorded.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={toggleEnabled}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/30 ${
-            audit.enabled ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
-          role="switch"
-          aria-checked={audit.enabled}
-        >
-          <span
-            className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${
-              audit.enabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
+        <Switch checked={audit.enabled} label="Enable the audit trail" onChange={() => toggleEnabled()} />
       </div>
 
       {/* ─── Category Toggles ──────────────────────────────── */}

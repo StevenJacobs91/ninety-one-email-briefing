@@ -21,6 +21,7 @@ export function templateFromBuild(build: EmailBuild): EmailBuild {
   for (const m of copy.modules) {
     for (const key of Object.keys(m.boundFields)) delete m.regions[key]
     m.boundFields = {}
+    delete m.disclaimerHtml
   }
   return copy
 }

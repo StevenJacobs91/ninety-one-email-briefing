@@ -6,6 +6,10 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
 import { CardDetailDrawer } from './CardDetailDrawer'
+import { ProgressBar } from './ProgressBar'
+import { SendStatusBadge, STATUS_COLOURS } from './SendStatusBadge'
+import { useAuth } from '../../contexts/AuthContext'
+import { GROUP_OPTIONS, groupCards, type GroupField } from '../../lib/boardGrouping'
 import { sendStatus as getSendStatusFor, ageInColumn, formatBoardDate } from '../../lib/boardFormat'
 import { CARD_FIELDS, fieldsForSurface, moveColumn, resolveBoardSettings, resolveListColumns, toggleListColumn } from '../../lib/boardConfig'
 
@@ -131,25 +135,37 @@ function SortIcon({ field, active, dir }: { field: SortField; active: SortField;
   )
 }
 
-function SendStatusBadge({ sendDate, column }: { sendDate: string; column?: string }) {
-  const status = getSendStatusFor(sendDate, new Date(), column)
-  if (status === 'overdue')
-    return <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium whitespace-nowrap">Overdue</span>
-  if (status === 'due-soon')
-    return <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium whitespace-nowrap">Due soon</span>
-  return <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 // One definition of a cell's padding and alignment, used by headings and cells alike, so a column's heading and its
 // values always start at the same left edge.
 const CELL = 'px-4 py-3 text-left align-middle'
-const STICKY_HEAD = 'sticky left-0 z-20 bg-gray-50 dark:bg-gray-800 border-r border-brand-border-warm dark:border-gray-700'
+// The headings stay at the top while the rows scroll under them; the name column's heading stays in the corner.
+const HEAD_RULE = 'shadow-[0_1px_0_0_#e5e7eb] dark:shadow-[0_1px_0_0_#374151]'
+const STICKY_TOP = `sticky top-0 z-10 bg-gray-50 dark:bg-gray-800 ${HEAD_RULE}`
+const STICKY_HEAD = `sticky left-0 top-0 z-30 bg-gray-50 dark:bg-gray-800 border-r border-brand-border-warm dark:border-gray-700 ${HEAD_RULE}`
 const STICKY_CELL = 'sticky left-0 z-10 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800'
 
 const COLUMN_ORDER_KEY = 'ni-board-list-columns'
 const COLUMN_VISIBLE_KEY = 'ni-board-list-visible'
+const GROUP_KEY = 'ni-board-list-group'
+
+const NAME_WIDTH = 260
+const ACTIONS_WIDTH = 150
+const COLUMN_WIDTH: Record<string, number> = {
+  column: 140, urgency: 110, emailType: 150, theme: 190, submittedBy: 160, assignee: 150, region: 170, channel: 180, clientGroup: 190,
+  subjectLine: 260, sendDate: 140, sendStatus: 110, contentApprovalDate: 140, startDate: 130, progress: 180, approvalStatus: 120,
+  tags: 150, ageInColumn: 100, attachments: 120, comments: 110, submittedAt: 140,
+}
+
+function loadGroupField(): GroupField {
+  try {
+    const raw = localStorage.getItem(GROUP_KEY)
+    return GROUP_OPTIONS.some((o) => o.id === raw) ? (raw as GroupField) : 'none'
+  } catch {
+    return 'none'
+  }
+}
 
 function loadColumnOrder(key: string = COLUMN_ORDER_KEY): string[] | undefined {
   try {
@@ -162,7 +178,10 @@ function loadColumnOrder(key: string = COLUMN_ORDER_KEY): string[] | undefined {
 }
 
 export function BoardListView() {
-  const { cards, moveCard } = useKanban()
+  const { cards, moveCard, updateCardMeta } = useKanban()
+  const { profile } = useAuth()
+  // Only producers and admins can change a card, as the database enforces; others see the bar but cannot click it.
+  const canEditProgress = profile?.role === 'admin' || profile?.role === 'producer'
   const { settings } = useSettings()
   const { getApprovalStatusForBrief } = useApprovals()
   const columns = fieldsForSurface(resolveBoardSettings(settings.campaignPlanner), 'list')
@@ -179,6 +198,27 @@ export function BoardListView() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
+  const [groupField, setGroupField] = useState<GroupField>(() => loadGroupField())
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [groupOpen, setGroupOpen] = useState(false)
+  const groupMenu = useRef<HTMLDivElement>(null)
+
+  function chooseGroup(next: GroupField) {
+    setGroupField(next)
+    setCollapsedGroups(new Set())
+    try {
+      if (next === 'none') localStorage.removeItem(GROUP_KEY)
+      else localStorage.setItem(GROUP_KEY, next)
+    } catch { /* the choice just is not remembered */ }
+  }
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  }
 
   // Collect all unique values for dropdown filters
   const allEmailTypes = useMemo(() => unique(cards.map((c) => c.emailType)), [cards])
@@ -245,6 +285,8 @@ export function BoardListView() {
     return result
   }, [cards, filters, sortField, sortDir])
 
+  const groups = useMemo(() => groupCards(visibleCards, groupField), [visibleCards, groupField])
+
   function handleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -281,16 +323,13 @@ export function BoardListView() {
     subjectLine: { header: 'Subject line', sort: 'subjectLine', cell: (c) => <p className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[220px]" title={c.subjectLine}>{c.subjectLine || '—'}</p> },
     sendDate: { header: 'Send date', sort: 'sendDate', nowrap: true, cell: (c) => {
       const st = getSendStatusFor(c.sendDate, new Date(), c.column)
-      return <span className={`text-xs font-medium ${st === 'overdue' ? 'text-red-600 dark:text-red-400' : st === 'due-soon' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}>{formatBoardDate(c.sendDate)}</span>
+      return <span className="text-xs font-medium text-gray-700 dark:text-gray-300" style={st === 'overdue' ? { color: STATUS_COLOURS.overdue } : undefined}>{formatBoardDate(c.sendDate)}</span>
     } },
     sendStatus: { header: 'Status', nowrap: true, cell: (c) => <SendStatusBadge sendDate={c.sendDate} column={c.column} /> },
     contentApprovalDate: { header: 'Approval date', sort: 'contentApprovalDate', nowrap: true, cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-400">{formatBoardDate(c.contentApprovalDate)}</span> },
     startDate: { header: 'Start date', sort: 'startDate', nowrap: true, cell: (c) => <span className="text-xs text-gray-600 dark:text-gray-400">{formatBoardDate(c.startDate ?? '')}</span> },
     progress: { header: 'Progress', sort: 'progress', nowrap: true, cell: (c) => (
-      <div className="flex items-center gap-2 min-w-[90px]">
-        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1"><div className="h-1 rounded-full bg-brand-primary dark:bg-brand-accent" style={{ width: `${c.progress ?? 0}%` }} /></div>
-        <span className="text-[10px] text-gray-500 dark:text-gray-400 tabular-nums">{c.progress ?? 0}%</span>
-      </div>
+      <ProgressBar value={c.progress ?? 0} onChange={canEditProgress ? (progress) => updateCardMeta(c.id, { progress }) : undefined} />
     ) },
     approvalStatus: { header: 'Approval', nowrap: true, cell: (c) => {
       const a = settings.approvals?.enabled ? getApprovalStatusForBrief(c.briefId) : 'none'
@@ -336,6 +375,16 @@ export function BoardListView() {
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick) }
   }, [columnsOpen])
 
+  // The group menu closes the same ways.
+  useEffect(() => {
+    if (!groupOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setGroupOpen(false) }
+    const onClick = (e: MouseEvent) => { if (!groupMenu.current?.contains(e.target as Node)) setGroupOpen(false) }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onClick)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick) }
+  }, [groupOpen])
+
   function saveOrder(next: string[] | undefined) {
     setSavedOrder(next)
     try {
@@ -376,7 +425,7 @@ export function BoardListView() {
           shift(id, e.key === 'ArrowLeft' ? -1 : 1)
         }}
         onClick={def.sort ? () => handleSort(def.sort!) : undefined}
-        className={`${CELL} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap select-none transition-colors cursor-grab active:cursor-grabbing hover:text-brand-primary dark:hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${dropOver === id ? 'bg-brand-accent/20 shadow-[inset_3px_0_0_0_var(--tw-shadow-color)] shadow-brand-primary' : ''}`}
+        className={`${CELL} ${STICKY_TOP} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap select-none transition-colors cursor-grab active:cursor-grabbing hover:text-brand-primary dark:hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${dropOver === id ? 'bg-brand-accent/20 shadow-[inset_3px_0_0_0_var(--tw-shadow-color)] shadow-brand-primary' : ''}`}
       >
         {def.header}
         {def.sort && <SortIcon field={def.sort} active={sortField} dir={sortDir} />}
@@ -396,10 +445,94 @@ export function BoardListView() {
     )
   }
 
+  function renderRow(card: KanbanCard) {
+    const colIndex = (['briefed', 'in-progress', 'distributed'] as KanbanColumn[]).indexOf(card.column)
+    const prevCol = colIndex > 0 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex - 1] : null
+    const nextCol = colIndex < 2 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex + 1] : null
+
+
+    return (
+      <tr
+        key={card.id}
+        className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
+      >
+        {/* Email name */}
+        <td className={`${CELL} ${STICKY_CELL} min-w-[220px] max-w-[260px]`}>
+          <button
+            type="button"
+            onClick={() => setSelectedCard(card)}
+            title={card.emailName}
+            className="block max-w-full text-left font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-brand-primary dark:hover:text-brand-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-sm"
+          >
+            {card.emailName}
+          </button>
+          {card.subjectLine && !shownColumns.includes('subjectLine') && (
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5" title={card.subjectLine}>
+              {card.subjectLine}
+            </p>
+          )}
+        </td>
+
+        {shownColumns.map((id) => (
+          <td key={id} className={`${CELL} ${COLUMN_DEFS[id].nowrap ? 'whitespace-nowrap' : ''}`}>{COLUMN_DEFS[id].cell(card)}</td>
+        ))}
+
+        {/* Actions */}
+        <td className={`${CELL} whitespace-nowrap`}>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {prevCol && (
+              <button
+                type="button"
+                onClick={() => moveCard(card.id, prevCol)}
+                title={`Move to ${COLUMN_CONFIG[prevCol].label}`}
+                className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
+              </button>
+            )}
+            {nextCol && (
+              <button
+                type="button"
+                onClick={() => moveCard(card.id, nextCol)}
+                title={`Move to ${COLUMN_CONFIG[nextCol].label}`}
+                className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedCard(card)}
+              className="ml-1 text-[11px] font-medium text-brand-primary dark:text-brand-accent hover:underline px-1.5 py-1 transition-colors"
+            >
+              View
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  const headRow = (
+    <tr className="border-b border-brand-border-warm dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
+      <Th field="emailName">Email Name</Th>
+      {shownColumns.map((id) => columnTh(id))}
+      <th className={`${CELL} ${STICKY_TOP} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
+        Actions
+      </th>
+    </tr>
+  )
+
+  // Grouped cards are separate tables, so they need fixed widths to keep their columns in line.
+  const widths = [NAME_WIDTH, ...shownColumns.map((id) => COLUMN_WIDTH[id] ?? 150), ACTIONS_WIDTH]
+  const tableWidth = widths.reduce((sum, w) => sum + w, 0)
+  const colgroup = <colgroup>{widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Toolbar */}
-      <div className="px-6 py-4 w-full">
+      {/* Above the table, so the Columns and Group by menus and the filter panel are never covered by its sticky headings */}
+      <div className="relative z-40 px-6 py-4 w-full">
         <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 min-w-[220px] max-w-sm">
@@ -453,7 +586,7 @@ export function BoardListView() {
               Columns
             </button>
             {columnsOpen && (
-              <div role="group" aria-label="Show columns" className="absolute left-0 top-full mt-2 z-30 w-64 max-h-80 overflow-y-auto rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
+              <div role="group" aria-label="Show columns" className="absolute left-0 top-full mt-2 z-50 w-64 max-h-80 overflow-y-auto rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
                 <p className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Show columns</p>
                 {available.map((id) => (
                   <label key={id} className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
@@ -464,6 +597,46 @@ export function BoardListView() {
                 {customised && (
                   <button type="button" onClick={resetColumns} className="mt-1 w-full text-left px-2 py-1.5 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset to configured columns</button>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Group by */}
+          <div className="relative" ref={groupMenu}>
+            <button
+              type="button"
+              aria-expanded={groupOpen}
+              aria-haspopup="true"
+              onClick={() => setGroupOpen((o) => !o)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                groupOpen || groupField !== 'none' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-900 border-brand-border-warm dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="5" rx="1" /><rect x="3" y="15" width="18" height="5" rx="1" />
+              </svg>
+              Group by
+              {groupField !== 'none' && (
+                <span className="bg-brand-accent text-brand-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {GROUP_OPTIONS.find((o) => o.id === groupField)?.label}
+                </span>
+              )}
+            </button>
+            {groupOpen && (
+              <div role="radiogroup" aria-label="Group by" className="absolute left-0 top-full mt-2 z-50 w-56 rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
+                <p className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Group by</p>
+                {GROUP_OPTIONS.map((o) => (
+                  <label key={o.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
+                    <input
+                      type="radio"
+                      name="group-by"
+                      className="w-4 h-4 accent-brand-primary"
+                      checked={groupField === o.id}
+                      onChange={() => { chooseGroup(o.id); setGroupOpen(false) }}
+                    />
+                    {o.label}
+                  </label>
+                ))}
               </div>
             )}
           </div>
@@ -593,7 +766,7 @@ export function BoardListView() {
       </div>
 
       {/* Table */}
-      <div className="px-6 pb-8 w-full">
+      <div className="px-6 pb-6 w-full flex-1 min-h-0">
         {visibleCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <svg className="text-gray-300 dark:text-gray-600 mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -607,87 +780,56 @@ export function BoardListView() {
             )}
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-xl overflow-x-auto">
-            <table className="w-full min-w-max text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-brand-border-warm dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
-                  <Th field="emailName">Email Name</Th>
-                  {shownColumns.map((id) => columnTh(id))}
-                  <th className={`${CELL} text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider`}>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {visibleCards.map((card) => {
-                  const colIndex = (['briefed', 'in-progress', 'distributed'] as KanbanColumn[]).indexOf(card.column)
-                  const prevCol = colIndex > 0 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex - 1] : null
-                  const nextCol = colIndex < 2 ? (['briefed', 'in-progress', 'distributed'] as KanbanColumn[])[colIndex + 1] : null
-
+          groupField === 'none' ? (
+            <div className="h-full bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-xl overflow-auto">
+              <table className="w-full min-w-max text-sm border-collapse">
+                <thead>{headRow}</thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {visibleCards.map(renderRow)}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            // Each group is its own card under a labelled tab, so one group is never mistaken for the next.
+            // The tables share fixed column widths, so the columns line up from one card to the next.
+            <div className="h-full overflow-auto pb-2">
+              <div className="space-y-7" style={{ minWidth: tableWidth }}>
+                <div className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-800 border border-brand-border-warm dark:border-gray-700 rounded-xl overflow-hidden">
+                  <table className="text-sm border-collapse table-fixed" style={{ width: tableWidth }}>
+                    {colgroup}
+                    <thead>{headRow}</thead>
+                  </table>
+                </div>
+                {groups.map((group) => {
+                  const folded = collapsedGroups.has(group.key)
                   return (
-                    <tr
-                      key={card.id}
-                      className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors group"
-                    >
-                      {/* Email name */}
-                      <td className={`${CELL} ${STICKY_CELL} min-w-[220px] max-w-[260px]`}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCard(card)}
-                          title={card.emailName}
-                          className="block max-w-full text-left font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-brand-primary dark:hover:text-brand-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 rounded-sm"
-                        >
-                          {card.emailName}
-                        </button>
-                        {card.subjectLine && !shownColumns.includes('subjectLine') && (
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5" title={card.subjectLine}>
-                            {card.subjectLine}
-                          </p>
-                        )}
-                      </td>
-
-                      {shownColumns.map((id) => (
-                        <td key={id} className={`${CELL} ${COLUMN_DEFS[id].nowrap ? 'whitespace-nowrap' : ''}`}>{COLUMN_DEFS[id].cell(card)}</td>
-                      ))}
-
-                      {/* Actions */}
-                      <td className={`${CELL} whitespace-nowrap`}>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {prevCol && (
-                            <button
-                              type="button"
-                              onClick={() => moveCard(card.id, prevCol)}
-                              title={`Move to ${COLUMN_CONFIG[prevCol].label}`}
-                              className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
-                            </button>
-                          )}
-                          {nextCol && (
-                            <button
-                              type="button"
-                              onClick={() => moveCard(card.id, nextCol)}
-                              title={`Move to ${COLUMN_CONFIG[nextCol].label}`}
-                              className="w-6 h-6 flex items-center justify-center rounded border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCard(card)}
-                            className="ml-1 text-[11px] font-medium text-brand-primary dark:text-brand-accent hover:underline px-1.5 py-1 transition-colors"
-                          >
-                            View
-                          </button>
+                    <section key={group.key} aria-label={`${group.label} group`}>
+                      <button
+                        type="button"
+                        aria-expanded={!folded}
+                        onClick={() => toggleGroup(group.key)}
+                        className={`sticky left-0 inline-flex items-center gap-2.5 pl-4 pr-3 py-2 text-sm font-semibold bg-brand-primary text-white dark:bg-brand-primary dark:text-[#e8e5ce] hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent ${folded ? 'rounded-xl' : 'rounded-t-xl'}`}
+                      >
+                        <svg className={`transition-transform ${folded ? '-rotate-90' : ''}`} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                        {group.label}
+                        <span className="bg-brand-accent text-brand-primary text-[11px] font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full inline-flex items-center justify-center">{group.cards.length}</span>
+                      </button>
+                      {!folded && (
+                        <div className="bg-white dark:bg-gray-900 border-y-2 border-x-0 border-brand-primary/80 dark:border-brand-primary rounded-b-xl rounded-tr-xl shadow-sm">
+                          <table className="text-sm border-collapse table-fixed" style={{ width: tableWidth }}>
+                            {colgroup}
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                              {group.cards.map(renderRow)}
+                            </tbody>
+                          </table>
                         </div>
-                      </td>
-                    </tr>
+                      )}
+                    </section>
                   )
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          )
         )}
       </div>
 

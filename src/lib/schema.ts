@@ -71,8 +71,14 @@ const buildModuleSchema = z.object({
   slot: z.enum(['header', 'body', 'disclaimer', 'footer']).nullable(),
   repeats: z.record(z.number()),
   regions: z.record(z.object({ value: z.string().optional(), href: z.string().optional(), alt: z.string().optional(), removed: z.boolean().optional() })),
-  images: z.record(z.object({ src: z.string().optional() })),
+  images: z.record(z.object({ src: z.string().optional(), alt: z.string().optional() })),
   boundFields: z.record(z.string()),
+  disclaimerHtml: z.string().optional(),
+  footer: z.object({
+    removeSignoff: z.boolean().optional(),
+    signature: z.union([z.literal('none'), z.object({ entry: z.object({ id: z.string(), name: z.string(), text: z.string(), isDefault: z.boolean(), columns: z.union([z.literal(1), z.literal(2)]).optional(), textRight: z.string().optional(), format: z.enum(['text', 'code']).optional() }) })]).optional(),
+    social: z.boolean().optional(),
+  }).optional(),
   styles: z.record(z.object({ margin: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), padding: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), class: z.string().optional() })).optional(),
 })
 
@@ -87,6 +93,7 @@ export const contentSchema = z.object({
   headline: z.string().max(80, 'Max 80 characters'),
   subHeadline: z.string().max(80, 'Max 80 characters').optional(),
   greetingId: z.string().optional(),
+  disclaimerId: z.string().optional(),
   bodyIntro: z.string(),
   sections: z.array(contentSectionSchema).max(4, 'Max 4 sections'),
   modules: z.array(z.string()),

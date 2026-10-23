@@ -157,16 +157,12 @@ describe('category cards (AC-12)', () => {
   })
 })
 
-describe('highlighting (AC-13)', () => {
-  it('marks flagged terms, ALL-CAPS words and excess punctuation in the echo', () => {
+// The echo of the subject with its flagged parts marked (AC-13) was removed: it only repeated the subject line.
+describe('echo removed', () => {
+  it('does not repeat the subject line beneath the input', () => {
     render(<SubjectLineTester initial={{ subject: 'FREE MONEY!!! Act now' }} />)
-    const marks = Array.from(document.querySelectorAll('mark')).map((m) => m.textContent)
-    expect(marks).toEqual(expect.arrayContaining(['FREE', 'MONEY', '!!!']))
-  })
-
-  it('shows the rendered text, with merge tags as sample values', () => {
-    render(<SubjectLineTester initial={{ subject: 'Hi {{Recipient.FirstName}}, your Q4 outlook is here' }} />)
-    expect(screen.getByLabelText(/Subject line with/).textContent).toContain('Hi Alexandra, your Q4 outlook is here')
+    expect(screen.queryByLabelText(/Subject line with/)).toBeNull()
+    expect(document.querySelectorAll('mark')).toHaveLength(0)
   })
 })
 

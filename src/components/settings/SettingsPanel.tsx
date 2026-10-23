@@ -112,10 +112,9 @@ function loadNavGroups(): NavGroup[] {
 }
 
 export function SettingsPanel() {
-  const { isOpen, closeSettings, resetSettings } = useSettings()
+  const { isOpen, closeSettings } = useSettings()
   const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [navGroups, setNavGroups] = useState<NavGroup[]>(loadNavGroups)
   const [editSnapshot, setEditSnapshot] = useState<NavGroup[] | null>(null)
@@ -277,13 +276,6 @@ export function SettingsPanel() {
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                   Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResetConfirm(true)}
-                  className="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 px-2 py-1 transition-colors"
-                >
-                  Reset All
                 </button>
                 <button
                   type="button"
@@ -456,37 +448,6 @@ export function SettingsPanel() {
             </div>
           </div>
         </div>
-
-        {/* Reset confirmation modal */}
-        {showResetConfirm && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Reset All Settings?</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                This will restore all settings to their factory defaults. Custom campaigns, signatures, lists, themes, modules, and Brand Guardian parameters will all be lost.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetSettings()
-                    setShowResetConfirm(false)
-                  }}
-                  className="flex-1 bg-red-600 text-white py-2 px-3 rounded-md text-xs font-medium hover:bg-red-700 transition-colors"
-                >
-                  Reset Everything
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-3 rounded-md text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

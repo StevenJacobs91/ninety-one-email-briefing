@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { PardotConfig, PardotFieldMapping, PardotSenderType, PardotEdition } from '../../types/settings.types'
+import { Switch } from '../ui/Switch'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -264,17 +265,7 @@ export function TabPardot() {
 
       {/* Mock data toggle */}
       <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={cfg.useMockData}
-          onClick={() => update({ useMockData: !cfg.useMockData })}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-1 shrink-0 mt-0.5 ${
-            cfg.useMockData ? 'bg-amber-400' : 'bg-brand-primary'
-          }`}
-        >
-          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${cfg.useMockData ? 'translate-x-1' : 'translate-x-[18px]'}`} />
-        </button>
+        <Switch checked={cfg.useMockData} tone="warning" label="Use simulated data" onChange={(on) => update({ useMockData: on })} className="mt-0.5" />
         <div>
           <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
             Use simulated data

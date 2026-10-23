@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
-import { loadCatalogue, type ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSettings } from '../../contexts/SettingsContext'
+import { withCustomLibrary } from '../../lib/moduleEngine/seed'
+import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
+import { loadLibraryFor } from '../../lib/moduleEngine/deriveTheme'
 
 type State =
   | { status: 'loading' }
@@ -7,20 +10,26 @@ type State =
   | { status: 'error'; message: string }
 
 export function useCatalogue(themeId: string): State & { retry: () => void } {
-  const [state, setState] = useState<State>({ status: 'loading' })
+  const { settings } = useSettings()
+  const [loaded, setState] = useState<State>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setState({ status: 'loading' })
-    loadCatalogue(themeId)
+    loadLibraryFor(themeId, settings.brandThemes ?? [])
       .then((catalogue) => { if (!cancelled) setState({ status: 'ready', catalogue }) })
       .catch((e: unknown) => {
         if (!cancelled) setState({ status: 'error', message: e instanceof Error ? e.message : 'Could not load the module library' })
       })
     return () => { cancelled = true }
-  }, [themeId, attempt])
+  }, [themeId, attempt, settings.brandThemes])
 
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
+  // Modules added in Settings → Email Modules join the library, in this theme's colours.
+  const state = useMemo<State>(
+    () => (loaded.status === 'ready' ? { status: 'ready', catalogue: withCustomLibrary(loaded.catalogue, settings) } : loaded),
+    [loaded, settings],
+  )
   return { ...state, retry }
 }

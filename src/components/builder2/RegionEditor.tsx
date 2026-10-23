@@ -1,4 +1,5 @@
 import { RichTextarea } from '../ui/RichTextarea'
+import { AssetLibraryPicker } from './AssetLibraryPicker'
 import type { FieldInfo } from '../../lib/moduleEngine/describe'
 import type { RegionValue } from '../../lib/moduleEngine/regions'
 
@@ -33,21 +34,32 @@ export function RegionEditor({ field, saved, accentColour, onChange }: Props) {
   }
 
   if (field.kind === 'image') {
+    const profile = /\/profile_/i.test(field.value)
     return (
-      <div className="space-y-2">
-        <label htmlFor={id} className={LABEL}>{field.label} — URL</label>
-        <input id={id} className={INPUT} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
-        <label htmlFor={`${id}-alt`} className={LABEL}>Alt text</label>
-        <input id={`${id}-alt`} className={INPUT} value={saved?.alt ?? ''} placeholder={field.alt} onChange={(e) => onChange({ alt: e.target.value })} />
-      </div>
+      <AssetLibraryPicker
+        category={profile ? 'profile' : 'graphics'}
+        label={field.label}
+        url={saved?.value ?? ''}
+        alt={saved?.alt ?? ''}
+        onChange={(patch) => onChange({
+          ...(patch.url !== undefined ? { value: patch.url } : {}),
+          ...(patch.alt !== undefined ? { alt: patch.alt } : {}),
+        })}
+      />
     )
   }
 
   const hasLink = field.href !== undefined
+  const multiline = field.value.includes('\n') || (saved?.value ?? '').includes('\n')
   return (
     <div className="space-y-2">
       <label htmlFor={id} className={LABEL}>{field.kind === 'button' ? 'Button label' : field.label}</label>
-      <input id={id} className={INPUT} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
+      {multiline ? (
+        // The design breaks this text over two lines; each line of the box is a line of the email.
+        <textarea id={id} rows={2} className={`${INPUT} resize-y`} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
+      ) : (
+        <input id={id} className={INPUT} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
+      )}
       {hasLink && (
         <>
           <label htmlFor={`${id}-href`} className={LABEL}>{field.kind === 'button' ? 'Button URL' : 'Link URL'}</label>

@@ -308,6 +308,7 @@ function ThemeEditRow({
         {[
           { key: 'logoUrl' as const, label: 'Header Logo URL', placeholder: 'https://… (120×60 px)' },
           { key: 'stripeUrl' as const, label: 'Stripe URL', placeholder: 'https://… (200×234 px)' },
+          { key: 'slimStripeUrl' as const, label: 'Slim Stripe URL', placeholder: 'https://… (slim variant)' },
           { key: 'footerLogoUrl' as const, label: 'Footer Logo URL', placeholder: 'https://… (120×130 px)' },
         ].map(({ key, label, placeholder }) => (
           <div key={key}>

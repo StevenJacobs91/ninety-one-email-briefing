@@ -64,8 +64,8 @@ export function BoxModelEditor({ boxes, styles, onStyle, onClear }: Props) {
   )
 
   return (
-    <section className="border border-gray-200 dark:border-gray-700 rounded-md" aria-label="Spacing and class">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+    <section aria-label="Spacing and class">
+      <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
         <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Spacing &amp; class</p>
         <button
           type="button"
@@ -77,7 +77,7 @@ export function BoxModelEditor({ boxes, styles, onStyle, onClear }: Props) {
         </button>
       </div>
 
-      <div className="p-3 space-y-3">
+      <div className="pt-3 space-y-3">
         <div>
           <label htmlFor="box-element" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Element</label>
           <select
@@ -90,23 +90,23 @@ export function BoxModelEditor({ boxes, styles, onStyle, onClear }: Props) {
           </select>
         </div>
 
-        {/* Margin (outer) → padding (inner) → content */}
-        <div className="rounded-md bg-amber-100 dark:bg-amber-900/25 border border-dashed border-amber-400/70 p-1.5">
-          <p className="text-[10px] uppercase tracking-wider text-amber-800 dark:text-amber-300 pl-1">margin{!box.allowMargin && ' (n/a here)'}</p>
+        {/* Margin (outer) → padding (inner) → content, centred, in the brand colours */}
+        <div className="mx-auto max-w-[19rem] rounded-md bg-brand-accent/30 dark:bg-brand-accent/15 border border-dashed border-brand-accent-muted p-2">
+          <p className="text-[10px] uppercase tracking-wider text-brand-primary dark:text-brand-accent pl-1">margin{!box.allowMargin && ' (n/a here)'}</p>
           <div className="flex justify-center">{sideInput('margin', 'top')}</div>
-          <div className="flex items-center justify-between gap-1">
-            {sideInput('margin', 'left')}
-            <div className="flex-1 rounded-md bg-emerald-100 dark:bg-emerald-900/25 border border-dashed border-emerald-500/70 p-1.5">
-              <p className="text-[10px] uppercase tracking-wider text-emerald-800 dark:text-emerald-300 pl-1">padding</p>
+          <div className="grid grid-cols-[3.5rem_1fr_3.5rem] items-center gap-1">
+            <div className="flex justify-center">{sideInput('margin', 'left')}</div>
+            <div className="rounded-md bg-white/70 dark:bg-brand-primary/40 border border-dashed border-brand-primary/60 p-2">
+              <p className="text-[10px] uppercase tracking-wider text-brand-primary dark:text-gray-100 pl-1">padding</p>
               <div className="flex justify-center">{sideInput('padding', 'top')}</div>
-              <div className="flex items-center justify-between gap-1">
-                {sideInput('padding', 'left')}
-                <div className="flex-1 min-w-[48px] rounded bg-sky-100 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 py-3 text-center text-[11px] text-sky-800 dark:text-sky-200">content</div>
-                {sideInput('padding', 'right')}
+              <div className="grid grid-cols-[3.5rem_1fr_3.5rem] items-center gap-1">
+                <div className="flex justify-center">{sideInput('padding', 'left')}</div>
+                <div className="rounded bg-brand-primary py-3 text-center text-[11px] text-white">content</div>
+                <div className="flex justify-center">{sideInput('padding', 'right')}</div>
               </div>
               <div className="flex justify-center">{sideInput('padding', 'bottom')}</div>
             </div>
-            {sideInput('margin', 'right')}
+            <div className="flex justify-center">{sideInput('margin', 'right')}</div>
           </div>
           <div className="flex justify-center">{sideInput('margin', 'bottom')}</div>
         </div>

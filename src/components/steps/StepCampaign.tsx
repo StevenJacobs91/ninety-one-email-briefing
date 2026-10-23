@@ -38,7 +38,7 @@ export function StepCampaign() {
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
-  const availableThemes = useAvailableThemes()
+  const { ids: availableThemes, approximate: approximateThemes } = useAvailableThemes()
   const subjectLineDeps = useSubjectLineDeps()
   const campaignName = watch('campaign.campaignName') ?? ''
   const selectedClientGroups = watch('audience.clientGroup') ?? []
@@ -134,7 +134,10 @@ export function StepCampaign() {
       if (cp.greetingId) set('content.greetingId', cp.greetingId)
       if (cp.disclaimerId) {
         const disclaimerEntry = (settings.legalDisclaimers ?? []).find((d) => d.id === cp.disclaimerId)
-        if (disclaimerEntry) set('content.legalDisclaimer', disclaimerEntry.text)
+        if (disclaimerEntry) {
+          set('content.legalDisclaimer', disclaimerEntry.text)
+          set('content.disclaimerId', disclaimerEntry.id)
+        }
       }
 
       // The campaign's saved layout. Never replaces work the user has already done without asking.
@@ -236,12 +239,12 @@ export function StepCampaign() {
             <p className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
               1-1 Required?
             </p>
-            <div className="flex w-full border border-brand-border-field dark:border-gray-600 overflow-hidden" role="group" aria-label="1-1 required">
+            <div className="flex w-full h-[46px] border border-brand-border-field dark:border-gray-600 overflow-hidden" role="group" aria-label="1-1 required">
               <button
                 type="button"
                 onClick={() => setValue('deadlines.oneOnOneRequired', false, { shouldValidate: true })}
                 aria-pressed={watch('deadlines.oneOnOneRequired') === false}
-                className={`flex-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
+                className={`flex-1 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
                   watch('deadlines.oneOnOneRequired') === false
                     ? 'bg-brand-primary text-white'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -253,7 +256,7 @@ export function StepCampaign() {
                 type="button"
                 onClick={() => setValue('deadlines.oneOnOneRequired', true, { shouldValidate: true })}
                 aria-pressed={watch('deadlines.oneOnOneRequired') === true}
-                className={`flex-1 py-3 text-sm font-medium transition-colors border-l border-brand-border-field dark:border-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
+                className={`flex-1 text-sm font-medium transition-colors border-l border-brand-border-field dark:border-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary ${
                   watch('deadlines.oneOnOneRequired') === true
                     ? 'bg-brand-primary text-white border-brand-primary'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -527,6 +530,7 @@ export function StepCampaign() {
                       <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
                         {theme.label}
                         {pending && <span className="block text-[10px] text-gray-400">Module library pending</span>}
+                        {!pending && approximateThemes.includes(theme.id) && <span className="block text-[10px] text-gray-400">Approximate module library</span>}
                       </span>
                     </label>
                   )

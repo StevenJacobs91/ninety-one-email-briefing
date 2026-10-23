@@ -72,7 +72,7 @@ export function FieldText({
           min={min}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${inputId}-error` : undefined}
-          className={`w-full border px-3 py-3 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors ${
+          className={`w-full border px-3 py-3 text-sm ${type === 'date' ? 'h-[46px]' : ''} bg-white dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors ${
             showUrlFeedback ? 'pr-8' : ''
           } ${
             error ? 'border-red-400' : 'border-brand-border-field dark:border-gray-600'

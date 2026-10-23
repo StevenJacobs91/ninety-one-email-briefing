@@ -7,7 +7,7 @@ const m = vi.hoisted(() => ({ fetchBriefById: vi.fn(), generateEmailHtml: vi.fn(
 
 vi.mock('../../../lib/supabaseQueries', () => ({ fetchBriefById: m.fetchBriefById }))
 vi.mock('../../../lib/emailGenerator', () => ({ generateEmailHtml: m.generateEmailHtml }))
-vi.mock('../../../lib/moduleEngine/catalogue', () => ({ loadCatalogue: m.loadCatalogue }))
+vi.mock('../../../lib/moduleEngine/deriveTheme', () => ({ loadLibraryFor: m.loadCatalogue }))
 vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: { marker: 'settings' } }) }))
 
 import { useCardEmail } from '../useCardEmail'
@@ -32,7 +32,7 @@ describe('useCardEmail', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'))
     expect(result.current).toEqual({ status: 'ready', html: '<html>THE EMAIL</html>' })
     expect(m.fetchBriefById).toHaveBeenCalledWith('b1')
-    expect(m.loadCatalogue).toHaveBeenCalledWith('agulhas-gold')
+    expect(m.loadCatalogue).toHaveBeenCalledWith('agulhas-gold', [])
     expect(m.generateEmailHtml).toHaveBeenCalledWith(expect.anything(), { marker: 'settings' }, { catalogue: CATALOGUE })
   })
 

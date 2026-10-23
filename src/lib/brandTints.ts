@@ -17,6 +17,16 @@ export const BRAND_TINTS: Record<string, Tints> = {
   '#74908d': { tint01: '#809a96', tint02: '#698282', tint03: '#54666d' }, // Galjoen Gray
 }
 
+/** Ninety One's six primary colours by name; a header image's colour overlay is one of these, to match its theme. */
+export const BRAND_PRIMARIES: readonly { hex: string; name: string }[] = [
+  { hex: '#134848', name: 'Leatherback Green' },
+  { hex: '#0a3323', name: 'Marula Green' },
+  { hex: '#591739', name: 'Pinotage Burgundy' },
+  { hex: '#221b3b', name: 'Agulhas Indigo' },
+  { hex: '#74908d', name: 'Galjoen Gray' },
+  { hex: '#e8e5ce', name: 'Springbok Cream' },
+]
+
 /** The tints earlier versions calculated by brightening or darkening the primary. */
 export function legacyDerivedTints(hex: string): Tints {
   const adj = (h: string, pct: number) => {

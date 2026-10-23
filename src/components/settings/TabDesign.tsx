@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { DESIGN_ASSET_TYPES } from '../../lib/designConstants'
 import { createDefaultDesignBriefingSettings } from '../../lib/settingsDefaults'
 import type { DesignAssetTypeSettings, DesignBriefingSettings } from '../../types/settings.types'
+import { Switch } from '../ui/Switch'
 
 export function TabDesign() {
   const { settings, updateSettings } = useSettings()
@@ -66,20 +67,7 @@ export function TabDesign() {
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable Design Briefing</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Show the Design Briefing Platform in the platform switcher</p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={designBriefing.enabled}
-              onClick={() => update({ enabled: !designBriefing.enabled })}
-              className={`
-                relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors
-                focus:outline-none focus:ring-2 focus:ring-brand-primary/40 dark:focus:ring-brand-accent/40
-                ${designBriefing.enabled ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-200 dark:bg-gray-700'}
-              `}
-              aria-label="Enable Design Briefing"
-            >
-              <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${designBriefing.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-            </button>
+            <Switch checked={designBriefing.enabled} label="Enable Design Briefing" onChange={(on) => update({ enabled: on })} />
           </div>
 
           <div className="h-px bg-gray-200 dark:bg-gray-700" />
@@ -118,20 +106,7 @@ export function TabDesign() {
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Allow Mockups</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Show the mockup viewer in the brief form</p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={designBriefing.allowMockups}
-              onClick={() => update({ allowMockups: !designBriefing.allowMockups })}
-              className={`
-                relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors
-                focus:outline-none focus:ring-2 focus:ring-brand-primary/40 dark:focus:ring-brand-accent/40
-                ${designBriefing.allowMockups ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-200 dark:bg-gray-700'}
-              `}
-              aria-label="Allow mockups"
-            >
-              <span className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${designBriefing.allowMockups ? 'translate-x-4' : 'translate-x-0'}`} />
-            </button>
+            <Switch checked={designBriefing.allowMockups} label="Allow mockups" onChange={(on) => update({ allowMockups: on })} />
           </div>
 
           {/* Max attachments */}
@@ -174,20 +149,7 @@ export function TabDesign() {
                 {/* Asset type row */}
                 <div className="flex items-center gap-3 px-4 py-3">
                   {/* Toggle */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={atSettings.enabled}
-                    onClick={() => updateAssetType(atSettings.id, { enabled: !atSettings.enabled })}
-                    className={`
-                      relative inline-flex h-4 w-8 shrink-0 rounded-full border-2 border-transparent transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-brand-primary/40 dark:focus:ring-brand-accent/40
-                      ${atSettings.enabled ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-200 dark:bg-gray-700'}
-                    `}
-                    aria-label={`${atSettings.enabled ? 'Disable' : 'Enable'} ${assetTypeDef.label}`}
-                  >
-                    <span className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform ${atSettings.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </button>
+                  <Switch size="sm" checked={atSettings.enabled} label={`${atSettings.enabled ? 'Disable' : 'Enable'} ${assetTypeDef.label}`} onChange={(on) => updateAssetType(atSettings.id, { enabled: on })} />
 
                   {/* Emoji + label */}
                   <span className="text-base" aria-hidden="true">{assetTypeDef.emoji}</span>
@@ -263,20 +225,7 @@ export function TabDesign() {
                             <span className="text-[10px] text-gray-400 dark:text-gray-600 font-mono mr-1">{fieldDef.type}</span>
 
                             {/* Visibility toggle */}
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={fieldSettings.visible}
-                              onClick={() => toggleFieldVisible(atSettings.id, fieldSettings.id)}
-                              className={`
-                                relative inline-flex h-4 w-7 shrink-0 rounded-full border-2 border-transparent transition-colors
-                                focus:outline-none focus:ring-2 focus:ring-brand-primary/40 dark:focus:ring-brand-accent/40
-                                ${fieldSettings.visible ? 'bg-brand-primary dark:bg-brand-accent' : 'bg-gray-200 dark:bg-gray-700'}
-                              `}
-                              aria-label={`${fieldSettings.visible ? 'Hide' : 'Show'} ${fieldDef.label} field`}
-                            >
-                              <span className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform ${fieldSettings.visible ? 'translate-x-3' : 'translate-x-0'}`} />
-                            </button>
+                            <Switch size="xs" checked={fieldSettings.visible} label={`${fieldSettings.visible ? 'Hide' : 'Show'} ${fieldDef.label} field`} onChange={() => toggleFieldVisible(atSettings.id, fieldSettings.id)} />
                           </div>
                         )
                       })}

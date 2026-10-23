@@ -51,7 +51,8 @@ function generateFromBuild(brief: BriefPayload, settings: AppSettings | undefine
   const { html } = renderBuild(build, catalogue, {
     parse,
     accent: themeSettings?.accent ?? getThemeColors(brief.campaign.theme).accent,
-    assets: { logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl },
+    previewText: brief.campaign.previewText?.trim() ?? '',
+    assets: { logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, slimStripeUrl: themeSettings?.slimStripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl },
   })
   const utm = brief.campaign.utmCampaign?.trim() || brief.campaign.campaignName || ''
   if (!utm) return html

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BriefPayload } from '../../types/brief.types'
-import { loadCatalogue, type ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
+import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
+import { loadLibraryFor } from '../../lib/moduleEngine/deriveTheme'
 import { useSettings } from '../../contexts/SettingsContext'
 import { fetchBriefById } from '../../lib/supabaseQueries'
 import { generateEmailHtml } from '../../lib/emailGenerator'
+import { withCustomLibrary } from '../../lib/moduleEngine/seed'
 
 export type CardEmail =
   | { status: 'loading' }
@@ -45,7 +47,7 @@ export function useCardEmail(briefId: string): CardEmail {
     if (!needsLibrary || !theme) return
     let cancelled = false
     setLibrary({ status: 'loading' })
-    loadCatalogue(theme)
+    loadLibraryFor(theme, settings.brandThemes ?? [])
       .then((catalogue) => { if (!cancelled) setLibrary({ status: 'ready', catalogue }) })
       .catch((e: unknown) => { if (!cancelled) setLibrary({ status: 'error', message: e instanceof Error ? e.message : 'Could not load the module library' }) })
     return () => { cancelled = true }
@@ -53,7 +55,10 @@ export function useCardEmail(briefId: string): CardEmail {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), [])
 
-  const catalogue = library.status === 'ready' ? library.catalogue : undefined
+  const catalogue = useMemo(
+    () => (library.status === 'ready' ? withCustomLibrary(library.catalogue, settings) : undefined),
+    [library, settings],
+  )
   const built = useMemo(() => {
     if (!brief || (needsLibrary && !catalogue)) return null
     try {

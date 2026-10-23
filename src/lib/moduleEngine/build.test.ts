@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  newModule, addModule, removeModule, moveModule, duplicateModule, swapModule,
+  newModule, addModule, addHeader, removeModule, moveModule, duplicateModule, swapModule,
   setRegion, setRepeat, setImage, setTheme, setStyle, type EmailBuild,
 } from './build.ts'
 import { renderBuild } from './render.ts'
@@ -46,12 +46,21 @@ test('an edited region appears in the rendered email', () => {
   assert.ok(out.html.includes('Hello <i>world</i>'))
 })
 
-test('header, footer and disclaimer slot modules cannot be removed or moved', () => {
+test('header, footer and disclaimer slot modules cannot be moved, and footer and disclaimer cannot be removed', () => {
   const b = base()
-  for (const i of [0, 2, 3]) {
-    assert.deepEqual(removeModule(b, b.modules[i].instanceId), b)
-    assert.deepEqual(moveModule(b, b.modules[i].instanceId, 1), b)
-  }
+  for (const i of [0, 2, 3]) assert.deepEqual(moveModule(b, b.modules[i].instanceId, 1), b)
+  for (const i of [2, 3]) assert.deepEqual(removeModule(b, b.modules[i].instanceId), b)
+})
+
+test('an email can go without its header, and the header can be put back at the top', () => {
+  const b = base()
+  const without = removeModule(b, b.modules[0].instanceId)
+  assert.equal(without.modules.some((m) => m.slot === 'header'), false)
+  assert.equal(without.modules.length, b.modules.length - 1)
+  const back = addHeader(without, 'Plain Logo Header')
+  assert.equal(back.modules[0].moduleName, 'Plain Logo Header')
+  assert.equal(back.modules[0].slot, 'header')
+  assert.deepEqual(addHeader(back, 'Small Header'), back)
 })
 
 test('the seeded body module can be removed, moved and duplicated like any other', () => {
@@ -187,4 +196,40 @@ test('an override for an element the module does not have is ignored', () => {
   const out = renderBuild(b, cat, { parse })
   assert.ok(!out.html.includes('padding: 99px'))
   assert.equal(out.html, renderBuild(start, cat, { parse }).html)
+})
+
+// ─── Slim and standard stripes ───────────────────────────────────────────────
+
+const real = (id: string) => JSON.parse(readFileSync(join(process.cwd(), 'public', 'module-catalogue', `${id}.json`), 'utf8')) as ThemeCatalogue
+const renderModule = (id: string, name: string, assets: Record<string, string>) =>
+  renderBuild({ version: 1, themeId: id, modules: [newModule(name, 'header')] }, real(id), { parse, assets }).html
+const imgs = (html: string, file: RegExp) => (html.match(/<img[^>]*>/g) ?? []).filter((t) => file.test(t))
+
+test('a small header\'s slim stripe is replaced by the theme\'s slim stripe, never by the tall standard one', () => {
+  for (const name of ['Small Header', 'Small Header v2']) {
+    const html = renderModule('agulhas-coral', name, { stripeUrl: 'https://s.example/standard.png', slimStripeUrl: 'https://s.example/slim.png' })
+    assert.ok(html.includes('https://s.example/slim.png'), name)
+    assert.ok(!html.includes('https://s.example/standard.png'), `${name} must not squash the standard stripe`)
+  }
+})
+
+test('with no slim stripe set, a small header keeps the library\'s own rather than squashing the standard one', () => {
+  const html = renderModule('agulhas-coral', 'Small Header v2', { stripeUrl: 'https://s.example/standard.png' })
+  assert.ok(!html.includes('https://s.example/standard.png'))
+  assert.equal(imgs(html, /banner_stripe_warm_yellow_600x250/).length, 1)
+})
+
+test('the standard stripe still goes into the headers built for it', () => {
+  const html = renderModule('agulhas-coral', 'Plain Logo Header', { stripeUrl: 'https://s.example/standard.png', slimStripeUrl: 'https://s.example/slim.png' })
+  assert.ok(html.includes('https://s.example/standard.png'))
+  assert.ok(!html.includes('https://s.example/slim.png'))
+})
+
+test('in every theme the small headers\' stripe is the slim slot, so a theme\'s slim stripe reaches all of them', () => {
+  for (const id of readdirSync(join(process.cwd(), 'public', 'module-catalogue')).filter((f) => f.endsWith('.json') && f !== 'index.json').map((f) => f.replace('.json', ''))) {
+    for (const name of ['Small Header', 'Small Header v2']) {
+      const html = renderModule(id, name, { stripeUrl: 'https://s.example/standard.png', slimStripeUrl: 'https://s.example/slim.png' })
+      assert.ok(html.includes('https://s.example/slim.png') && !html.includes('https://s.example/standard.png'), `${id} ${name}`)
+    }
+  }
 })

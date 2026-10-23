@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { PowerAutomateConfig, PowerAutomateFlowEndpoint, PowerAutomateFieldMapping } from '../../types/settings.types'
 import { testFlowWebhook } from '../../lib/powerAutomateService'
+import { Switch } from '../ui/Switch'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -155,18 +156,7 @@ function FlowCard({
           </div>
         </div>
         {/* Enable toggle */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={endpoint.enabled}
-          onClick={() => onChange({ enabled: !endpoint.enabled })}
-          title={endpoint.enabled ? 'Disable this flow' : 'Enable this flow'}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none shrink-0 mt-0.5 ${
-            endpoint.enabled && isConfigured ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
-        >
-          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${endpoint.enabled ? 'translate-x-[18px]' : 'translate-x-1'}`} />
-        </button>
+        <Switch checked={endpoint.enabled} tone={isConfigured ? 'primary' : 'warning'} label={`${endpoint.enabled ? 'Disable' : 'Enable'} this flow`} title={endpoint.enabled ? (isConfigured ? 'Disable this flow' : 'On, but it needs a webhook URL before it can send') : 'Enable this flow'} onChange={(on) => onChange({ enabled: on })} className="mt-0.5" />
       </div>
 
       {/* Webhook URL */}
@@ -588,17 +578,7 @@ export function TabPowerAutomate() {
 
       {/* ── Master toggle ────────────────────────────────────────── */}
       <div className="flex items-start gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={cfg.enabled}
-          onClick={() => update({ enabled: !cfg.enabled })}
-          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-1 shrink-0 mt-0.5 ${
-            cfg.enabled ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
-          }`}
-        >
-          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${cfg.enabled ? 'translate-x-[18px]' : 'translate-x-1'}`} />
-        </button>
+        <Switch checked={cfg.enabled} label="Enable Power Automate integration" onChange={(on) => update({ enabled: on })} className="mt-0.5" />
         <div>
           <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
             Enable Power Automate integration

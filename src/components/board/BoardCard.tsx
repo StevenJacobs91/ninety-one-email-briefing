@@ -7,6 +7,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
 import { getThemeColours } from '../../lib/themeColours'
 import { ageInColumn, formatBoardDate, sendStatus } from '../../lib/boardFormat'
+import { SendStatusBadge, STATUS_COLOURS } from './SendStatusBadge'
 import { fieldsForSurface, groupFields, type BoardSettings } from '../../lib/boardConfig'
 
 export const COLUMN_ORDER: KanbanColumn[] = ['briefed', 'in-progress', 'distributed']
@@ -51,11 +52,7 @@ export function BoardCard({ card, board, onView, onDragStart, approvalOverride, 
       case 'emailType':
         return <span key={id} className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{card.emailType}</span>
       case 'sendStatus':
-        return status === 'overdue'
-          ? <span key={id} className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium">Overdue</span>
-          : status === 'due-soon'
-            ? <span key={id} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">Due soon</span>
-            : null
+        return status === 'ok' ? null : <SendStatusBadge key={id} sendDate={card.sendDate} column={card.column} />
       case 'approvalStatus':
         return approval !== 'none' ? <ApprovalStatusBadge key={id} status={approval} size="sm" /> : null
       default:
@@ -82,8 +79,8 @@ export function BoardCard({ card, board, onView, onDragStart, approvalOverride, 
               label: 'Send date',
               value: (
                 <span className="inline-flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status === 'overdue' ? 'bg-red-500' : status === 'due-soon' ? 'bg-amber-400' : 'bg-green-500'}`} />
-                  <span className={`font-medium ${status === 'overdue' ? 'text-red-600 dark:text-red-400' : status === 'due-soon' ? 'text-amber-600 dark:text-amber-400' : ''}`}>{formatBoardDate(card.sendDate)}</span>
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: STATUS_COLOURS[status] }} />
+                  <span className="font-medium" style={status === 'overdue' ? { color: STATUS_COLOURS.overdue } : undefined}>{formatBoardDate(card.sendDate)}</span>
                 </span>
               ),
             }

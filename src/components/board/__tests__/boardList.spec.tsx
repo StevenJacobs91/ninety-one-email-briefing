@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { KanbanCard } from '../../../types/kanban.types'
 import { defaultCardFields } from '../../../lib/boardConfig'
 
-const state = vi.hoisted(() => ({ settings: {} as Record<string, unknown>, cards: [] as unknown[] }))
+const state = vi.hoisted(() => ({ settings: {} as Record<string, unknown>, cards: [] as unknown[], role: 'producer', updateCardMeta: vi.fn() }))
 
-vi.mock('../../../contexts/KanbanContext', () => ({ useKanban: () => ({ cards: state.cards, moveCard: vi.fn() }) }))
+vi.mock('../../../contexts/KanbanContext', () => ({ useKanban: () => ({ cards: state.cards, moveCard: vi.fn(), updateCardMeta: state.updateCardMeta }) }))
+vi.mock('../../../contexts/AuthContext', () => ({ useAuth: () => ({ profile: { role: state.role } }) }))
 vi.mock('../../../contexts/ApprovalsContext', () => ({ useApprovals: () => ({ getApprovalStatusForBrief: () => 'none' }) }))
 vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: state.settings }) }))
 vi.mock('../CardDetailDrawer', () => ({
@@ -34,6 +35,8 @@ const KEY = 'ni-board-list-columns'
 beforeEach(() => {
   state.settings = { approvals: { enabled: false }, campaignPlanner: { cardFields: only('region', 'channel') } }
   state.cards = [card({}), card({ id: 'c2', briefId: 'b2', emailName: 'Advisor Impact' })]
+  state.role = 'producer'
+  state.updateCardMeta.mockClear()
   localStorage.clear()
 })
 afterEach(cleanup)
@@ -187,9 +190,43 @@ describe('BoardListView columns picker, scrolling and alignment', () => {
     const { container } = render(<BoardListView />)
     const table = container.querySelector('table')!
     const scroller = table.parentElement!
-    expect(scroller.className).toMatch(/overflow-x-auto/)
+    expect(scroller.className).toMatch(/overflow-auto/)
     expect(scroller.className).not.toMatch(/overflow-hidden/)
     expect(table.className).toMatch(/min-w-max/)
+  })
+
+  it('keeps the headings at the top while the rows scroll, and the name heading in the corner', () => {
+    const { container } = render(<BoardListView />)
+    // The table's own area scrolls, so sticky headings stay put; the page toolbar above it does not scroll away.
+    const scroller = container.querySelector('table')!.parentElement!
+    expect(scroller.className).toMatch(/h-full/)
+    for (const th of Array.from(container.querySelectorAll('thead th'))) {
+      expect(th.className, th.textContent ?? '').toMatch(/sticky/)
+      expect(th.className).toMatch(/top-0/)
+      expect(th.className).toMatch(/bg-gray-50/)
+    }
+    expect(header('Email Name').className).toMatch(/left-0/)
+    expect(container.firstElementChild!.className).toMatch(/overflow-hidden/)
+  })
+
+  it('keeps the toolbar and its menus above the table\'s sticky headings', () => {
+    const { container } = render(<BoardListView />)
+    const layer = (el: Element) => Number(el.className.match(/(?:^|\s)z-(\d+)/)?.[1] ?? 0)
+    const toolbar = container.querySelector('input[type="search"]')!.closest('div.z-40')!
+    fireEvent.click(screen.getByRole('button', { name: /^Columns/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Group by/ }))
+    const highestHeading = Math.max(...Array.from(container.querySelectorAll('thead th')).map(layer))
+    expect(layer(toolbar)).toBeGreaterThan(highestHeading)
+    expect(layer(screen.getByRole('radiogroup', { name: 'Group by' }))).toBeGreaterThan(layer(toolbar) - 1)
+  })
+
+  it('grouped, the one row of headings stays at the top as the cards scroll under it', () => {
+    localStorage.setItem('ni-board-list-group', 'column')
+    const { container } = render(<BoardListView />)
+    const bar = container.querySelector('table')!.closest('div.sticky')!
+    expect(bar.className).toMatch(/top-0/)
+    expect(bar.className).toMatch(/bg-gray-50/)
+    expect(bar.parentElement!.parentElement!.className).toMatch(/overflow-auto/)
   })
 
   it('gives every heading and its cells the same padding and left alignment', () => {
@@ -209,5 +246,117 @@ describe('BoardListView columns picker, scrolling and alignment', () => {
     const { container } = render(<BoardListView />)
     expect(container.querySelector('thead th')!.className).toMatch(/sticky/)
     expect(container.querySelector('tbody tr td')!.className).toMatch(/sticky/)
+  })
+})
+
+describe('BoardListView grouping', () => {
+  beforeEach(() => {
+    state.cards = [
+      card({ id: 'a', emailName: 'Alpha', column: 'in-progress' }),
+      card({ id: 'b', emailName: 'Bravo', column: 'briefed' }),
+      card({ id: 'c', emailName: 'Charlie', column: 'briefed' }),
+    ]
+  })
+
+  const groupBy = (label: string) => {
+    if (!screen.queryByRole('radiogroup', { name: 'Group by' })) fireEvent.click(screen.getByRole('button', { name: /^Group by/ }))
+    fireEvent.click(screen.getByRole('radio', { name: label }))
+  }
+
+  it('is a button like Filters and Columns, and opens a list of every field to group by', () => {
+    render(<BoardListView />)
+    expect(screen.queryByRole('radiogroup')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^Group by/ }))
+    const options = screen.getAllByRole('radio') as HTMLInputElement[]
+    expect(screen.getByRole('radiogroup', { name: 'Group by' })).toBeTruthy()
+    expect(options.map((o) => o.closest('label')?.textContent)).toEqual(['None', 'Stage', 'Urgency', 'Type', 'Submitted by', 'Assignee', 'Region', 'Channel', 'Status', 'Send date'])
+    expect(options[0].checked).toBe(true)
+    expect(screen.queryByRole('button', { name: /^Briefed\s*\d/ })).toBeNull()
+  })
+
+  it('closes after a choice, on Escape, and says what it is grouped by', () => {
+    render(<BoardListView />)
+    groupBy('Stage')
+    expect(screen.queryByRole('radiogroup')).toBeNull()
+    expect(screen.getByRole('button', { name: /^Group by\s*Stage/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^Group by/ }))
+    expect(screen.getByRole('radiogroup')).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('radiogroup')).toBeNull()
+  })
+
+  it('grouping by stage gives each stage its own card under a labelled tab, with a count', () => {
+    render(<BoardListView />)
+    groupBy('Stage')
+    const briefed = screen.getByRole('region', { name: 'Briefed group' })
+    const progress = screen.getByRole('region', { name: 'In Progress group' })
+    expect(within(briefed).getByRole('button', { name: /^Briefed\s*2/ })).toBeTruthy()
+    expect(within(briefed).getAllByRole('row').map((r) => r.textContent)).toEqual([expect.stringContaining('Bravo'), expect.stringContaining('Charlie')])
+    expect(within(progress).getByRole('button', { name: /^In Progress\s*1/ })).toBeTruthy()
+    expect(within(progress).getAllByRole('row').length).toBe(1)
+    expect(within(briefed).queryByText('Alpha')).toBeNull()
+  })
+
+  it('shows the column headings once, above the groups, with the same widths in every card', () => {
+    render(<BoardListView />)
+    groupBy('Stage')
+    expect(screen.getAllByRole('columnheader', { name: 'Email Name' }).length).toBe(1)
+    const widths = Array.from(document.querySelectorAll('table')).map((t) => Array.from(t.querySelectorAll('col')).map((c) => (c as HTMLElement).style.width).join())
+    expect(new Set(widths).size).toBe(1)
+  })
+
+  it('a group folds away and opens again, and starts open when the grouping changes', () => {
+    render(<BoardListView />)
+    groupBy('Stage')
+    const heading = screen.getByRole('button', { name: /^Briefed\s*\d/ })
+    expect(heading.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(heading)
+    expect(heading.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('Bravo')).toBeNull()
+    fireEvent.click(heading)
+    expect(screen.getByText('Bravo')).toBeTruthy()
+  })
+
+  it('remembers the grouping in this browser, and None clears it', () => {
+    const { unmount } = render(<BoardListView />)
+    groupBy('Urgency')
+    expect(localStorage.getItem('ni-board-list-group')).toBe('urgency')
+    unmount()
+    render(<BoardListView />)
+    expect(screen.getByRole('button', { name: /^Group by\s*Urgency/ })).toBeTruthy()
+    groupBy('None')
+    expect(localStorage.getItem('ni-board-list-group')).toBeNull()
+  })
+
+  it('keeps the chosen sort inside each group', () => {
+    render(<BoardListView />)
+    groupBy('Stage')
+    fireEvent.click(header('Email Name'))
+    fireEvent.click(header('Email Name'))
+    const names = within(screen.getByRole('region', { name: 'Briefed group' })).getAllByRole('row').map((r) => r.textContent ?? '')
+    expect(names[0]).toContain('Charlie')
+    expect(names[1]).toContain('Bravo')
+  })
+})
+
+describe('BoardListView progress', () => {
+  beforeEach(() => {
+    state.settings = { approvals: { enabled: false }, campaignPlanner: { cardFields: only('progress') } }
+    state.cards = [card({ id: 'p1', progress: 70 })]
+  })
+
+  it('a click on the bar sets progress for that brief, to the nearest ten per cent', () => {
+    render(<BoardListView />)
+    const slider = screen.getByRole('slider', { name: 'Progress' })
+    slider.getBoundingClientRect = () => ({ left: 0, width: 100, right: 100, top: 0, bottom: 0, height: 10, x: 0, y: 0, toJSON: () => ({}) })
+    fireEvent.click(slider, { clientX: 43 })
+    expect(state.updateCardMeta).toHaveBeenCalledWith('p1', { progress: 40 })
+  })
+
+  it('a requester sees the bar but cannot change it', () => {
+    state.role = 'requester'
+    render(<BoardListView />)
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(screen.getByText('70%')).toBeTruthy()
   })
 })

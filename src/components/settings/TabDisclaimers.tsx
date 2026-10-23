@@ -3,6 +3,8 @@ import { useSettings } from '../../contexts/SettingsContext'
 import type { LegalDisclaimerConfig } from '../../types/settings.types'
 import { REGIONS } from '../../lib/constants'
 import { v4 as uuidv4 } from 'uuid'
+import { DisclaimerEditor } from '../ui/DisclaimerEditor'
+import { disclaimerSource, disclaimerToText } from '../../lib/disclaimer'
 
 export function TabDisclaimers() {
   const { settings, updateSettings } = useSettings()
@@ -133,13 +135,14 @@ export function TabDisclaimers() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Disclaimer Text</label>
-                    <textarea
-                      value={d.text}
-                      onChange={(e) => updateDisclaimer(d.id, { text: e.target.value })}
-                      rows={4}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary resize-y"
+                    <DisclaimerEditor
+                      value={disclaimerSource(d)}
+                      onChange={(html) => updateDisclaimer(d.id, { html, text: disclaimerToText(html) })}
                       placeholder="Full disclaimer text..."
                     />
+                    <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                      Bold, italic, underline, links and text size are kept in the email. Each line or paragraph becomes its own paragraph.
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input

@@ -205,6 +205,7 @@ export interface TeamMember {
   email: string
   displayName: string
   role: UserRole
+  customRoleId: string | null
   teamId: string
   createdAt: string
   presetClientGroups: string[]
@@ -214,7 +215,7 @@ export interface TeamMember {
 export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from('team_members')
-    .select('id, email, display_name, role, team_id, created_at, preset_client_groups, preset_regions')
+    .select('id, email, display_name, role, custom_role_id, team_id, created_at, preset_client_groups, preset_regions')
     .eq('team_id', teamId)
     .order('created_at', { ascending: true })
 
@@ -224,6 +225,7 @@ export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
     email: row.email,
     displayName: row.display_name,
     role: row.role as UserRole,
+    customRoleId: row.custom_role_id ?? null,
     teamId: row.team_id,
     createdAt: row.created_at,
     presetClientGroups: row.preset_client_groups ?? [],
@@ -234,7 +236,17 @@ export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
 export async function updateMemberRole(userId: string, role: UserRole): Promise<void> {
   const { error } = await supabase
     .from('profiles')
-    .update({ role })
+    .update({ role, custom_role_id: null })
+    .eq('id', userId)
+
+  if (error) throw new Error(`Failed to update role: ${error.message}`)
+}
+
+/** Gives a member a custom role (which works like `baseRole`), or takes it away with null. */
+export async function updateMemberCustomRole(userId: string, customRoleId: string | null, baseRole: UserRole): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ custom_role_id: customRoleId, role: baseRole })
     .eq('id', userId)
 
   if (error) throw new Error(`Failed to update role: ${error.message}`)

@@ -1,3 +1,4 @@
+import { SendStatusBadge, STATUS_COLOURS } from './SendStatusBadge'
 import { useState, useEffect, useRef } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
@@ -9,6 +10,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { CardEmailPreview } from './CardEmailPreview'
 import { useCardEmail } from './useCardEmail'
 import { OpenInEditor } from './OpenInEditor'
+import { CopyHtml } from './CopyHtml'
 import { safeFileName } from '../../lib/attachmentRules'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
@@ -161,9 +163,10 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
     </a>
   )
 
-  // The email's actions: open it in the chosen editor (see Settings → General), or full size in a new tab.
+  // The email's actions: copy its HTML, open it in the chosen editor (see Settings → General), or full size in a new tab.
   const emailActions = (onDark: boolean) => (
     <div className="flex items-center gap-4">
+      <CopyHtml email={email} onDark={onDark} />
       <OpenInEditor email={email} fileName={`${safeFileName(card.emailName)}.html`} onDark={onDark} />
       {fullSizeLink(onDark)}
     </div>
@@ -243,16 +246,7 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
                   Urgent
                 </span>
               )}
-              {isOverdue && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                  Overdue
-                </span>
-              )}
-              {isDueSoon && !isOverdue && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                  Due soon
-                </span>
-              )}
+              {(isOverdue || isDueSoon) && <SendStatusBadge sendDate={card.sendDate} column={card.column} />}
               {settings.approvals?.enabled && approvalStatus !== 'none' && (
                 <ApprovalStatusBadge status={approvalStatus} size="sm" />
               )}
@@ -329,7 +323,7 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
                 </div>
                 <div>
                   <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Send Date</p>
-                  <p className={`text-sm mt-0.5 font-medium ${isOverdue ? 'text-red-600 dark:text-red-400' : isDueSoon ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                  <p className="text-sm mt-0.5 font-medium text-gray-800 dark:text-gray-200" style={isOverdue ? { color: STATUS_COLOURS.overdue } : undefined}>
                     {formatDate(card.sendDate)}
                   </p>
                 </div>

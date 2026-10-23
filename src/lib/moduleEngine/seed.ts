@@ -1,9 +1,13 @@
 import { addModule, newModule, setRegion, swapModule, type BuildModule, type EmailBuild } from './build'
 import type { ThemeCatalogue } from './catalogue'
 import { parseModuleDom, parseRegions, regionElements, type ParseDoc } from './regions'
+import type { AppSettings, HeaderTypeConfig } from '../../types/settings.types'
+import { applyThemeTokens, HERO_PLACEHOLDER, themeTokensFor, usesHeroImage, validateModuleHtml, withCustomModules } from '../customModules'
 
 export interface SeedOptions {
   headerTypeId?: string
+  /** The header types in Settings, so a header type with its own code can be chosen */
+  headers?: readonly HeaderTypeConfig[]
   regions?: string[]
 }
 
@@ -15,13 +19,53 @@ const HEADER_MODULE: Record<string, string | null> = {
   'slim-35yr': null, // pending: the library has no module for it yet (§8.1)
 }
 
-export function headerModuleFor(headerTypeId: string | undefined): string | null {
+/** A header type's own code, if it has some the builder can use. */
+function usableSnippet(h: HeaderTypeConfig | undefined): string | null {
+  const code = (h?.htmlSnippet ?? '').trim()
+  return code && validateModuleHtml(code) === null ? code : null
+}
+
+/**
+ * The library module a header type uses. A header type with its own HTML snippet in Settings → Headers uses that:
+ * it replaces the library's module for a built-in type, and is a module of its own for a type added in Settings.
+ */
+export function headerModuleFor(headerTypeId: string | undefined, headers?: readonly HeaderTypeConfig[]): string | null {
+  const custom = headers?.find((h) => h.id === headerTypeId)
+  const mapped = headerTypeId && headerTypeId in HEADER_MODULE ? HEADER_MODULE[headerTypeId] : undefined
+  if (mapped) return mapped
+  if (custom && usableSnippet(custom)) return `Header: ${custom.label}`
   if (!headerTypeId) return 'Header with Image'
-  return headerTypeId in HEADER_MODULE ? HEADER_MODULE[headerTypeId] : 'Header with Image'
+  return mapped === null ? null : 'Header with Image'
+}
+
+/** Whether the builder asks for a background image for this header type: its setting says so, or its code has a place for one. */
+export function headerRequiresHero(h: HeaderTypeConfig | undefined): boolean {
+  return !!h && (h.requiresHeroImage || (usableSnippet(h) !== null && usesHeroImage(h.htmlSnippet)))
+}
+
+/** The library with each header type's own code added, in the theme's colours and images. */
+export function withCustomHeaders(catalogue: ThemeCatalogue, settings: Pick<AppSettings, 'headers' | 'brandThemes'>): ThemeCatalogue {
+  const withCode = (settings.headers ?? []).filter((h) => usableSnippet(h))
+  if (withCode.length === 0) return catalogue
+  const modules = { ...catalogue.modules }
+  const order = [...catalogue.order]
+  for (const h of withCode) {
+    const name = headerModuleFor(h.id, [h])
+    if (!name) continue
+    const tokens = themeTokensFor(catalogue, settings, { logo: h.assets?.logoUrl, stripe: h.assets?.stripeUrl, slimStripe: h.assets?.slimStripeUrl })
+    modules[name] = applyThemeTokens(usableSnippet(h)!, { ...tokens, anniversary: h.assets?.thirtyFiveYearGraphicUrl, heroImage: HERO_PLACEHOLDER })
+    if (!order.includes(name)) order.push(name)
+  }
+  return { ...catalogue, modules, order }
+}
+
+/** The library for a theme as the builder uses it: Settings' custom modules and header code added. */
+export function withCustomLibrary(catalogue: ThemeCatalogue, settings: Pick<AppSettings, 'htmlModules' | 'headers' | 'brandThemes'>): ThemeCatalogue {
+  return withCustomHeaders(withCustomModules(catalogue, settings), settings)
 }
 
 export function seedBuild(themeId: string, opts: SeedOptions = {}): EmailBuild {
-  const header = headerModuleFor(opts.headerTypeId) ?? 'Plain Logo Header'
+  const header = headerModuleFor(opts.headerTypeId, opts.headers) ?? 'Plain Logo Header'
   const disclaimer = opts.regions?.includes('UK') ? 'Disclaimer - UK' : 'Disclaimer'
   return {
     version: 1,

@@ -4,9 +4,11 @@ import type { EmailType } from '../../lib/constants'
 import { VISIBILITY_OPTIONS, isShown } from '../../lib/uiVisibility'
 import { DEFAULT_SPAM_TERMS, SpamWordListEditor } from '../../features/subject-line-tester'
 import { EmailEditorSetting } from './EmailEditorSetting'
+import { ResetAllSettings } from './ResetAllSettings'
+import { Switch } from '../ui/Switch'
 
 export function TabGeneral() {
-  const { settings, updateSettings } = useSettings()
+  const { settings, updateSettings, resetSettings } = useSettings()
   const { senderDefaults, formDefaults } = settings
 
   return (
@@ -114,19 +116,7 @@ export function TabGeneral() {
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Include Unsubscribe by default</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Required for marketing sends</p>
             </div>
-            <button
-              type="button"
-              onClick={() => updateSettings({ formDefaults: { ...formDefaults, includeUnsubscribe: !formDefaults.includeUnsubscribe } })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                formDefaults.includeUnsubscribe ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-              role="switch"
-              aria-checked={formDefaults.includeUnsubscribe}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                formDefaults.includeUnsubscribe ? 'translate-x-4.5' : 'translate-x-0.5'
-              }`} />
-            </button>
+            <Switch checked={formDefaults.includeUnsubscribe} label="Include Unsubscribe by default" onChange={(on) => updateSettings({ formDefaults: { ...formDefaults, includeUnsubscribe: on } })} />
           </div>
 
           <div className="flex items-center justify-between py-2">
@@ -134,19 +124,7 @@ export function TabGeneral() {
               <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Show Tags section in Campaign tab</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Tags are always collected — this controls visibility only</p>
             </div>
-            <button
-              type="button"
-              onClick={() => updateSettings({ formDefaults: { ...formDefaults, showTagsSection: !(formDefaults.showTagsSection ?? true) } })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                (formDefaults.showTagsSection ?? true) ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-              role="switch"
-              aria-checked={formDefaults.showTagsSection ?? true}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                (formDefaults.showTagsSection ?? true) ? 'translate-x-4.5' : 'translate-x-0.5'
-              }`} />
-            </button>
+            <Switch checked={formDefaults.showTagsSection ?? true} label="Show Tags section in Campaign tab" onChange={(on) => updateSettings({ formDefaults: { ...formDefaults, showTagsSection: on } })} />
           </div>
         </div>
       </section>
@@ -172,16 +150,7 @@ export function TabGeneral() {
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{o.label}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{o.hint}</p>
                     </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={on}
-                      aria-label={o.label}
-                      onClick={() => updateSettings({ formDefaults: { ...formDefaults, [o.key]: !on } })}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${on ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${on ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
-                    </button>
+                    <Switch checked={on} label={o.label} onChange={(next) => updateSettings({ formDefaults: { ...formDefaults, [o.key]: next } })} />
                   </div>
                 )
               })}
@@ -212,6 +181,10 @@ export function TabGeneral() {
 
       {/* The application a submitted email's HTML is opened in from the Campaign Board */}
       <EmailEditorSetting />
+
+      <hr className="border-gray-100 dark:border-gray-800" />
+
+      <ResetAllSettings onReset={resetSettings} />
     </div>
   )
 }

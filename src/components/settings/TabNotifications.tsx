@@ -9,6 +9,7 @@ import {
   type NotificationEventGroup,
 } from '../../types/notifications.types'
 import { testNotification } from '../../lib/notificationService'
+import { Switch } from '../ui/Switch'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -58,26 +59,7 @@ function Toggle({
 }) {
   return (
     <label className="flex items-start gap-4 cursor-pointer">
-      <div className="relative mt-0.5 shrink-0">
-        <input
-          type="checkbox"
-          className="sr-only"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <div
-          onClick={() => onChange(!checked)}
-          className={`w-10 h-6 rounded-full transition-colors cursor-pointer ${
-            checked ? 'bg-[#134848]' : 'bg-gray-200 dark:bg-gray-600'
-          }`}
-        >
-          <div
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-              checked ? 'translate-x-5' : 'translate-x-1'
-            }`}
-          />
-        </div>
-      </div>
+      <Switch checked={checked} onChange={onChange} label={label} className="mt-0.5" />
       <div>
         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
         {description && (
@@ -287,18 +269,7 @@ function EventRow({
       <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800/40 hover:bg-gray-50/70 dark:hover:bg-gray-800/60 transition-colors">
         {/* Toggle */}
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-          <div
-            onClick={() => patch({ enabled: !eventConfig.enabled })}
-            className={`relative w-8 h-5 rounded-full transition-colors cursor-pointer ${
-              eventConfig.enabled ? 'bg-[#134848]' : 'bg-gray-200 dark:bg-gray-600'
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                eventConfig.enabled ? 'translate-x-3' : 'translate-x-0.5'
-              }`}
-            />
-          </div>
+          <Switch size="sm" checked={eventConfig.enabled} label={`${meta.label} notification`} onChange={(on) => patch({ enabled: on })} />
         </div>
 
         {/* Label + description — clickable to expand */}

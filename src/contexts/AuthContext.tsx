@@ -10,6 +10,8 @@ export interface UserProfile {
   teamId: string
   displayName: string
   role: UserRole
+  /** Id of the custom role in Settings, if the person has one; `role` is then the base role it works like */
+  customRoleId: string | null
   presetClientGroups: string[]
   presetRegions: string[]
 }
@@ -28,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 async function fetchProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, team_id, display_name, role, preset_client_groups, preset_regions')
+    .select('id, team_id, display_name, role, custom_role_id, preset_client_groups, preset_regions')
     .eq('id', userId)
     .single()
 
@@ -39,6 +41,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
     teamId: data.team_id,
     displayName: data.display_name,
     role: data.role as UserRole,
+    customRoleId: data.custom_role_id ?? null,
     presetClientGroups: data.preset_client_groups ?? [],
     presetRegions: data.preset_regions ?? [],
   }

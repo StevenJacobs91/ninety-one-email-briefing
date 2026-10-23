@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { ApprovalConfig, ApprovalStageConfig, ApprovalRole, EmailTypeApprovalConfig } from '../../types/approval.types'
+import { Switch } from '../ui/Switch'
 
 const ROLE_OPTIONS: { value: ApprovalRole; label: string }[] = [
   { value: 'brand_guardian', label: 'Brand Guardian' },
@@ -30,26 +31,7 @@ function Toggle({
 }) {
   return (
     <label className="flex items-start gap-4 cursor-pointer">
-      <div className="relative mt-0.5 shrink-0">
-        <input
-          type="checkbox"
-          className="sr-only"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        <div
-          onClick={() => onChange(!checked)}
-          className={`w-10 h-6 rounded-full transition-colors cursor-pointer ${
-            checked ? 'bg-[#134848]' : 'bg-gray-200 dark:bg-gray-600'
-          }`}
-        >
-          <div
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-              checked ? 'translate-x-5' : 'translate-x-1'
-            }`}
-          />
-        </div>
-      </div>
+      <Switch checked={checked} onChange={onChange} label={label} className="mt-0.5" />
       <div>
         <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</p>
         {description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>}

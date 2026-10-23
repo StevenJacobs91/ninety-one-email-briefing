@@ -1,5 +1,6 @@
 import type { RegionValue } from './regions'
 import type { BoxStyle } from './boxModel'
+import type { FooterOptions } from './footer'
 
 export type Slot = 'header' | 'body' | 'disclaimer' | 'footer'
 
@@ -9,10 +10,14 @@ export interface BuildModule {
   slot: Slot | null
   repeats: Record<string, number>
   regions: Record<string, RegionValue>
-  images: Record<string, { src?: string }>
+  images: Record<string, { src?: string; alt?: string }>
   boundFields: Record<string, string>
   /** Spacing and class overrides, keyed by 'container' (the module's outer cell) or a region key. */
   styles?: Record<string, BoxStyle>
+  /** The disclaimer chosen for a Disclaimer module (rich text); it replaces the module's wording. Follows the brief, so it is not part of a saved template. */
+  disclaimerHtml?: string
+  /** How a Footer module's sign-off, signature and social icons are set up; unset keeps the library design. */
+  footer?: FooterOptions
 }
 
 export interface EmailBuild {
@@ -56,9 +61,20 @@ export function addModule(b: EmailBuild, name: string, at: number): EmailBuild {
   return { ...b, modules: insertAt(b.modules, newModule(name), at) }
 }
 
+/** Footer and disclaimer stay put, but an email can go without a header, and the header can be added back. */
+export function isRemovable(m: BuildModule): boolean {
+  return !isLocked(m) || m.slot === 'header'
+}
+
+/** Puts a header back at the top of an email that has none. */
+export function addHeader(b: EmailBuild, moduleName: string): EmailBuild {
+  if (b.modules.some((m) => m.slot === 'header')) return b
+  return { ...b, modules: [newModule(moduleName, 'header'), ...b.modules] }
+}
+
 export function removeModule(b: EmailBuild, instanceId: string): EmailBuild {
   const m = b.modules.find((x) => x.instanceId === instanceId)
-  if (!m || isLocked(m)) return b
+  if (!m || !isRemovable(m)) return b
   return { ...b, modules: b.modules.filter((x) => x.instanceId !== instanceId) }
 }
 
@@ -147,8 +163,28 @@ export function setRepeat(b: EmailBuild, instanceId: string, group: string, coun
   return update(b, instanceId, (m) => ({ ...m, repeats: { ...m.repeats, [group]: Math.max(count, 1) } }))
 }
 
-export function setImage(b: EmailBuild, instanceId: string, key: string, patch: { src?: string }): EmailBuild {
-  return update(b, instanceId, (m) => ({ ...m, images: { ...m.images, [key]: { ...m.images[key], ...patch } } }))
+/** Merges footer options; a key set to undefined goes back to the library design. */
+export function setFooter(b: EmailBuild, instanceId: string, patch: Partial<FooterOptions>): EmailBuild {
+  return update(b, instanceId, (m) => {
+    const merged = { ...m.footer, ...patch }
+    // Undefined means "as designed"; so does removeSignoff: false. social: false is a real choice (hide the icons).
+    const kept = Object.fromEntries(Object.entries(merged).filter(([k, v]) => v !== undefined && !(k === 'removeSignoff' && v === false))) as FooterOptions
+    const { footer: _old, ...rest } = m
+    return Object.keys(kept).length === 0 ? rest : { ...rest, footer: kept }
+  })
+}
+
+export function setDisclaimer(b: EmailBuild, instanceId: string, html: string | null): EmailBuild {
+  return update(b, instanceId, (m) => {
+    const { disclaimerHtml: _old, ...rest } = m
+    return html === null ? rest : { ...rest, disclaimerHtml: html }
+  })
+}
+
+export function setImage(b: EmailBuild, instanceId: string, key: string, patch: { src?: string; alt?: string }): EmailBuild {
+  // A patch that leaves a field undefined means "leave it as it is".
+  const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
+  return update(b, instanceId, (m) => ({ ...m, images: { ...m.images, [key]: { ...m.images[key], ...defined } } }))
 }
 
 export function setTheme(b: EmailBuild, themeId: string): EmailBuild {

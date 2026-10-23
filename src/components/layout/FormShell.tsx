@@ -25,6 +25,7 @@ import { clearAttachmentStore } from '../../lib/attachmentStore'
 import { PAGE_X } from './pageGrid'
 import { FitText } from '../ui/FitText'
 import { resolveBoardSettings } from '../../lib/boardConfig'
+import { opensOnBoard, resolveCustomRole } from '../../lib/customRoles'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
@@ -492,8 +493,17 @@ export function FormShell() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
   )
-  const [showBoard, setShowBoard] = useState(false)
   const boardSettings = resolveBoardSettings(settings.campaignPlanner)
+  const customRole = resolveCustomRole(profile?.customRoleId, settings.customRoles)
+  // Producers need to see what has been briefed in, so they land on the board. A producer with a custom
+  // role waits for settings to load before it is known where that role opens.
+  const [showBoard, setShowBoard] = useState(() => profile?.role === 'producer' && !profile.customRoleId)
+  const landed = useRef(false)
+  useEffect(() => {
+    if (landed.current || settingsLoading || !profile) return
+    landed.current = true
+    setShowBoard(boardSettings.enabled && opensOnBoard(profile.role, customRole))
+  }, [settingsLoading, profile, boardSettings.enabled, customRole])
   // If the board is switched off in Settings while it is open, close it.
   useEffect(() => { if (!boardSettings.enabled) setShowBoard(false) }, [boardSettings.enabled])
   const [activePlatform, setActivePlatform] = useState<'email' | 'web' | 'social' | 'marketing-automation' | 'design'>('email')

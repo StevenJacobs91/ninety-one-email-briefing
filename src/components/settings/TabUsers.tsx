@@ -3,17 +3,21 @@ import { v4 as uuidv4 } from 'uuid'
 import { useAuth } from '../../contexts/AuthContext'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { useSettings } from '../../contexts/SettingsContext'
+import { CustomRolesManager } from './CustomRolesManager'
+import { BASE_ROLE_LABEL, resolveCustomRole } from '../../lib/customRoles'
 import { CLIENT_GROUPS, CLIENT_GROUP_REGIONS } from '../../lib/constants'
 import type { ClientGroup } from '../../lib/constants'
 import type {
   RolePermissionKey,
   RolePermissionConfig,
+  CustomRole,
   UserGroup,
 } from '../../types/settings.types'
 import { DEFAULT_ROLE_PERMISSIONS } from '../../lib/settingsDefaults'
 import {
   fetchTeamMembers,
   updateMemberRole,
+  updateMemberCustomRole,
   updateMemberDisplayName,
   updateMemberPresets,
   removeMember,
@@ -98,7 +102,15 @@ const TEAM_PALETTE = [
 
 // ─── Shared sub-components ───────────────────────────────────
 
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleBadge({ role, custom }: { role: UserRole; custom?: CustomRole }) {
+  if (custom) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: custom.colour }} />
+        {custom.name}
+      </span>
+    )
+  }
   const c = ROLE_COLOURS[role]
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${c.bg} ${c.text}`}>
@@ -128,7 +140,9 @@ function MemberRow({
   isCurrentUser,
   isLastAdmin,
   allClientGroups,
+  customRoles,
   onRoleChange,
+  onCustomRoleChange,
   onNameChange,
   onPresetChange,
   onRemove,
@@ -137,7 +151,9 @@ function MemberRow({
   isCurrentUser: boolean
   isLastAdmin: boolean
   allClientGroups: string[]
+  customRoles: CustomRole[]
   onRoleChange: (id: string, role: UserRole) => void
+  onCustomRoleChange: (id: string, roleId: string) => void
   onNameChange: (id: string, name: string) => void
   onPresetChange: (id: string, clientGroups: string[], regions: string[]) => void
   onRemove: (id: string) => void
@@ -250,7 +266,7 @@ function MemberRow({
             disabled={!canChangeRole}
             className={`${canChangeRole ? 'cursor-pointer hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600' : 'cursor-default opacity-75'}`}
           >
-            <RoleBadge role={member.role} />
+            <RoleBadge role={member.role} custom={resolveCustomRole(member.customRoleId, customRoles)} />
           </button>
           {roleMenuOpen && (
             <>
@@ -260,17 +276,27 @@ function MemberRow({
                   <button
                     key={role}
                     onClick={() => { onRoleChange(member.id, role); setRoleMenuOpen(false) }}
-                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${member.role === role ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}
+                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${member.role === role && !member.customRoleId ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       <RoleBadge role={role} />
-                      {member.role === role && (
+                      {member.role === role && !member.customRoleId && (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-brand-primary ml-auto">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}
                     </div>
                     <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 pl-5">{ROLE_DESCRIPTIONS[role]}</p>
+                  </button>
+                ))}
+                {customRoles.map((cr) => (
+                  <button
+                    key={cr.id}
+                    onClick={() => { onCustomRoleChange(member.id, cr.id); setRoleMenuOpen(false) }}
+                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-t border-gray-100 dark:border-gray-700 ${member.customRoleId === cr.id ? 'bg-gray-50 dark:bg-gray-700/30' : ''}`}
+                  >
+                    <RoleBadge role={cr.baseRole} custom={cr} />
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Works like {BASE_ROLE_LABEL[cr.baseRole]}</p>
                   </button>
                 ))}
               </div>
@@ -534,12 +560,24 @@ function SubTabMembers() {
   const handleRoleChange = useCallback(async (userId: string, role: UserRole) => {
     const target = members.find((m) => m.id === userId)
     const oldRole = target?.role
-    setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, role } : m))
+    setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, role, customRoleId: null } : m))
     try {
       await updateMemberRole(userId, role)
       audit({ action: `Changed role from ${oldRole} to ${role}`, category: 'user', entityType: 'profile', entityId: userId, details: { targetEmail: target?.email, oldRole, newRole: role } })
     } catch { loadMembers() }
   }, [loadMembers, members, audit])
+
+  const customRoles: CustomRole[] = settings.customRoles ?? []
+  const handleCustomRoleChange = useCallback(async (userId: string, roleId: string) => {
+    const cr = (settings.customRoles ?? []).find((r) => r.id === roleId)
+    if (!cr) return
+    const target = members.find((m) => m.id === userId)
+    setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, role: cr.baseRole, customRoleId: cr.id } : m))
+    try {
+      await updateMemberCustomRole(userId, cr.id, cr.baseRole)
+      audit({ action: `Changed role to ${cr.name}`, category: 'user', entityType: 'profile', entityId: userId, details: { targetEmail: target?.email, newRole: cr.name, worksLike: cr.baseRole } })
+    } catch { loadMembers() }
+  }, [loadMembers, members, audit, settings.customRoles])
 
   const handleNameChange = useCallback(async (userId: string, name: string) => {
     setMembers((prev) => prev.map((m) => m.id === userId ? { ...m, displayName: name } : m))
@@ -639,7 +677,9 @@ function SubTabMembers() {
             isCurrentUser={member.id === currentProfile?.id}
             isLastAdmin={member.role === 'admin' && adminCount <= 1}
             allClientGroups={allClientGroups}
+            customRoles={customRoles}
             onRoleChange={handleRoleChange}
+            onCustomRoleChange={handleCustomRoleChange}
             onNameChange={handleNameChange}
             onPresetChange={handlePresetChange}
             onRemove={handleRemove}
@@ -672,6 +712,11 @@ function SubTabPermissions() {
   const isAdmin = profile?.role === 'admin'
 
   const perms: RolePermissionConfig = settings.rolePermissions ?? DEFAULT_ROLE_PERMISSIONS
+  const [members, setMembers] = useState<TeamMember[]>([])
+  useEffect(() => {
+    if (!profile?.teamId) return
+    fetchTeamMembers(profile.teamId).then(setMembers).catch(() => {})
+  }, [profile?.teamId])
 
   function toggle(role: 'producer' | 'requester', key: RolePermissionKey) {
     const updated: RolePermissionConfig = {
@@ -774,6 +819,13 @@ function SubTabPermissions() {
       <p className="text-[10px] text-gray-400 dark:text-gray-500">
         Changes are saved automatically. These permissions control UI access — database-level security (RLS) is always enforced regardless of these settings.
       </p>
+      {isAdmin && (
+        <CustomRolesManager
+          roles={settings.customRoles ?? []}
+          memberCounts={members.reduce<Record<string, number>>((acc, m) => (m.customRoleId ? { ...acc, [m.customRoleId]: (acc[m.customRoleId] ?? 0) + 1 } : acc), {})}
+          onChange={(roles) => updateSettings({ customRoles: roles })}
+        />
+      )}
     </div>
   )
 }

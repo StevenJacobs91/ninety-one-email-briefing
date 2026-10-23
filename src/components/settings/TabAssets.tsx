@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+import { useId, useState, useRef } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { AssetEntry, AssetCategory } from '../../types/settings.types'
 import { v4 as uuidv4 } from 'uuid'
 import { assetSearchParts, matchesSearch } from '../../lib/settingsSearch'
 import { SettingsSearchField } from './SettingsSearchField'
+import { BRAND_PRIMARIES } from '../../lib/brandTints'
 
 const CATEGORIES: { value: AssetCategory; label: string }[] = [
   { value: 'header',   label: 'Headers' },
@@ -36,8 +37,25 @@ interface AssetFormProps {
   title: string
 }
 
+function OverlayChoice({ group, label, colour, selected, onPick }: { group: string; label: string; colour: string; selected: boolean; onPick: () => void }) {
+  return (
+    <label title={label} className={`relative w-8 h-8 rounded-full cursor-pointer border-2 flex items-center justify-center ${selected ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary/30' : 'border-gray-300 dark:border-gray-600'}`}>
+      <input type="radio" name={group} aria-label={label} checked={selected} onChange={onPick} className="sr-only" />
+      {colour ? (
+        <span className="w-5 h-5 rounded-full border border-black/10" style={{ backgroundColor: colour }} />
+      ) : (
+        <span className="w-5 h-5 rounded-full border border-dashed border-gray-400 relative overflow-hidden" aria-hidden="true">
+          <span className="absolute inset-0 -rotate-45 border-t border-gray-400 top-1/2" />
+        </span>
+      )}
+    </label>
+  )
+}
+
 function AssetForm({ initial, onSave, onCancel, title }: AssetFormProps) {
   const [draft, setDraft] = useState(initial)
+  // Each open form is its own group of choices, so picking in one never un-picks another.
+  const overlayGroup = useId()
   const [urlError, setUrlError] = useState('')
 
   function set<K extends keyof typeof draft>(key: K, value: typeof draft[K]) {
@@ -94,26 +112,20 @@ function AssetForm({ initial, onSave, onCancel, title }: AssetFormProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Colour Overlay</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={draft.colourOverlay || '#134848'}
-              onChange={(e) => set('colourOverlay', e.target.value)}
-              className="w-9 h-9 rounded border border-gray-300 dark:border-gray-600 p-0.5 bg-white dark:bg-gray-800 cursor-pointer"
-            />
-            <input
-              type="text"
-              value={draft.colourOverlay || ''}
-              onChange={(e) => set('colourOverlay', e.target.value)}
-              placeholder="#221b3b"
-              className="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 font-mono"
-            />
-            {draft.colourOverlay && (
-              <button type="button" onClick={() => set('colourOverlay', '')}
-                className="text-gray-400 hover:text-red-500 text-lg leading-none" title="Clear">×</button>
+          <p id="overlay-label" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Colour Overlay</p>
+          <div role="radiogroup" aria-labelledby="overlay-label" className="flex flex-wrap items-center gap-2">
+            <OverlayChoice group={overlayGroup} label="No overlay" colour="" selected={!draft.colourOverlay} onPick={() => set('colourOverlay', '')} />
+            {BRAND_PRIMARIES.map((c) => (
+              <OverlayChoice key={c.hex} group={overlayGroup} label={c.name} colour={c.hex} selected={draft.colourOverlay?.toLowerCase() === c.hex} onPick={() => set('colourOverlay', c.hex)} />
+            ))}
+            {/* An asset saved with another colour keeps it until a brand colour is chosen. */}
+            {draft.colourOverlay && !BRAND_PRIMARIES.some((c) => c.hex === draft.colourOverlay?.toLowerCase()) && (
+              <OverlayChoice group={overlayGroup} label={`Custom ${draft.colourOverlay}`} colour={draft.colourOverlay} selected onPick={() => {}} />
             )}
           </div>
+          <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 font-mono">
+            {draft.colourOverlay ? `${BRAND_PRIMARIES.find((c) => c.hex === draft.colourOverlay?.toLowerCase())?.name ?? 'Custom'} · ${draft.colourOverlay}` : 'Header images are matched to a theme by this colour'}
+          </p>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Alt Text</label>

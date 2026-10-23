@@ -17,7 +17,7 @@ interface GroupUnits {
 function signature(el: Element): string {
   return el.outerHTML
     .replace(/>[^<]*</g, '><')
-    .replace(/\s(href|src|alt|title|background|style)="[^"]*"/g, '')
+    .replace(/\s(href|src|alt|title|background|style|data-auto-region)="[^"]*"/g, '')
     .replace(/\s+/g, ' ')
 }
 

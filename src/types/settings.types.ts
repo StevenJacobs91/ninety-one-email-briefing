@@ -10,6 +10,7 @@ export interface BrandThemeConfig {
   accent: string
   logoUrl?: string        // Header logo image URL (120×60 px)
   stripeUrl?: string      // Decorative stripe image URL (200×234 px)
+  slimStripeUrl?: string  // The slim variant of the stripe, for slim headers
   footerLogoUrl?: string  // Footer logo image URL (120×130 px)
   /** Default body text colour for this theme — cream on dark backgrounds, charcoal on light */
   defaultTextColour?: '#e8e5ce' | '#424242'
@@ -26,6 +27,11 @@ export interface HtmlModuleConfig {
   description: string
   category: ModuleCategory
   enabled: boolean
+  /**
+   * The module's HTML (a table row), for modules added in Settings. It joins the builder's library in every theme;
+   * {{primary}}, {{accent}} and {{tint01}}-{{tint03}} become that theme's colours. Unset for the built-in library.
+   */
+  html?: string
 }
 
 export type ModuleCategory =
@@ -120,7 +126,9 @@ export interface LegalDisclaimerConfig {
   id: string
   label: string      // Display name, e.g. "South Africa — FSP Standard"
   region: string     // Which region this applies to (or 'GLOBAL')
-  text: string       // Full disclaimer text
+  text: string       // Full disclaimer text (the plain version of `html`, kept for the brief summary and Brand Guardian)
+  /** The disclaimer with its formatting (bold, italic, underline, links, sizes). Unset on older entries, which use `text`. */
+  html?: string
   isDefault: boolean // Whether this is the auto-selected default for the region
 }
 
@@ -263,8 +271,14 @@ export interface GreetingConfig {
 export interface SignoffEntry {
   id: string
   name: string        // Short display name, e.g. "Natalie Phillips – Deputy MD"
-  text: string        // Full multiline sign-off text
+  text: string        // Full multiline sign-off text (the left column of a two-column signature)
   isDefault: boolean  // Pre-selected in the form
+  /** 1 (the default) or 2 columns */
+  columns?: 1 | 2
+  /** The right column of a two-column signature */
+  textRight?: string
+  /** How `text` and `textRight` are written: plain text with **bold** and [links](https://…) (the default), or HTML */
+  format?: 'text' | 'code'
 }
 
 // ─── Asset Library ──────────────────────────────────────────
@@ -410,6 +424,21 @@ export type RolePermissionKey =
 
 export type RolePermissions = Record<RolePermissionKey, boolean>
 
+export type BaseRole = 'admin' | 'producer' | 'requester'
+
+/**
+ * A role the team has added. The database only knows the three base roles, so a custom role works like
+ * one of them for access (what people can read and change) and adds its own name, colour and landing page.
+ */
+export interface CustomRole {
+  id: string
+  name: string
+  colour: string
+  baseRole: BaseRole
+  /** Where people with this role land when they sign in */
+  opensOn: 'form' | 'board'
+}
+
 export interface RolePermissionConfig {
   admin: RolePermissions
   producer: RolePermissions
@@ -468,6 +497,8 @@ export interface AppSettings {
   notifications: import('./notifications.types').NotificationsSettings
   // Role permissions matrix
   rolePermissions: RolePermissionConfig
+  /** Roles added in Settings → Users, on top of Admin, Producer and Requester */
+  customRoles?: CustomRole[]
   // User groups (Teams)
   userGroups: UserGroup[]
   // Header types

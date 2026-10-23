@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { HeaderTypeConfig, HeaderTypeAssets, BrandThemeConfig } from '../../types/settings.types'
+import { validateModuleHtml } from '../../lib/customModules'
 
 // ─── Header diagram previews ─────────────────────────────────
 
@@ -138,6 +139,23 @@ function HeaderTypeCard({
   function updateAssets(patch: Partial<HeaderTypeAssets>) {
     onChange({ ...headerType, assets: { ...headerType.assets, ...patch } })
   }
+
+  // Themes that have no image set in Brand Themes for a token the code uses (the library's own is used where it has one).
+  const { settings: appSettings } = useSettings()
+  const missingImages = ([
+    { token: 'logo', theme: 'logoUrl', own: 'logoUrl' },
+    { token: 'stripe', theme: 'stripeUrl', own: 'stripeUrl' },
+    { token: 'slimStripe', theme: 'slimStripeUrl', own: 'slimStripeUrl' },
+    { token: 'footerLogo', theme: 'footerLogoUrl', own: undefined },
+  ] as const)
+    .filter((m) => headerType.htmlSnippet.includes(`{{${m.token}}}`))
+    .map((m) => ({
+      token: m.token,
+      themes: (appSettings.brandThemes ?? [])
+        .filter((t) => !t[m.theme] && !(m.own && headerType.assets?.[m.own]))
+        .map((t) => t.label),
+    }))
+    .filter((m) => m.themes.length > 0)
 
   function copySnippet() {
     if (!headerType.htmlSnippet) return
@@ -328,7 +346,10 @@ function HeaderTypeCard({
               )}
             </div>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">
-              Paste the HTML code for this header type. Used by the email producer as a template reference.
+              The HTML (a table row) for this header type. When it is filled in, the builder uses it for this header type in every theme. Use
+              {' '}<code>{'{{logo}}'}</code>, <code>{'{{stripe}}'}</code> and <code>{'{{slimStripe}}'}</code> for the theme&rsquo;s images (set in Brand Themes),
+              {' '}<code>{'{{footerLogo}}'}</code>, <code>{'{{anniversary}}'}</code> for the badge above, <code>{'{{heroImage}}'}</code> where the email&rsquo;s own background image goes (it adds the image picker to Layout &amp; Content), and <code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code>,
+              {' '}<code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for its colours. Leave it empty to keep the library&rsquo;s header.
             </p>
             <textarea
               value={headerType.htmlSnippet}
@@ -338,10 +359,24 @@ function HeaderTypeCard({
               spellCheck={false}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-950 dark:bg-gray-950 px-3 py-2.5 text-xs text-green-400 font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary resize-y"
             />
-            {headerType.htmlSnippet && (
-              <p className="text-[10px] text-gray-400 mt-1">
-                {headerType.htmlSnippet.split('\n').length} lines · {headerType.htmlSnippet.length.toLocaleString()} chars
-              </p>
+            {headerType.htmlSnippet.trim() && (() => {
+              const problem = validateModuleHtml(headerType.htmlSnippet)
+              return problem ? (
+                <p role="alert" className="text-xs text-red-600 mt-1">{problem} It is not used in the builder until it is fixed.</p>
+              ) : (
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {headerType.htmlSnippet.split('\n').length} lines · {headerType.htmlSnippet.length.toLocaleString()} chars · used in the builder for this header type
+                </p>
+              )
+            })()}
+            {missingImages.length > 0 && !validateModuleHtml(headerType.htmlSnippet) && (
+              <div className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+                {missingImages.map((m) => (
+                  <p key={m.token}>
+                    <code>{`{{${m.token}}}`}</code> is not set in Brand Themes for {m.themes.length > 3 ? `${m.themes.slice(0, 3).join(', ')} and ${m.themes.length - 3} more` : m.themes.join(', ')}.
+                  </p>
+                ))}
+              </div>
             )}
           </div>
 

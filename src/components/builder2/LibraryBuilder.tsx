@@ -6,7 +6,7 @@ import { getThemeColours } from '../../lib/themeColours'
 import { useAuth } from '../../contexts/AuthContext'
 import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
-  addModule, duplicateModule, isLocked, moveModule, removeModule, setImage, setRegion, setRepeat, setStyle, clearStyle, setTheme, swapModule,
+  addHeader, addModule, duplicateModule, isLocked, isRemovable, moveModule, removeModule, setDisclaimer, setFooter, setImage, setRegion, setRepeat, setStyle, clearStyle, setTheme, swapModule,
   type BuildModule, type EmailBuild,
 } from '../../lib/moduleEngine/build'
 import { describeModule } from '../../lib/moduleEngine/describe'
@@ -14,7 +14,11 @@ import { browserParse, type RegionValue } from '../../lib/moduleEngine/regions'
 import { renderBuild } from '../../lib/moduleEngine/render'
 import { deriveCta } from '../../lib/moduleEngine/derive'
 import { applyGreeting } from '../../lib/moduleEngine/greeting'
-import { bindBrief, buildFromLegacy, headerModuleFor, seedBuild } from '../../lib/moduleEngine/seed'
+import { signoffSummary } from '../../lib/signoff'
+import { categoryGroup, disabledModuleNames } from '../../lib/customModules'
+import type { FooterOptions } from '../../lib/moduleEngine/footer'
+import { defaultDisclaimerFor, disclaimerSource, disclaimerToText } from '../../lib/disclaimer'
+import { bindBrief, buildFromLegacy, headerModuleFor, headerRequiresHero, seedBuild } from '../../lib/moduleEngine/seed'
 import { ModuleInspector } from './ModuleInspector'
 import { ModulePicker } from './ModulePicker'
 import { ModulePreview } from './ModulePreview'
@@ -38,9 +42,22 @@ export function LibraryBuilder() {
   const greetingId = watch('content.greetingId') ?? ''
   const greetings = settings.greetings ?? []
   const chosenGreeting = greetings.find((g) => g.id === greetingId) ?? greetings.find((g) => g.isDefault) ?? null
+  const disclaimers = settings.legalDisclaimers ?? []
+  const disclaimerId = watch('content.disclaimerId') ?? ''
+  // The chosen disclaimer, else the default for the brief's regions; 'module' keeps the module's own wording.
+  const chosenDisclaimer = disclaimerId === 'module' ? null : (disclaimers.find((d) => d.id === disclaimerId) ?? defaultDisclaimerFor(disclaimers, regions))
+  const disclaimerHtml = chosenDisclaimer ? disclaimerSource(chosenDisclaimer) : null
+  const signoffs = settings.signoffs ?? []
+  const footerSignoffId = watch('content.footerSignoffId') ?? ''
+  // The chosen signature, else the default one; 'none' takes it out and 'module' keeps the module's own.
+  const chosenSignoff = footerSignoffId === 'none' || footerSignoffId === 'module'
+    ? undefined
+    : (signoffs.find((s) => s.id === footerSignoffId) ?? signoffs.find((s) => s.isDefault) ?? signoffs[0])
+  const footerSignature: FooterOptions['signature'] = footerSignoffId === 'none' ? 'none' : chosenSignoff ? { entry: chosenSignoff } : undefined
+  const footerSignatureKey = JSON.stringify(footerSignature ?? null)
   const heroImageUrl = watch('assets.heroImageUrl') ?? ''
   const heroImageAlt = watch('assets.heroImageAlt') ?? ''
-  const requiresHero = (settings.headers ?? []).find((h) => h.id === headerTypeId)?.requiresHeroImage ?? false
+  const requiresHero = headerRequiresHero((settings.headers ?? []).find((h) => h.id === headerTypeId))
 
   const cat = useCatalogue(theme)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -50,8 +67,8 @@ export function LibraryBuilder() {
   // Bold text uses the selected theme's accent: the saved override, else the library colour.
   const accent = themeSettings?.accent ?? getThemeColours(theme).accent
   const assets = useMemo(
-    () => ({ logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl }),
-    [themeSettings?.logoUrl, themeSettings?.stripeUrl, themeSettings?.footerLogoUrl],
+    () => ({ logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, slimStripeUrl: themeSettings?.slimStripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl }),
+    [themeSettings?.logoUrl, themeSettings?.stripeUrl, themeSettings?.slimStripeUrl, themeSettings?.footerLogoUrl],
   )
 
   const commit = useCallback(
@@ -62,6 +79,13 @@ export function LibraryBuilder() {
   // Create the build, then keep it reconciled with the theme, header type,
   // region and the three brief fields bound to the header and body.
   const catalogue = cat.status === 'ready' ? cat.catalogue : null
+  // Modules switched off in Settings are not offered, and those added there are grouped by their category.
+  const disabled = useMemo(() => disabledModuleNames(settings.htmlModules ?? []), [settings.htmlModules])
+  const pickable = useMemo(() => (catalogue?.order ?? []).filter((n) => !disabled.has(n)), [catalogue, disabled])
+  const customGroups = useMemo(
+    () => Object.fromEntries((settings.htmlModules ?? []).filter((m) => m.html).map((m) => [m.label, categoryGroup(m.category)])),
+    [settings.htmlModules],
+  )
   useEffect(() => {
     if (!catalogue) return
     let b = build
@@ -69,13 +93,13 @@ export function LibraryBuilder() {
       const content = getValues('content')
       const hasLegacy = (content.modules?.length ?? 0) > 0 || (content.sections ?? []).some((s) => s.heading || s.body)
       b = hasLegacy
-        ? buildFromLegacy(content, theme, { headerTypeId, regions }).build
-        : seedBuild(theme, { headerTypeId, regions })
+        ? buildFromLegacy(content, theme, { headerTypeId, regions, headers: settings.headers }).build
+        : seedBuild(theme, { headerTypeId, regions, headers: settings.headers })
     }
     if (b.themeId !== theme) b = setTheme(b, theme)
 
     const header = b.modules.find((m) => m.slot === 'header')
-    const wantHeader = headerModuleFor(headerTypeId)
+    const wantHeader = headerModuleFor(headerTypeId, settings.headers)
     if (header && wantHeader && header.moduleName !== wantHeader) b = swapModule(b, header.instanceId, wantHeader)
 
     // The form's hero image is the single source of truth for header types that need one.
@@ -90,6 +114,18 @@ export function LibraryBuilder() {
       b = swapModule(b, disclaimer.instanceId, wantDisclaimer)
     }
 
+    for (const dm of b.modules.filter((x) => x.slot === 'disclaimer' && /^Disclaimer/.test(x.moduleName))) {
+      if ((dm.disclaimerHtml ?? null) !== disclaimerHtml) b = setDisclaimer(b, dm.instanceId, disclaimerHtml)
+    }
+
+    for (const fm of b.modules.filter((x) => x.slot === 'footer' && /^Footer/.test(x.moduleName))) {
+      if (JSON.stringify(fm.footer?.signature ?? null) !== footerSignatureKey) b = setFooter(b, fm.instanceId, { signature: footerSignature })
+    }
+
+    // The brief's plain-text disclaimer (summary, Brand Guardian) follows the one in the email.
+    const plainDisclaimer = chosenDisclaimer?.text ?? ''
+    if (getValues('content.legalDisclaimer') !== plainDisclaimer) setValue('content.legalDisclaimer', plainDisclaimer, { shouldDirty: true })
+
     const next = applyGreeting(bindBrief(b, { headline, subHeadline, bodyIntro }, catalogue, browserParse), chosenGreeting?.value ?? null)
     if (JSON.stringify(next) !== JSON.stringify(build)) commit(next)
 
@@ -99,7 +135,7 @@ export function LibraryBuilder() {
     if (current?.label !== cta.label || current?.url !== cta.url) {
       setValue('content.cta', { label: cta.label, url: cta.url, openInNewTab: current?.openInNewTab ?? true }, { shouldDirty: true })
     }
-  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro, requiresHero, heroImageUrl, chosenGreeting?.value]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [catalogue, build, theme, headerTypeId, regions.join(','), headline, subHeadline, bodyIntro, requiresHero, heroImageUrl, chosenGreeting?.value, disclaimerHtml, footerSignatureKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const previews = useMemo(() => {
     if (!catalogue || !build) return new Map<string, { html: string; dropped: number }>()
@@ -203,6 +239,11 @@ export function LibraryBuilder() {
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="flex-1 min-w-0 w-full">
+          {!build.modules.some((m) => m.slot === 'header') && (
+            <button type="button" onClick={() => commit(addHeader(build, headerModuleFor(headerTypeId, settings.headers) ?? 'Plain Logo Header'))} className="w-full mb-2 py-2 text-sm font-medium text-brand-primary dark:text-brand-accent border border-dashed border-brand-primary/40 hover:bg-brand-primary/5">
+              + Add header
+            </button>
+          )}
           {build.modules.map((m, i) => {
             const p = previews.get(m.instanceId)
             const isSel = m.instanceId === selectedId
@@ -210,7 +251,8 @@ export function LibraryBuilder() {
               <div key={m.instanceId}>
                 {pickerAt === i ? (
                   <ModulePicker
-                    names={catalogue.order}
+                    names={pickable}
+                    groups={customGroups}
                     onClose={() => setPickerAt(null)}
                     onPick={(name) => pick(name, i)}
                   />
@@ -231,7 +273,7 @@ export function LibraryBuilder() {
                       <button type="button" aria-label={`Move ${m.moduleName} up`} disabled={isLocked(m)} onClick={() => commit(moveModule(build, m.instanceId, i - 1))} className="px-1.5 disabled:opacity-30">↑</button>
                       <button type="button" aria-label={`Move ${m.moduleName} down`} disabled={isLocked(m)} onClick={() => commit(moveModule(build, m.instanceId, i + 1))} className="px-1.5 disabled:opacity-30">↓</button>
                       <button type="button" aria-label={`Duplicate ${m.moduleName}`} disabled={isLocked(m)} onClick={() => commit(duplicateModule(build, m.instanceId))} className="px-1.5 disabled:opacity-30">⧉</button>
-                      <button type="button" aria-label={`Remove ${m.moduleName}`} disabled={isLocked(m)} onClick={() => removeOne(m)} className="px-1.5 text-red-600 disabled:opacity-30">✕</button>
+                      <button type="button" aria-label={`Remove ${m.moduleName}`} disabled={!isRemovable(m)} onClick={() => removeOne(m)} className="px-1.5 text-red-600 disabled:opacity-30">✕</button>
                     </span>
                   </div>
                   <div className="relative">
@@ -244,7 +286,7 @@ export function LibraryBuilder() {
           })}
           <div className="mt-2">
             {pickerAt === build.modules.length ? (
-              <ModulePicker names={catalogue.order} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
+              <ModulePicker names={pickable} groups={customGroups} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
             ) : (
               <button type="button" onClick={() => setPickerAt(build.modules.length)} className="w-full py-2 text-sm font-medium text-brand-primary dark:text-brand-accent border border-dashed border-brand-primary/40 hover:bg-brand-primary/5">
                 + Add module
@@ -262,7 +304,7 @@ export function LibraryBuilder() {
             accentColour={accent}
             onRegion={(key, patch) => onRegion(selected, key, patch)}
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
-            onImage={(key, src) => commit(setImage(build, selected.instanceId, key, { src }))}
+            onImage={(key, patch) => commit(setImage(build, selected.instanceId, key, patch))}
             onStyle={(key, patch) => commit(setStyle(build, selected.instanceId, key, patch))}
             onClearStyle={(key) => commit(clearStyle(build, selected.instanceId, key))}
             onHeaderType={(id) => setValue('assets.headerType', id, { shouldDirty: true })}
@@ -270,6 +312,28 @@ export function LibraryBuilder() {
               options: greetings.map((g) => ({ id: g.id, label: g.label, value: g.value })),
               selectedId: chosenGreeting?.id ?? '',
               onSelect: (id) => setValue('content.greetingId', id, { shouldDirty: true }),
+            }}
+            disclaimer={{
+              options: disclaimers.map((d) => ({ id: d.id, label: d.label, region: d.region })),
+              selectedId: disclaimerId === 'module' ? 'module' : (chosenDisclaimer?.id ?? 'module'),
+              preview: chosenDisclaimer ? disclaimerToText(disclaimerSource(chosenDisclaimer)) : '',
+              onSelect: (id) => {
+                setValue('content.disclaimerId', id, { shouldDirty: true })
+                const picked = disclaimers.find((d) => d.id === id)
+                setValue('content.legalDisclaimer', picked?.text ?? '', { shouldDirty: true })
+              },
+            }}
+            footer={{
+              signoffIncluded: !selected.footer?.removeSignoff,
+              onSignoff: (include) => commit(setFooter(build, selected.instanceId, { removeSignoff: include ? undefined : true })),
+              social: selected.footer?.social ?? info.footer?.hasSocial ?? false,
+              onSocial: (show) => commit(setFooter(build, selected.instanceId, { social: show })),
+              signature: {
+                options: signoffs.map((s) => ({ id: s.id, label: s.name })),
+                selectedId: footerSignoffId === 'none' ? 'none' : footerSignoffId === 'module' ? 'module' : (chosenSignoff?.id ?? 'module'),
+                preview: chosenSignoff ? signoffSummary(chosenSignoff) : '',
+                onSelect: (id) => setValue('content.footerSignoffId', id, { shouldDirty: true }),
+              },
             }}
             hero={requiresHero ? {
               url: heroImageUrl,

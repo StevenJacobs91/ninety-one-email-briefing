@@ -47,6 +47,8 @@ export interface ContentDetails {
   headline: string
   subHeadline?: string
   greetingId?: string
+  /** Id of the disclaimer chosen in Settings → Disclaimers; unset means the default for the brief's regions */
+  disclaimerId?: string
   bodyIntro: string
   sections: ContentSection[]
   modules: string[]

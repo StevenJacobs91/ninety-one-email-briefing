@@ -7,6 +7,7 @@ import {
 } from '../../lib/boardConfig'
 import type { CampaignPlannerSettings } from '../../types/settings.types'
 import type { KanbanCard } from '../../types/kanban.types'
+import { Switch } from '../ui/Switch'
 
 const COLUMN_LABEL: Record<BoardColumnId, string> = { briefed: 'Briefed', 'in-progress': 'In Progress', distributed: 'Distributed' }
 
@@ -43,21 +44,6 @@ function Section({ title, description, children }: { title: string; description?
       {description && <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{description}</p>}
       {children}
     </section>
-  )
-}
-
-function Switch({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${checked ? 'bg-brand-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
-    >
-      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-    </button>
   )
 }
 
