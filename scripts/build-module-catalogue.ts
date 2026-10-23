@@ -7,6 +7,7 @@ import { whiten } from '../src/lib/moduleEngine/whiten.ts'
 import { fixModuleStyles } from '../src/lib/moduleEngine/styleFixes.ts'
 import { fixThemeBlock } from '../src/lib/moduleEngine/themeBlock.ts'
 import { fixShellFonts } from '../src/lib/moduleEngine/shellFonts.ts'
+import { nonHexColours, rgbToHex } from '../src/lib/hexColours.ts'
 
 const ROOT = join(process.cwd(), 'Themes and Modules')
 const OUT = join(process.cwd(), 'public', 'module-catalogue')
@@ -57,13 +58,15 @@ for (const theme of BRAND_THEMES) {
   const names = all.filter((n) => !(n.endsWith(' 2') && all.includes(n.slice(0, -2))))
   if (names.length < MIN_MODULES) throw new Error(`${theme.id}: only ${names.length} modules in ${dir}`)
   const modules: Record<string, string> = {}
-  for (const n of names) modules[n] = fixModuleStyles(n, readFileSync(join(dir, `${n}.html`), 'utf8'), theme.id)
+  for (const n of names) modules[n] = rgbToHex(fixModuleStyles(n, readFileSync(join(dir, `${n}.html`), 'utf8'), theme.id))
 
   const masterPath = join(ROOT, 'HTML Templates', `${folder} - All Modules.html`)
   if (!existsSync(masterPath)) throw new Error(`Missing master template for ${theme.id}: ${masterPath}`)
   const split = splitShell(readFileSync(masterPath, 'utf8'), theme.id)
   // A master's theme-colour block must be its own theme's (Warm Yellowwood's was Pinotage Burgundy's).
-  const shell = { ...split, head: fixShellFonts(fixThemeBlock(split.head, theme.primary, theme.accent)) }
+  const shell = { head: rgbToHex(fixShellFonts(fixThemeBlock(split.head, theme.primary, theme.accent))), tail: rgbToHex(split.tail) }
+  const leftover = nonHexColours(shell.head + shell.tail + Object.values(modules).join(''))
+  if (leftover.length > 0) throw new Error(`${theme.id}: colours must be hex, found ${[...new Set(leftover)].join(', ')}`)
 
   const ordered = [...order.filter((n) => n in modules), ...names.filter((n) => !order.includes(n)).sort()]
   const catalogue: ThemeCatalogue = { themeId: theme.id, shell, order: ordered, modules }

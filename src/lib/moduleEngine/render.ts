@@ -5,6 +5,7 @@ import { applyBoxStyles } from './boxModel'
 import { findRepeats, resizeRepeat } from './repeats'
 import { applyDisclaimer } from '../disclaimer'
 import { applyFooter } from './footer'
+import { rgbToHex } from '../hexColours'
 
 export interface ThemeAssets {
   logoUrl?: string
@@ -145,5 +146,7 @@ export function renderBuild(
     parts.push(applyAssets(html, opts.assets))
   }
 
-  return { html: (opts.previewText !== undefined ? withPreviewText(cat.shell.head, opts.previewText) : cat.shell.head) + parts.join('\n') + cat.shell.tail, report }
+  // Setting a colour through the DOM comes back as rgb(...), so the finished email is put right here, not module by module.
+  const html = (opts.previewText !== undefined ? withPreviewText(cat.shell.head, opts.previewText) : cat.shell.head) + parts.join('\n') + cat.shell.tail
+  return { html: rgbToHex(html), report }
 }

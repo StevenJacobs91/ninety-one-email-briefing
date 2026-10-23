@@ -1,5 +1,6 @@
 import type { AppSettings, HtmlModuleConfig, ModuleCategory } from '../types/settings.types'
 import { getThemeColours } from './themeColours'
+import { rgbToHex } from './hexColours'
 import type { ThemeCatalogue } from './moduleEngine/catalogue'
 import type { PickerGroup } from './moduleKinds'
 
@@ -59,7 +60,7 @@ export function mergeCustomModules(catalogue: ThemeCatalogue, modules: readonly 
   const merged = { ...catalogue.modules }
   const order = [...catalogue.order]
   for (const m of custom) {
-    merged[m.label] = applyThemeTokens(m.html!.trim(), theme)
+    merged[m.label] = rgbToHex(applyThemeTokens(m.html!.trim(), theme))
     if (!order.includes(m.label)) order.push(m.label)
   }
   return { ...catalogue, modules: merged, order }
