@@ -89,6 +89,9 @@ export async function triggerBriefSubmission(
   extras?: {
     kanbanCardId?: string
     submittedBy?: string
+    /** Who requested the email: their name and the address to reply to, as in the board card and the notification */
+    requesterName?: string
+    requesterEmail?: string
     /** The rendered email, the brief document and the plain-text version */
     html?: string
     briefHtml?: string

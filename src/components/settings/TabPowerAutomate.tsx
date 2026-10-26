@@ -445,6 +445,8 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
     urgency:             'standard',
     notes:               '',
     submittedBy:         'Demo User',
+    requesterName:       'Demo User',
+    requesterEmail:      'demo.user@ninetyone.com',
     emailName:           '2026-04-30 SA Advisors — Taking Stock April 2026',
     html:                '<html>…the email HTML…</html>',
     briefHtml:           '<html>…the brief summary…</html>',

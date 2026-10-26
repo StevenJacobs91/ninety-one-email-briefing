@@ -147,6 +147,13 @@ test('the brief submission carries the draft recipient, subject and attachments 
   assert.deepEqual(body.attachments, attachments)
 })
 
+test('the brief submission carries who requested the email, by name and address', async () => {
+  await triggerBriefSubmission(config(SUBMIT), BRIEF, { submittedBy: 'Sam Lee', requesterName: 'Sam Lee', requesterEmail: 'sam.lee@ninetyone.com' })
+  const body = JSON.parse(String(calls[calls.length - 1].init.body))
+  assert.equal(body.requesterEmail, 'sam.lee@ninetyone.com')
+  assert.equal(body.requesterName, 'Sam Lee')
+})
+
 test('the brief submission carries the whole summary as the HTML body of the draft email', async () => {
   await triggerBriefSubmission(config(SUBMIT), BRIEF, { draftTo: 'a@b.co', draftSubject: 'Q2', draftBody: '<div>the summary</div>' })
   assert.equal(JSON.parse(String(calls[calls.length - 1].init.body)).draftBody, '<div>the summary</div>')
