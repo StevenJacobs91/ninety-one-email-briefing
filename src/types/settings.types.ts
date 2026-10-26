@@ -39,16 +39,14 @@ export interface HtmlModuleConfig {
   html?: string
 }
 
-export type ModuleCategory =
-  | 'Headers'
-  | 'Content'
-  | 'CTAs'
-  | 'Events'
-  | 'Speakers'
-  | 'Articles'
-  | 'Media'
-  | 'Navigation'
-  | 'Footers'
+/** The id of one of the categories in `AppSettings.moduleCategories` (see moduleCategories.ts) */
+export type ModuleCategory = string
+
+/** A category of email module: the id modules are filed under, and the name people see and can rename. */
+export interface ModuleCategoryConfig {
+  id: string
+  label: string
+}
 
 export interface FormFieldConfig {
   id: string
@@ -467,6 +465,8 @@ export interface AppSettings {
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
   htmlModules: HtmlModuleConfig[]
+  /** The categories modules are grouped into, in Settings → Email Modules and in the Add module picker; defaults when unset */
+  moduleCategories?: ModuleCategoryConfig[]
   formSteps: FormStepConfig[]
   formFields: FormFieldConfig[]
   brandGuardian: BrandGuardianConfig

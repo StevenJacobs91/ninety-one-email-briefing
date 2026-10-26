@@ -17,6 +17,7 @@ import { applyGreeting } from '../../lib/moduleEngine/greeting'
 import { signoffSummary } from '../../lib/signoff'
 import { categoryGroup, customLayoutIcons, disabledModuleNames } from '../../lib/customModules'
 import { describePickerModule } from '../../lib/moduleKinds'
+import { moduleCategories, resolveCategory } from '../../lib/moduleCategories'
 import type { FooterOptions } from '../../lib/moduleEngine/footer'
 import { defaultDisclaimerFor, disclaimerSource, disclaimerToText } from '../../lib/disclaimer'
 import { bindBrief, buildFromLegacy, headerModuleFor, headerRequiresHero, seedBuild } from '../../lib/moduleEngine/seed'
@@ -85,9 +86,11 @@ export function LibraryBuilder() {
   // Modules switched off in Settings are not offered, and those added there are grouped by their category.
   const disabled = useMemo(() => disabledModuleNames(settings.htmlModules ?? []), [settings.htmlModules])
   const pickable = useMemo(() => (catalogue?.order ?? []).filter((n) => !disabled.has(n)), [catalogue, disabled])
+  // The categories are the ones in Settings → Email Modules. A module filed there is grouped by that in the picker; one that is not is grouped by its name.
+  const categories = useMemo(() => moduleCategories(settings), [settings])
   const customGroups = useMemo(
-    () => Object.fromEntries((settings.htmlModules ?? []).filter((m) => m.html).map((m) => [m.label, categoryGroup(m.category)])),
-    [settings.htmlModules],
+    () => Object.fromEntries((settings.htmlModules ?? []).map((m) => [m.label, resolveCategory(categories, categoryGroup(m.category))])),
+    [settings.htmlModules, categories],
   )
   const customIcons = useMemo(() => customLayoutIcons(settings.htmlModules ?? []), [settings.htmlModules])
   useEffect(() => {
@@ -159,7 +162,7 @@ export function LibraryBuilder() {
   }, [catalogue, selected])
 
   // A module in the People group (speakers, authors, portfolio managers) has photos of people, so its images start in Profiles.
-  const imageCategory = selected && describePickerModule(selected.moduleName, customGroups[selected.moduleName]).group === 'People' ? 'profile' : 'graphics'
+  const imageCategory = selected && (customGroups[selected.moduleName] ?? describePickerModule(selected.moduleName).group) === 'People' ? 'profile' : 'graphics'
 
   if (cat.status === 'loading') return <p className="text-sm text-gray-500">Loading the module library…</p>
   if (cat.status === 'error') {
@@ -260,6 +263,7 @@ export function LibraryBuilder() {
                   <ModulePicker
                     names={pickable}
                     groups={customGroups}
+                    categories={categories}
                     icons={customIcons}
                     onClose={() => setPickerAt(null)}
                     onPick={(name) => pick(name, i)}
@@ -294,7 +298,7 @@ export function LibraryBuilder() {
           })}
           <div className="mt-2">
             {pickerAt === build.modules.length ? (
-              <ModulePicker names={pickable} groups={customGroups} icons={customIcons} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
+              <ModulePicker names={pickable} groups={customGroups} categories={categories} icons={customIcons} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
             ) : (
               <button type="button" onClick={() => setPickerAt(build.modules.length)} className="w-full py-2 text-sm font-medium text-brand-primary dark:text-brand-accent border border-dashed border-brand-primary/40 hover:bg-brand-primary/5">
                 + Add module

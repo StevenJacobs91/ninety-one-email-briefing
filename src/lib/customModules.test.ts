@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { applyThemeTokens, categoryGroup, customLayoutIcons, disabledModuleNames, HERO_PLACEHOLDER, mergeCustomModules, themeTokensFor, usesHeroImage, validateModuleHtml } from './customModules.ts'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { applyThemeTokens, categoryGroup, customLayoutIcons, disabledModuleNames, HERO_PLACEHOLDER, mergeCustomModules, themeTokensFor, tokeniseModule, usesHeroImage, validateModuleHtml } from './customModules.ts'
 
 const THEME = { primary: '#134848', accent: '#fbaa96', tint01: '#1d4f4f', tint02: '#114141', tint03: '#0d3232' }
 const mod = (over: Record<string, unknown> = {}) => ({ id: 'promo', label: 'Promo Banner', description: '', category: 'Content', enabled: true, html: '<tr><td bgcolor="{{primary}}">Hello</td></tr>', ...over }) as never
@@ -44,6 +46,29 @@ test('the 35-year logo and every icon are variables, from Brand Themes first and
   assert.equal(set.iconClock, 'https://mine/clock.png', 'Brand Themes wins')
   assert.equal(set.anniversary, 'https://mine/35.png')
   assert.equal(set.iconCalendar, 'https://cdn.example/x/icon_gold_calendar_40x40.png', 'an icon not set falls back to the library\'s')
+})
+
+test('a theme\'s own colours and images in library code become variables, and back again, so the code suits every theme', () => {
+  const library = JSON.parse(readFileSync(join(process.cwd(), 'public', 'module-catalogue', 'agulhas-gold.json'), 'utf8')) as { themeId: string; shell: { head: string; tail: string }; order: string[]; modules: Record<string, string> }
+  const own = { primary: '#221b3b', accent: '#cf6f13', tint01: '#292047', tint02: '#1e1834', tint03: '#181329' }
+  const theme = { ...themeTokensFor(library, { brandThemes: [] }), ...own }
+  for (const name of ['Dual Author Module', 'Event Registration v3', 'Footer v1', 'Small Header']) {
+    const html = library.modules[name]
+    const tokenised = tokeniseModule(html, theme)
+    assert.ok(tokenised.includes('{{accent}}') || tokenised.includes('{{primary}}'), `${name} has theme colours`)
+    assert.ok(!/#cf6f13|#221b3b|#292047/i.test(tokenised), `${name}: none of the theme's colours are left written out`)
+    assert.equal(applyThemeTokens(tokenised, theme).toLowerCase(), html.toLowerCase(), `${name} comes back as it was`)
+    // In another theme the same code takes that theme's colours.
+    const other = applyThemeTokens(tokenised, { ...theme, primary: '#0a3323', accent: '#fbaa96', tint01: '#0d3d2a', tint02: '#08291d', tint03: '#051a12' })
+    assert.ok(!/#cf6f13|#221b3b|#292047/i.test(other), `${name}: takes the other theme's colours`)
+  }
+  assert.ok(tokeniseModule(library.modules['Event Registration v3'], theme).includes('{{iconClock}}'), 'the icons become variables too')
+})
+
+test('only whole colours are replaced, longest first, and a repeated value takes the first variable', () => {
+  assert.equal(tokeniseModule('<td bgcolor="#221b3b" style="color:#221b3bff;border:#cf6f13">', { primary: '#221b3b', accent: '#cf6f13' }), '<td bgcolor="{{primary}}" style="color:#221b3bff;border:{{accent}}">')
+  assert.equal(tokeniseModule('#aabbcc #AABBCC', { primary: '#aabbcc', accent: '#aabbcc' }), '{{primary}} {{primary}}')
+  assert.equal(tokeniseModule('<img src="https://x/y.png?a=1&amp;b=2">', { primary: '#000000', accent: '#ffffff', logo: 'https://x/y.png?a=1&amp;b=2' }), '<img src="{{logo}}">')
 })
 
 test('each icon variable in module code becomes its image', () => {
@@ -92,7 +117,8 @@ test('a custom module is grouped in the picker by its category', () => {
   assert.equal(categoryGroup('CTAs'), 'Calls to action')
   assert.equal(categoryGroup('Speakers'), 'People')
   assert.equal(categoryGroup('Content'), 'Content')
-  assert.equal(categoryGroup('Footers'), 'Other')
+  assert.equal(categoryGroup('Footers'), 'Footers')
+  assert.equal(categoryGroup('Promo'), 'Promo', 'a category added in Settings is its own group')
 })
 
 test('the theme\'s logo and stripes can be dropped into code as tokens', () => {

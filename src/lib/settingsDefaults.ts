@@ -9,7 +9,6 @@ import type {
   FormStepConfig,
   FormFieldConfig,
   BrandGuardianConfig,
-  ModuleCategory,
   SenderDefaults,
   FormDefaults,
   LegalDisclaimerConfig,
@@ -27,6 +26,8 @@ import type {
   DesignBriefingSettings,
 } from '../types/settings.types'
 import { DESIGN_ASSET_TYPES } from './designConstants'
+import { DEFAULT_MODULE_CATEGORIES } from './moduleCategories'
+import { describePickerModule } from './moduleKinds'
 import type { ApprovalConfig } from '../types/approval.types'
 import {
   NOTIFICATION_EVENT_META,
@@ -122,72 +123,94 @@ export const DEFAULT_HTML_TEMPLATES: HtmlTemplateConfig[] = [
 
 // ─── Default HTML Modules ───────────────────────────────────
 
-const MODULE_CATEGORIES: Record<string, ModuleCategory> = {
-  'header-': 'Headers',
-  'greeting': 'Content',
-  'body-': 'Content',
-  'inner-content': 'Content',
-  'numbered-': 'Content',
-  'podcast': 'Media',
-  'video-': 'Media',
-  'cta-': 'CTAs',
-  'event-': 'Events',
-  'itinerary': 'Events',
-  'speaker': 'Speakers',
-  'article-': 'Articles',
-  'gallery-': 'Media',
-  'tabs-': 'Navigation',
-  'footer-': 'Footers',
-}
+// One entry for each module in the library (the files under "Themes and Modules"), so every module the builder
+// offers can be switched off, filed under a category or given a layout icon in Settings. A test keeps this list
+// in step with the generated library.
+export const LIBRARY_MODULES: readonly string[] = [
+  "Visually Hidden Preheader Text",
+  "Small Header",
+  "Small Header v2",
+  "Header with Image",
+  "Plain Logo Header",
+  "Greeting",
+  "Body Content",
+  "Body Content List",
+  "Body Inner Content",
+  "Inner body content",
+  "Body Inner Content (pre-footer)",
+  "Inner Content V1",
+  "Inner Content V2",
+  "Inner Content V3",
+  "Numbered Section V1",
+  "Numbered Section V2",
+  "Podcast Module",
+  "Video Play Rollover",
+  "Single Primary CTA",
+  "Primary and Secondary CTA",
+  "Dual Secondary CTA",
+  "Single Secondary CTA",
+  "1x Primary CTA 2x Secondary CTA",
+  "Event Registration 1x CTA",
+  "Event Registration 2x CTA",
+  "Event Registration v3",
+  "Event Registration v4",
+  "Event Registration v5",
+  "Event Registration v5 (full-bleed)",
+  "Itinerary Table",
+  "PM 1",
+  "2x PM 1x CTA",
+  "2x PM 3x CTA",
+  "Dual Author Module",
+  "Dual Author Module V2",
+  "Speakers",
+  "3x Speakers",
+  "Article List",
+  "Article List v2",
+  "Article List V3",
+  "Gallery V1",
+  "Gallery V2",
+  "Main Tabs",
+  "Tabs Anchors",
+  "Footer v1",
+  "Footer V2",
+  "Footer V3",
+  "Disclaimer",
+  "Risk Warnings - UK",
+  "Disclaimer - UK",
+]
 
-function categoriseModule(id: string): ModuleCategory {
-  for (const [prefix, cat] of Object.entries(MODULE_CATEGORIES)) {
-    if (id.startsWith(prefix)) return cat
-  }
-  return 'Content'
-}
+const moduleId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
-export const DEFAULT_HTML_MODULES: HtmlModuleConfig[] = [
-  { id: 'header-small', label: 'Small Header', description: 'Logo with headline and subtitle' },
-  { id: 'header-image', label: 'Header with Background Image', description: 'Full-width hero image with overlay text' },
-  { id: 'greeting', label: 'Greeting / Salutation', description: 'Personalised greeting with Pardot merge fields' },
-  { id: 'body-content', label: 'Body Content', description: 'Standard paragraph text block' },
-  { id: 'body-content-list', label: 'Body Content with Bullet List', description: 'Dash-separated key points list' },
-  { id: 'body-inner-content', label: 'Inner Content Block', description: 'Tinted background content card with heading' },
-  { id: 'inner-content-v1', label: 'Inner Content with Link CTA', description: 'Content card with inline tertiary link CTA' },
-  { id: 'inner-content-v2', label: 'Inner Content with Dash List', description: 'Tinted card with heading/body dash list items' },
-  { id: 'inner-content-v3', label: 'Feedback / Survey Block', description: 'Content block with secondary CTA button' },
-  { id: 'numbered-section-v1', label: 'Numbered Section (Flat)', description: 'Numbered list items on primary background' },
-  { id: 'numbered-section-v2', label: 'Numbered Section (Card)', description: 'Numbered list items in tinted card' },
-  { id: 'podcast', label: 'Podcast Module', description: 'Spotify + Apple Podcasts badges with description' },
-  { id: 'video-rollover', label: 'Video Play Rollover', description: 'Image with play button overlay linking to video' },
-  { id: 'cta-single-primary', label: 'Single Primary CTA', description: 'One accent-coloured action button' },
-  { id: 'cta-primary-secondary', label: 'Primary + Secondary CTA', description: 'Primary button with outlined secondary button' },
-  { id: 'cta-dual-secondary', label: 'Dual Secondary CTAs', description: 'Two outlined secondary buttons side by side' },
-  { id: 'cta-single-secondary', label: 'Single Secondary CTA', description: 'One outlined secondary button' },
-  { id: 'cta-1primary-2secondary', label: '1 Primary + 2 Secondary CTAs', description: 'Primary button with two secondary buttons' },
-  { id: 'event-registration-1cta', label: 'Event Registration (1 CTA)', description: 'Event details with date, time, venue and register button' },
-  { id: 'event-registration-2cta', label: 'Event Registration (2 CTAs)', description: 'Event details with two registration buttons' },
-  { id: 'event-registration-v3', label: 'Event Registration (Compact)', description: 'Compact event details with speaker list' },
-  { id: 'event-registration-v4', label: 'Event Registration (Card)', description: 'Event details in tinted card layout' },
-  { id: 'event-registration-v5', label: 'Event Registration (Full)', description: 'Full event layout with agenda and speakers' },
-  { id: 'itinerary-table', label: 'Itinerary / Agenda Table', description: 'Time-slot table for event schedules' },
-  { id: 'speaker-2pm-1cta', label: '2 Portfolio Managers + 1 CTA', description: 'Two PM profiles with shared CTA button' },
-  { id: 'speaker-2pm-3cta', label: '2 Portfolio Managers + 3 CTAs', description: 'Two PM profiles with individual CTAs' },
-  { id: 'speaker-1pm', label: 'Single Portfolio Manager', description: 'Single PM profile with bio and photo' },
-  { id: 'speakers-2col', label: 'Speakers (2 Column)', description: 'Two speaker cards side by side' },
-  { id: 'speakers-3col', label: 'Speakers (3 Column)', description: 'Three speaker cards in a row' },
-  { id: 'article-list-v1', label: 'Article List (Standard)', description: 'Stacked article cards with thumbnails' },
-  { id: 'article-list-v2', label: 'Article List (Compact)', description: 'Compact article list with small thumbnails' },
-  { id: 'article-list-v3', label: 'Article List (Featured)', description: 'Featured article with large image and supporting articles' },
-  { id: 'gallery-v1', label: 'Image Gallery (2 Column)', description: 'Two images side by side' },
-  { id: 'gallery-v2', label: 'Image Gallery (3 Column)', description: 'Three images in a row' },
-  { id: 'tabs-main', label: 'Main Tab Navigation', description: 'Tabbed navigation buttons for anchored sections' },
-  { id: 'tabs-anchors', label: 'Tab Anchor Links', description: 'Inline anchor links for content navigation' },
-  { id: 'footer-v1', label: 'Footer (Standard)', description: 'Logo, website link, privacy notice' },
-  { id: 'footer-v2', label: 'Footer (Compact)', description: 'Compact footer with three inline links' },
-  { id: 'footer-v3', label: 'Footer (Contact Details)', description: 'Full footer with team contact information' },
-].map((m) => ({ ...m, category: categoriseModule(m.id), enabled: true }))
+export const DEFAULT_HTML_MODULES: HtmlModuleConfig[] = LIBRARY_MODULES.map((label) => {
+  const info = describePickerModule(label)
+  return { id: moduleId(label), label, description: info.blurb, category: info.group, enabled: true }
+})
+
+/**
+ * Saved modules laid over the library's: a module keeps what was set for it (switched off, its category, layout icon,
+ * or code pasted over the library's) when its name is a library module's, and one added in Settings is kept as it is.
+ * A saved entry that is neither, such as one from the older hand-written list, did nothing, so it is dropped; and a
+ * library module Settings has no entry for gets its default one, so every module the builder offers is here.
+ */
+export function mergeHtmlModules(saved: readonly HtmlModuleConfig[] | undefined, defaults: readonly HtmlModuleConfig[] = DEFAULT_HTML_MODULES): HtmlModuleConfig[] {
+  if (!saved) return [...defaults]
+  const byLabel = new Map(saved.map((m) => [m.label, m]))
+  const library = defaults.map((d) => {
+    const s = byLabel.get(d.label)
+    return s ? { ...d, ...s, id: s.id, label: d.label } : d
+  })
+  const taken = new Set(library.map((m) => m.id))
+  const own = saved
+    .filter((m) => !defaults.some((d) => d.label === m.label) && (m.html ?? '').trim() !== '')
+    .map((m) => {
+      // Never share an id with a library module: the list is keyed by it.
+      let id = m.id
+      while (taken.has(id)) id = `${id}-custom`
+      taken.add(id)
+      return { ...m, id }
+    })
+  return [...library, ...own]
+}
 
 // ─── Default Form Steps ─────────────────────────────────────
 
@@ -428,6 +451,7 @@ export function createDefaultSettings(): AppSettings {
     brandThemes: DEFAULT_BRAND_THEMES,
     htmlTemplates: DEFAULT_HTML_TEMPLATES,
     htmlModules: DEFAULT_HTML_MODULES,
+    moduleCategories: DEFAULT_MODULE_CATEGORIES,
     formSteps: DEFAULT_FORM_STEPS,
     formFields: DEFAULT_FORM_FIELDS,
     brandGuardian: DEFAULT_BRAND_GUARDIAN,

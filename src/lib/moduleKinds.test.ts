@@ -54,9 +54,21 @@ test('a module nobody planned for still gets a group and a picture', () => {
 
 test('grouping keeps the library order inside each group and drops empty groups', () => {
   const groups = groupPickerModules(['Single Primary CTA', 'Numbered Section V1', 'Dual Secondary CTA', 'Podcast Module'])
-  assert.deepEqual(groups.map((x) => x.group), ['Content', 'Media', 'Calls to action'])
-  assert.deepEqual(groups[2].names, ['Single Primary CTA', 'Dual Secondary CTA'])
+  assert.deepEqual(groups.map((x) => x.group), ['Content', 'Calls to action', 'Media'])
+  assert.deepEqual(groups[1].names, ['Single Primary CTA', 'Dual Secondary CTA'])
   assert.ok(PICKER_GROUPS.indexOf('Content') < PICKER_GROUPS.indexOf('Calls to action'))
+})
+
+test('a category chosen in Settings wins over the group the name suggests, and the order is the one in Settings', () => {
+  const names = ['Single Primary CTA', 'Numbered Section V1', 'Podcast Module']
+  const order = ['Media', 'Promo', 'Calls to action', 'Content', 'Other']
+  const groups = groupPickerModules(names, {}, order, { 'Single Primary CTA': 'Promo' })
+  assert.deepEqual(groups.map((g) => [g.group, g.names]), [['Media', ['Podcast Module']], ['Promo', ['Single Primary CTA']], ['Content', ['Numbered Section V1']]])
+})
+
+test('a module whose category has been deleted goes to Other, so it is never lost from the picker', () => {
+  const groups = groupPickerModules(['Podcast Module', 'Promo Banner'], {}, ['Content', 'Other'], { 'Promo Banner': 'Deleted category' })
+  assert.deepEqual(groups.map((g) => [g.group, g.names]), [['Other', ['Podcast Module', 'Promo Banner']]])
 })
 
 test('a module added in Settings is grouped by its category when its name says nothing', () => {

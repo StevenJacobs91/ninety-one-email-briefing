@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { describePickerModule, groupPickerModules, type ModuleKind, type PickerGroup } from '../../lib/moduleKinds'
+import { describePickerModule, groupPickerModules, PICKER_GROUPS, type ModuleKind, type PickerGroup } from '../../lib/moduleKinds'
+import type { ModuleCategoryConfig } from '../../types/settings.types'
 import { ModuleThumb } from './ModuleThumb'
 
 // Structure, header, footer and disclaimer modules are slots, not free picks.
@@ -7,19 +8,23 @@ const NOT_PICKABLE = /^(Visually Hidden|Small Header|Header with Image|Plain Log
 
 interface Props {
   names: string[]
-  /** Where modules added in Settings belong, by name; built-in modules are grouped by what they are */
+  /** The category a module is filed under in Settings, by name; it wins over the group the name suggests */
   groups?: Record<string, PickerGroup>
+  /** The categories from Settings → Email Modules: their order, and the names shown. The default list when not given. */
+  categories?: ModuleCategoryConfig[]
   /** The layout icon chosen for a module in Settings, by name; the others get the one their name suggests */
   icons?: Record<string, ModuleKind>
   onPick: (name: string) => void
   onClose: () => void
 }
 
-export function ModulePicker({ names, groups: customGroups, icons, onPick, onClose }: Props) {
+export function ModulePicker({ names, groups: customGroups, categories, icons, onPick, onClose }: Props) {
   const [query, setQuery] = useState('')
+  const order = useMemo(() => categories?.map((c) => c.id) ?? PICKER_GROUPS, [categories])
+  const labelOf = (group: string) => categories?.find((c) => c.id === group)?.label ?? group
   const groups = useMemo(
-    () => groupPickerModules(names.filter((n) => !NOT_PICKABLE.test(n) && n.toLowerCase().includes(query.trim().toLowerCase())), customGroups),
-    [names, query, customGroups],
+    () => groupPickerModules(names.filter((n) => !NOT_PICKABLE.test(n) && n.toLowerCase().includes(query.trim().toLowerCase())), {}, order, customGroups),
+    [names, query, customGroups, order],
   )
   // A group to show on its own. One the search has emptied is not held on to, so a search never leaves a blank list.
   const [only, setOnly] = useState<PickerGroup | null>(null)
@@ -41,7 +46,7 @@ export function ModulePicker({ names, groups: customGroups, icons, onPick, onClo
       </div>
       {groups.length > 1 && (
         <div role="group" aria-label="Show modules from" className="flex flex-wrap gap-1.5 mb-2">
-          {[{ group: null, label: 'All', count: total }, ...groups.map((g) => ({ group: g.group, label: g.group, count: g.names.length }))].map((f) => {
+          {[{ group: null, label: 'All', count: total }, ...groups.map((g) => ({ group: g.group, label: labelOf(g.group), count: g.names.length }))].map((f) => {
             const on = active === f.group
             return (
               <button
@@ -60,10 +65,10 @@ export function ModulePicker({ names, groups: customGroups, icons, onPick, onClo
       <div className="max-h-80 overflow-y-auto">
         {shown.map(({ group, names: inGroup }) => (
           <section key={group}>
-            <h3 className="sticky top-0 bg-white dark:bg-gray-900 pt-2 pb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{group}</h3>
-            <ul aria-label={group} className="divide-y divide-gray-100 dark:divide-gray-800">
+            <h3 className="sticky top-0 bg-white dark:bg-gray-900 pt-2 pb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">{labelOf(group)}</h3>
+            <ul aria-label={labelOf(group)} className="divide-y divide-gray-100 dark:divide-gray-800">
               {inGroup.map((n) => {
-                const info = describePickerModule(n, customGroups?.[n], icons?.[n])
+                const info = describePickerModule(n, undefined, icons?.[n])
                 return (
                   <li key={n}>
                     <button type="button" onClick={() => onPick(n)} className="w-full flex items-center gap-3 text-left px-3 py-2 hover:bg-brand-primary/5">

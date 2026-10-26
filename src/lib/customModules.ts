@@ -4,6 +4,7 @@ import { rgbToHex } from './hexColours'
 import { ANNIVERSARY_FIND, libraryImage, THEME_ICONS, type ThemeIconToken } from './themeIcons'
 import type { ThemeCatalogue } from './moduleEngine/catalogue'
 import { isLayoutIcon, type ModuleKind, type PickerGroup } from './moduleKinds'
+import { normaliseCategoryId } from './moduleCategories'
 
 export interface ThemeColours extends Partial<Record<ThemeIconToken, string>> {
   primary: string
@@ -47,6 +48,27 @@ export function applyThemeTokens(html: string, theme: ThemeColours): string {
   }, html)
 }
 
+/**
+ * The reverse of applyThemeTokens: one theme's own colours and images in `html` written as the variables that stand for
+ * them, so code taken from that theme's library reads, and can be edited, as a module that suits every theme.
+ */
+export function tokeniseModule(html: string, theme: ThemeColours): string {
+  const seen = new Set<string>()
+  const pairs: [value: string, token: string][] = []
+  for (const token of THEME_TOKENS) {
+    const value = theme[token]
+    if (!value || token === 'heroImage' || seen.has(value.toLowerCase())) continue
+    seen.add(value.toLowerCase())
+    pairs.push([value, token])
+  }
+  // Longest first, so a colour inside an image address is never taken for the colour.
+  pairs.sort((a, b) => b[0].length - a[0].length)
+  return pairs.reduce((out, [value, token]) => {
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return out.replace(new RegExp(value.startsWith('#') ? `${escaped}(?![0-9a-fA-F])` : escaped, 'gi'), `{{${token}}}`)
+  }, html)
+}
+
 /** What is wrong with a module's code, or null. Library modules are bare table rows, and an email cannot run scripts. */
 export function validateModuleHtml(html: string): string | null {
   const code = html.trim()
@@ -75,19 +97,14 @@ export function disabledModuleNames(modules: readonly HtmlModuleConfig[]): Set<s
   return new Set(modules.filter((m) => !m.enabled).map((m) => m.label))
 }
 
-const GROUP: Record<ModuleCategory, PickerGroup> = {
-  Headers: 'Other', Content: 'Content', CTAs: 'Calls to action', Events: 'Events', Speakers: 'People',
-  Articles: 'Articles', Media: 'Media', Navigation: 'Navigation', Footers: 'Other',
-}
-
 /** The layout icon chosen in Settings for each module, by name. */
 export function customLayoutIcons(modules: readonly HtmlModuleConfig[]): Record<string, ModuleKind> {
   return Object.fromEntries(modules.filter((m) => isLayoutIcon(m.layoutIcon)).map((m) => [m.label, m.layoutIcon as ModuleKind]))
 }
 
-/** The picker group a custom module's category belongs to. */
+/** The picker group a module's category belongs to: the same category, since Settings and the picker share one list. */
 export function categoryGroup(category: ModuleCategory): PickerGroup {
-  return GROUP[category]
+  return normaliseCategoryId(category)
 }
 
 // When Settings has no image for a theme, the one its own library modules use stands in.

@@ -1,5 +1,9 @@
-export const PICKER_GROUPS = ['Content', 'Media', 'Calls to action', 'Events', 'People', 'Articles', 'Navigation', 'Legal', 'Other'] as const
-export type PickerGroup = typeof PICKER_GROUPS[number]
+import { DEFAULT_MODULE_CATEGORIES } from './moduleCategories'
+
+// The group of a module is the id of one of the categories in Settings (see moduleCategories.ts), so people can add and rename them.
+export type PickerGroup = string
+/** The categories as shipped, in order; Settings can add to, rename, reorder and remove them. */
+export const PICKER_GROUPS: readonly PickerGroup[] = DEFAULT_MODULE_CATEGORIES.map((c) => c.id)
 
 export type ModuleKind =
   | 'text' | 'numbered' | 'buttons' | 'podcast' | 'video' | 'gallery'
@@ -42,6 +46,8 @@ export interface PickerModuleInfo {
 }
 
 const RULES: { test: RegExp; group: PickerGroup; kind: ModuleKind; blurb: string }[] = [
+  { test: /^(small header|plain logo header|header with image|visually hidden)/i, group: 'Headers', kind: 'generic', blurb: '' },
+  { test: /^footer/i, group: 'Footers', kind: 'generic', blurb: '' },
   { test: /^event registration/i, group: 'Events', kind: 'event', blurb: 'Event details and registration' },
   { test: /^itinerary/i, group: 'Events', kind: 'table', blurb: 'Timed agenda table' },
   { test: /speaker/i, group: 'People', kind: 'people', blurb: 'Speaker photos and bios' },
@@ -80,9 +86,22 @@ function describeByName(name: string, fallbackGroup: PickerGroup): PickerModuleI
   return { group: rule.group, kind: 'buttons', buttons, blurb: buttons === 1 ? 'One button' : `${buttons} buttons` }
 }
 
-/** Splits names into the picker's groups, in group order, keeping library order inside each group. */
-export function groupPickerModules(names: readonly string[], groups: Readonly<Record<string, PickerGroup>> = {}): { group: PickerGroup; names: string[] }[] {
-  return PICKER_GROUPS
-    .map((group) => ({ group, names: names.filter((n) => describePickerModule(n, groups[n]).group === group) }))
+/**
+ * Splits names into the picker's groups, in group order, keeping library order inside each group.
+ * `assigned` is a module's category as filed in Settings, which wins over the group its name suggests; a module whose
+ * group is not in `order` (a category since deleted) goes to Other.
+ */
+export function groupPickerModules(
+  names: readonly string[],
+  groups: Readonly<Record<string, PickerGroup>> = {},
+  order: readonly string[] = PICKER_GROUPS,
+  assigned: Readonly<Record<string, PickerGroup>> = {},
+): { group: PickerGroup; names: string[] }[] {
+  const groupOf = (n: string) => {
+    const g = assigned[n] ?? describePickerModule(n, groups[n]).group
+    return order.includes(g) ? g : 'Other'
+  }
+  return order
+    .map((group) => ({ group, names: names.filter((n) => groupOf(n) === group) }))
     .filter((g) => g.names.length > 0)
 }

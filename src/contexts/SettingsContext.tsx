@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { normaliseTints } from '../lib/brandTints'
 import type { AppSettings, HeaderTypeConfig, BrandThemeConfig } from '../types/settings.types'
-import { createDefaultSettings, mergePowerAutomate, DEFAULT_HEADER_TYPES, DEFAULT_BRAND_THEMES } from '../lib/settingsDefaults'
+import { createDefaultSettings, mergeHtmlModules, mergePowerAutomate, DEFAULT_HEADER_TYPES, DEFAULT_BRAND_THEMES } from '../lib/settingsDefaults'
 import { mergeFormSteps } from '../lib/briefTabs'
 import { useAuth } from './AuthContext'
 import { fetchSettings, upsertSettings } from '../lib/supabaseQueries'
@@ -57,6 +57,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             const customThemes = (remote.brandThemes as BrandThemeConfig[]).filter((t) => !DEFAULT_BRAND_THEMES.some((d) => d.id === t.id))
             return [...merged, ...customThemes]
           })(),
+          // Every module in the library has an entry here, with what was saved for it; ones added in Settings are kept.
+          htmlModules: mergeHtmlModules(remote.htmlModules),
           brandGuardian: { ...defaults.brandGuardian, ...remote.brandGuardian },
           senderDefaults: { ...defaults.senderDefaults, ...remote.senderDefaults },
           formDefaults: { ...defaults.formDefaults, ...remote.formDefaults },
