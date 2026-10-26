@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { applyThemeTokens, categoryGroup, disabledModuleNames, HERO_PLACEHOLDER, mergeCustomModules, usesHeroImage, validateModuleHtml } from './customModules.ts'
+import { applyThemeTokens, categoryGroup, customLayoutIcons, disabledModuleNames, HERO_PLACEHOLDER, mergeCustomModules, themeTokensFor, usesHeroImage, validateModuleHtml } from './customModules.ts'
 
 const THEME = { primary: '#134848', accent: '#fbaa96', tint01: '#1d4f4f', tint02: '#114141', tint03: '#0d3232' }
 const mod = (over: Record<string, unknown> = {}) => ({ id: 'promo', label: 'Promo Banner', description: '', category: 'Content', enabled: true, html: '<tr><td bgcolor="{{primary}}">Hello</td></tr>', ...over }) as never
@@ -17,6 +17,44 @@ test('merge tags for Pardot and recipients are left alone', () => {
 
 test('a theme with no tint colours leaves the token for the author to see rather than breaking the HTML', () => {
   assert.equal(applyThemeTokens('{{tint01}}', { primary: '#000000', accent: '#ffffff' }), '{{tint01}}')
+})
+
+test('the 35-year logo and every icon are variables, from Brand Themes first and the theme\'s own library otherwise', () => {
+  const library = {
+    themeId: 'agulhas-gold', order: [],
+    shell: { head: '<img src="https://cdn.example/x/icon_clock_gold_40x40.png">', tail: '' },
+    modules: {
+      A: '<img src="https://cdn.example/x/icon_gold_calendar_40x40.png"><img src="https://cdn.example/x/icon_yellow_calendar_119x119.png"><img src="https://cdn.example/x/icon_warm_yellow_location_40x40.png">',
+      B: '<img src="https://cdn.example/x/icon_document_gold_40x40.png"><img src="https://cdn.example/x/icon_go_gazania_gold_v2_20x20.png"><img src="https://cdn.example/x/image_35_years_graphic_warm_yellowwood_v1_300x300.png">',
+      Footer: ['facebook', 'instagram', 'linkedin', 'youtube', 'spotify', 'apple_podcasts'].map((n) => `<img src="https://cdn.example/x/icon_social_${n}_sc_v1_80x80.png">`).join(''),
+    },
+  }
+  const fromLibrary = themeTokensFor(library, { brandThemes: [] })
+  assert.equal(fromLibrary.iconClock, 'https://cdn.example/x/icon_clock_gold_40x40.png')
+  assert.equal(fromLibrary.iconCalendar, 'https://cdn.example/x/icon_gold_calendar_40x40.png')
+  assert.equal(fromLibrary.iconCalendarLarge, 'https://cdn.example/x/icon_yellow_calendar_119x119.png')
+  assert.equal(fromLibrary.iconLocation, 'https://cdn.example/x/icon_warm_yellow_location_40x40.png')
+  assert.equal(fromLibrary.iconDocument, 'https://cdn.example/x/icon_document_gold_40x40.png')
+  assert.equal(fromLibrary.iconArrow, 'https://cdn.example/x/icon_go_gazania_gold_v2_20x20.png')
+  assert.equal(fromLibrary.iconApplePodcasts, 'https://cdn.example/x/icon_social_apple_podcasts_sc_v1_80x80.png')
+  assert.equal(fromLibrary.iconLinkedin, 'https://cdn.example/x/icon_social_linkedin_sc_v1_80x80.png')
+  assert.equal(fromLibrary.anniversary, 'https://cdn.example/x/image_35_years_graphic_warm_yellowwood_v1_300x300.png')
+
+  const set = themeTokensFor(library, { brandThemes: [{ id: 'agulhas-gold', primary: '#221b3b', accent: '#cf6f13', anniversaryLogoUrl: 'https://mine/35.png', iconUrls: { clock: 'https://mine/clock.png' } }] as never })
+  assert.equal(set.iconClock, 'https://mine/clock.png', 'Brand Themes wins')
+  assert.equal(set.anniversary, 'https://mine/35.png')
+  assert.equal(set.iconCalendar, 'https://cdn.example/x/icon_gold_calendar_40x40.png', 'an icon not set falls back to the library\'s')
+})
+
+test('each icon variable in module code becomes its image', () => {
+  const html = '<img src="{{iconClock}}"><img src="{{iconCalendarLarge}}"><img src="{{anniversary}}"><img src="{{iconSpotify}}">'
+  const out = applyThemeTokens(html, { ...THEME, iconClock: 'https://i/clock.png', iconCalendarLarge: 'https://i/cal.png', anniversary: 'https://i/35.png' })
+  assert.equal(out, '<img src="https://i/clock.png"><img src="https://i/cal.png"><img src="https://i/35.png"><img src="{{iconSpotify}}">')
+})
+
+test('layout icons chosen in Settings are listed by module name, ignoring any that is not a known icon', () => {
+  const icons = customLayoutIcons([mod({ layoutIcon: 'columns2' }), mod({ id: 'b', label: 'Speakers', layoutIcon: 'nonsense' }), mod({ id: 'c', label: 'Plain' })])
+  assert.deepEqual(icons, { 'Promo Banner': 'columns2' })
 })
 
 test('a module needs table-row code and nothing that could run', () => {

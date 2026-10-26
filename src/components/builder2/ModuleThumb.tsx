@@ -36,6 +36,12 @@ function layout(kind: ModuleKind, count: number): Box[] {
     case 'tabs': return [{ l: 6, t: 12, w: 24, h: 14, tone: 'primary' }, { l: 34, t: 12, w: 24, h: 14, tone: 'outline' }, { l: 62, t: 12, w: 24, h: 14, tone: 'outline' }, ...text(6, 40, 70).slice(1)]
     case 'legal': return [0, 1, 2, 3].map((r) => ({ l: 8, t: 14 + r * 18, w: r === 3 ? 40 : 84, h: 6 }))
     case 'text': return text(8, 14, 62)
+    case 'columns2': return [8, 54].flatMap((l) => [{ l, t: 14, w: 38, h: 10 } as Box, { l, t: 36, w: 38, h: 8 }, { l, t: 50, w: 32, h: 8 }, { l, t: 64, w: 36, h: 8 }])
+    case 'columns3': return [6, 38, 70].flatMap((l) => [{ l, t: 14, w: 24, h: 10 } as Box, { l, t: 36, w: 24, h: 8 }, { l, t: 50, w: 20, h: 8 }, { l, t: 64, w: 22, h: 8 }])
+    case 'imageLeft': return [{ l: 6, t: 12, w: 36, h: 72, tone: 'primary' }, ...text(48, 16, 40)]
+    case 'imageRight': return [...text(8, 16, 40), { l: 58, t: 12, w: 36, h: 72, tone: 'primary' }]
+    case 'hero': return [{ l: 6, t: 10, w: 88, h: 44, tone: 'primary' }, { l: 8, t: 62, w: 60, h: 8 }, { l: 8, t: 76, w: 76, h: 6 }]
+    case 'quote': return [{ l: 10, t: 12, w: 14, h: 22, tone: 'accent', round: true }, { l: 10, t: 42, w: 80, h: 8 }, { l: 10, t: 56, w: 64, h: 8 }, { l: 10, t: 74, w: 28, h: 6, tone: 'primary' }]
     default: return [{ l: 8, t: 14, w: 84, h: 70, tone: 'outline' }]
   }
 }

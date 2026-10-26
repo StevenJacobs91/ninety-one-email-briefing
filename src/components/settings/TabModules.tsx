@@ -3,6 +3,10 @@ import { useSettings } from '../../contexts/SettingsContext'
 import type { HtmlModuleConfig, ModuleCategory } from '../../types/settings.types'
 import { Switch } from '../ui/Switch'
 import { applyThemeTokens, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
+import { THEME_ICONS } from '../../lib/themeIcons'
+import { describePickerModule, LAYOUT_ICONS } from '../../lib/moduleKinds'
+import { ModuleThumb } from '../builder2/ModuleThumb'
+import { LazyCodeEditor } from '../ui/LazyCodeEditor'
 
 const CATEGORIES: ModuleCategory[] = ['Headers', 'Content', 'CTAs', 'Events', 'Speakers', 'Articles', 'Media', 'Navigation', 'Footers']
 
@@ -13,6 +17,8 @@ export function TabModules() {
   const [isAdding, setIsAdding] = useState(false)
   const [codeError, setCodeError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  // Removing a module takes two steps: the X asks, Delete confirms.
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState<ModuleCategory | 'all'>('all')
 
   const modules = settings.htmlModules
@@ -181,13 +187,24 @@ export function TabModules() {
 
                     <span className="text-xs font-mono text-gray-400 hidden sm:block shrink-0">{mod.id}</span>
 
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <div className={`flex items-center gap-1 transition-opacity shrink-0 ${deleteConfirmId === mod.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}>
                       <button type="button" onClick={() => startEdit(mod)} className="p-1 text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent" title="Edit">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
-                      <button type="button" onClick={() => removeModule(mod.id)} className="p-1 text-gray-400 hover:text-red-500" title="Remove">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
+                      {deleteConfirmId === mod.id ? (
+                        <span role="group" aria-label={`Remove ${mod.label}?`} className="flex items-center gap-1 pl-1">
+                          <button type="button" onClick={() => { removeModule(mod.id); setDeleteConfirmId(null) }} className="text-xs font-medium bg-red-600 text-white px-2 py-0.5 rounded-md hover:bg-red-700">
+                            Delete
+                          </button>
+                          <button type="button" onClick={() => setDeleteConfirmId(null)} className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 hover:text-gray-700 dark:hover:text-gray-200">
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button type="button" onClick={() => setDeleteConfirmId(mod.id)} className="p-1 text-gray-400 hover:text-red-500" title="Remove">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -199,6 +216,15 @@ export function TabModules() {
     </div>
   )
 }
+
+const IMAGE_VARIABLES = [
+  { token: 'logo', label: 'Header logo' },
+  { token: 'stripe', label: 'Stripe' },
+  { token: 'slimStripe', label: 'Slim stripe' },
+  { token: 'footerLogo', label: 'Footer logo' },
+  { token: 'anniversary', label: '35 year logo' },
+  ...THEME_ICONS.map((i) => ({ token: i.token, label: `${i.label} icon` })),
+]
 
 function ModuleEditRow({
   draft,
@@ -274,23 +300,39 @@ function ModuleEditRow({
       </div>
 
       <div className="mb-3">
+        <p id="layout-icon-label" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Layout icon</p>
+        <div role="radiogroup" aria-labelledby="layout-icon-label" className="flex flex-wrap gap-1.5">
+          {[{ kind: '' as const, label: 'Auto' }, ...LAYOUT_ICONS].map((o) => {
+            const selected = (draft.layoutIcon ?? '') === o.kind
+            const named = describePickerModule(draft.label)
+            return (
+              <label key={o.kind || 'auto'} title={o.kind ? o.label : 'The icon the module\'s name suggests'} className={`flex flex-col items-center gap-1 cursor-pointer rounded-md border px-2 py-1.5 text-[11px] ${selected ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary/30 text-gray-900 dark:text-gray-100' : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                <input type="radio" name="layout-icon" aria-label={o.label} checked={selected} onChange={() => onChange({ ...draft, layoutIcon: o.kind || undefined })} className="sr-only" />
+                {o.kind ? <ModuleThumb kind={o.kind} buttons={o.kind === 'buttons' ? 1 : 0} /> : <ModuleThumb kind={named.kind} buttons={named.buttons} />}
+                {o.label}
+              </label>
+            )
+          })}
+        </div>
+        <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">Shown beside the module in the Add module picker. Auto uses the icon its name suggests.</p>
+      </div>
+
+      <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <label htmlFor="module-code" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">
             Module code (HTML){isNew && <span className="text-red-500"> *</span>}
-          </label>
+          </span>
           <button type="button" onClick={() => setShowPreview((v) => !v)} className="text-xs text-brand-primary dark:text-brand-accent hover:underline">
             {showPreview ? 'Hide preview' : 'Show preview'}
           </button>
         </div>
-        <textarea
+        <LazyCodeEditor
           id="module-code"
+          label="Module code"
           value={code}
-          onChange={(e) => onChange({ ...draft, html: e.target.value })}
-          rows={10}
-          spellCheck={false}
-          aria-invalid={codeError ? true : undefined}
+          onChange={(v) => onChange({ ...draft, html: v })}
+          invalid={!!codeError}
           placeholder={isNew ? '<tr>\n  <td bgcolor="{{primary}}" style="padding: 30px 40px;">\n    <p pardot-region="paragraph" style="color: #ffffff;">Your text</p>\n  </td>\n</tr>' : 'Leave empty to keep the library\'s own code for this module'}
-          className={`w-full rounded-md border bg-white dark:bg-gray-700 text-xs font-mono leading-relaxed px-3 py-2 dark:text-gray-100 resize-y ${codeError ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
         />
         {codeError && <p role="alert" className="text-xs text-red-600 mt-1">{codeError}</p>}
         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
@@ -298,6 +340,15 @@ function ModuleEditRow({
           {' '}<code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code> and <code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for the theme&rsquo;s colours so one module suits every theme.
           {!isNew && !(draft.html ?? '').trim() && ' This module currently uses the library\'s own code; code saved here with the same name replaces it.'}
         </p>
+        <details className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+          <summary className="cursor-pointer text-brand-primary dark:text-brand-accent">Image variables</summary>
+          <p className="mt-1">Each becomes the selected theme&rsquo;s image, set in Brand Themes:</p>
+          <ul className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5">
+            {IMAGE_VARIABLES.map(({ token, label }) => (
+              <li key={token} className="flex items-center justify-between gap-2"><code>{`{{${token}}}`}</code><span className="text-gray-400">{label}</span></li>
+            ))}
+          </ul>
+        </details>
         {showPreview && (
           <iframe
             title="Module preview"

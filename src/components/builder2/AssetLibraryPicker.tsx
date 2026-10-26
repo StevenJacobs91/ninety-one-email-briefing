@@ -22,8 +22,12 @@ const LABEL = 'block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1'
 export function AssetLibraryPicker({ category, label, url, alt, onChange }: Props) {
   const { settings } = useSettings()
   const [search, setSearch] = useState('')
-  const name = CATEGORY_LABEL[category]
-  const all = useMemo(() => (settings.assets ?? []).filter((a) => a.category === category), [settings.assets, category])
+  // `category` is where the picker starts; someone can look in the other of Profiles and Graphics instead.
+  const [chosen, setChosen] = useState<AssetCategory | null>(null)
+  const active = chosen ?? category
+  const other: AssetCategory = active === 'profile' ? 'graphics' : 'profile'
+  const name = CATEGORY_LABEL[active]
+  const all = useMemo(() => (settings.assets ?? []).filter((a) => a.category === active), [settings.assets, active])
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase()
     return q ? all.filter((a) => a.name.toLowerCase().includes(q) || (a.altText ?? '').toLowerCase().includes(q)) : all
@@ -35,7 +39,12 @@ export function AssetLibraryPicker({ category, label, url, alt, onChange }: Prop
       <p className="text-xs font-medium text-gray-600 dark:text-gray-300">{label}</p>
 
       <div>
-        <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{name}</p>
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{name}</p>
+          <button type="button" onClick={() => { setChosen(other); setSearch('') }} className="text-[11px] text-brand-primary dark:text-brand-accent hover:underline">
+            Browse {CATEGORY_LABEL[other]} instead
+          </button>
+        </div>
         {all.length === 0 ? (
           <p className="text-xs text-gray-400 py-2">No {name} in the media library yet. Add some in Settings → Asset Library, or paste a URL below.</p>
         ) : (

@@ -2,6 +2,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { briefSchema, contentSchema } from './schema.ts'
 
+test('a module background choice survives validation, so it is saved with the brief', () => {
+  const module = { instanceId: 'a', moduleName: 'Body Content', slot: null, repeats: {}, regions: {}, images: {}, boundFields: {}, styles: { container: { background: 'tint01' } } }
+  const parsed = contentSchema.shape.build.unwrap().parse({ version: 1, themeId: 'agulhas-gold', modules: [module] })
+  assert.equal(parsed.modules[0].styles?.container.background, 'tint01')
+  assert.throws(() => contentSchema.shape.build.unwrap().parse({ version: 1, themeId: 'x', modules: [{ ...module, styles: { container: { background: 'red' } } }] }))
+})
+
 const base = {
   headline: 'H', bodyIntro: 'B', sections: [], modules: [], includeUnsubscribe: true,
   cta: { label: '', url: '', openInNewTab: true },

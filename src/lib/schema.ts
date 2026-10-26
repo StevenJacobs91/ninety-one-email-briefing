@@ -79,7 +79,7 @@ const buildModuleSchema = z.object({
     signature: z.union([z.literal('none'), z.object({ entry: z.object({ id: z.string(), name: z.string(), text: z.string(), isDefault: z.boolean(), columns: z.union([z.literal(1), z.literal(2)]).optional(), textRight: z.string().optional(), format: z.enum(['text', 'code']).optional() }) })]).optional(),
     social: z.boolean().optional(),
   }).optional(),
-  styles: z.record(z.object({ margin: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), padding: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), class: z.string().optional() })).optional(),
+  styles: z.record(z.object({ margin: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), padding: z.object({ top: z.string().optional(), right: z.string().optional(), bottom: z.string().optional(), left: z.string().optional() }).optional(), class: z.string().optional(), background: z.enum(['primary', 'tint01', 'tint02', 'tint03', '']).optional() })).optional(),
 })
 
 const emailBuildSchema = z.object({

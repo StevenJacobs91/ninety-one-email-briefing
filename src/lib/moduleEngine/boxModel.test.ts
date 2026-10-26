@@ -9,6 +9,21 @@ const el = (style: string, cls = '') => {
   return doc.getElementById('x') as unknown as Element
 }
 
+test('a background choice sets the theme colour on the cell, replacing the design\'s own, and "design" leaves it alone', () => {
+  const doc = parse('<html><body><table><tbody><tr><td id="c" bgcolor="#221b3b" style="background-color: #221b3b; padding: 10px;">t</td></tr></tbody></table></body></html>')
+  const cell = () => doc.getElementById('c') as unknown as Element
+  const colours = { primary: '#134848', tint01: '#e8eded', tint02: '#d0dbdb', tint03: '#b9c9c9' }
+  applyBox(cell(), { background: '' }, colours)
+  assert.equal(cell().getAttribute('bgcolor'), '#221b3b')
+  applyBox(cell(), { background: 'tint02' }, colours)
+  assert.equal(cell().getAttribute('bgcolor'), '#d0dbdb')
+  assert.match(cell().getAttribute('style') ?? '', /background-color: #d0dbdb/)
+  assert.ok(!/#221b3b/.test(cell().getAttribute('style') ?? ''), 'the old colour is gone')
+  assert.match(cell().getAttribute('style') ?? '', /padding: 10px/, 'other styles are kept')
+  applyBox(cell(), { background: 'tint03' }, { primary: '#134848' })
+  assert.equal(cell().getAttribute('bgcolor'), '#d0dbdb', 'a tint the theme does not have changes nothing')
+})
+
 test('padding and margin shorthands are read as four sides (one, two, three and four values)', () => {
   assert.deepEqual(readBox(el('padding: 30px 40px 30px 40px;')).padding, { top: '30px', right: '40px', bottom: '30px', left: '40px' })
   assert.deepEqual(readBox(el('margin: 5px;')).margin, { top: '5px', right: '5px', bottom: '5px', left: '5px' })

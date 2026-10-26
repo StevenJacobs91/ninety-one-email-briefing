@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import type { BoxInfo } from '../../lib/moduleEngine/describe'
-import { normaliseLength, type BoxStyle, type Side } from '../../lib/moduleEngine/boxModel'
+import { BACKGROUND_CHOICES, normaliseLength, type BackgroundChoice, type BackgroundColours, type BoxStyle, type Side } from '../../lib/moduleEngine/boxModel'
+
+const BACKGROUND_LABEL: Record<BackgroundChoice, string> = { primary: 'Primary', tint01: 'Tint 01', tint02: 'Tint 02', tint03: 'Tint 03' }
 
 interface Props {
   boxes: BoxInfo[]
   styles: Record<string, BoxStyle>
+  /** The selected theme's colours for the module background; with none, the choice is not offered */
+  backgrounds?: BackgroundColours
   onStyle: (key: string, patch: BoxStyle) => void
   onClear: (key: string) => void
 }
@@ -14,7 +18,7 @@ const SIDE_LABEL: Record<Side, string> = { top: 'top', right: 'right', bottom: '
 function hasOverride(style: BoxStyle | undefined): boolean {
   if (!style) return false
   const any = (s?: Record<string, string | undefined>) => Object.values(s ?? {}).some((v) => v !== undefined && v !== '')
-  return any(style.margin) || any(style.padding) || (style.class !== undefined && style.class !== '')
+  return any(style.margin) || any(style.padding) || (style.class !== undefined && style.class !== '') || !!style.background
 }
 
 /** A length field for one side. Shows the design's own value as a placeholder until it is overridden. */
@@ -44,7 +48,7 @@ function SideInput({ kind, side, value, placeholder, disabled, onChange }: {
  * Spacing and class for one element of the selected module, laid out like the browser inspector's box
  * model: margin outside, padding inside, the content in the middle. Empty fields keep the design's value.
  */
-export function BoxModelEditor({ boxes, styles, onStyle, onClear }: Props) {
+export function BoxModelEditor({ boxes, styles, backgrounds, onStyle, onClear }: Props) {
   const [selected, setSelected] = useState(boxes[0]?.key ?? 'container')
   if (boxes.length === 0) return null
 
@@ -89,6 +93,25 @@ export function BoxModelEditor({ boxes, styles, onStyle, onClear }: Props) {
             {boxes.map((b) => <option key={b.key} value={b.key}>{b.label}{hasOverride(styles[b.key]) ? ' •' : ''}</option>)}
           </select>
         </div>
+
+        {box.key === 'container' && backgrounds && BACKGROUND_CHOICES.some((c) => backgrounds[c]) && (
+          <div>
+            <p id="box-background-label" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Background</p>
+            <div role="radiogroup" aria-labelledby="box-background-label" className="flex flex-wrap items-center gap-2">
+              {[{ id: '' as const, label: 'Design', colour: '' }, ...BACKGROUND_CHOICES.filter((c) => backgrounds[c]).map((c) => ({ id: c, label: BACKGROUND_LABEL[c], colour: backgrounds[c] as string }))].map((o) => {
+                const selected = (style?.background ?? '') === o.id
+                return (
+                  <label key={o.id || 'design'} title={o.colour ? `${o.label} · ${o.colour}` : 'Keep the design\'s own colour'} className={`flex items-center gap-1.5 cursor-pointer rounded-md border px-2 py-1 text-xs ${selected ? 'border-brand-primary dark:border-brand-accent ring-2 ring-brand-primary/30 text-gray-900 dark:text-gray-100' : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'}`}>
+                    <input type="radio" name="box-background" aria-label={o.label} checked={selected} onChange={() => onStyle(box.key, { background: o.id })} className="sr-only" />
+                    <span className="w-4 h-4 rounded-full border border-black/10" style={o.colour ? { backgroundColor: o.colour } : undefined} aria-hidden="true" />
+                    {o.label}
+                  </label>
+                )
+              })}
+            </div>
+            <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">The module's background, from the theme. Design keeps the library's own colour.</p>
+          </div>
+        )}
 
         {/* Margin (outer) → padding (inner) → content, centred, in the brand colours */}
         <div className="mx-auto max-w-[19rem] rounded-md bg-brand-accent/30 dark:bg-brand-accent/15 border border-dashed border-brand-accent-muted p-2">

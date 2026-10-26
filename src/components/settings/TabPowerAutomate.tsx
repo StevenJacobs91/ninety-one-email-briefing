@@ -448,11 +448,15 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
     emailName:           '2026-04-30 SA Advisors — Taking Stock April 2026',
     html:                '<html>…the email HTML…</html>',
     briefHtml:           '<html>…the brief summary…</html>',
-    textEmail:           'The plain-text version of the email',
+    textEmail:           'The plain-text version of the email (also attached as a .txt file)',
     draftTo:             'steven.jacobs@ninetyone.com',
     draftSubject:        '2026-04-30 SA Advisors — Taking Stock April 2026',
     draftBody:           '<div>…the whole brief summary as HTML: use it as the body of the draft email…</div>',
-    attachments:         [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+…' }],
+    attachments:         [
+      { name: 'email-taking-stock-2026-04-30.html', type: 'text/html', base64: 'PGh0bWw+…' },
+      { name: 'email-taking-stock-2026-04-30.txt', type: 'text/plain', base64: 'TmluZXR5IE9uZQ==…' },
+      { name: 'brief-summary-taking-stock-2026-04-30.html', type: 'text/html', base64: 'PGh0bWw+…' },
+    ],
     attachmentLinks:     [{ name: 'campaign-brief.pdf', type: 'application/pdf', size: 245760, url: 'https://…/sign/brief-attachments/…?token=…' }],
     ...(config.includeFullBrief ? { brief: '{ ...full BriefPayload object... }' } : {}),
   }

@@ -6,7 +6,8 @@ import { headerModuleFor } from '../../lib/moduleEngine/seed'
 import type { HeaderTypeConfig } from '../../types/settings.types'
 import { RegionEditor } from './RegionEditor'
 import { BoxModelEditor } from './BoxModelEditor'
-import type { BoxStyle } from '../../lib/moduleEngine/boxModel'
+import type { BackgroundColours, BoxStyle } from '../../lib/moduleEngine/boxModel'
+import type { AssetCategory } from '../../types/settings.types'
 import { HeroImagePicker } from './HeroImagePicker'
 import { AssetLibraryPicker } from './AssetLibraryPicker'
 
@@ -16,6 +17,10 @@ interface Props {
   headerTypes: HeaderTypeConfig[]
   headerTypeId: string
   accentColour?: string
+  /** The theme's primary and tint colours, for the module background choice */
+  backgrounds?: BackgroundColours
+  /** The media library images start in: Profiles for a People module, Graphics otherwise */
+  imageCategory?: AssetCategory
   onRegion: (key: string, patch: RegionValue) => void
   onRepeat: (group: string, count: number) => void
   onImage: (key: string, patch: { src?: string; alt?: string }) => void
@@ -41,7 +46,7 @@ interface Props {
 }
 
 export function ModuleInspector({
-  module: m, info, headerTypes, headerTypeId, accentColour, onRegion, onRepeat, onImage, onStyle, onClearStyle, onHeaderType, hero, greeting, disclaimer, footer, onClose,
+  module: m, info, headerTypes, headerTypeId, accentColour, backgrounds, imageCategory, onRegion, onRepeat, onImage, onStyle, onClearStyle, onHeaderType, hero, greeting, disclaimer, footer, onClose,
 }: Props) {
   const editable = info.fields.filter((f) => !f.locked)
   const lockedCount = info.fields.length - editable.length
@@ -173,7 +178,7 @@ export function ModuleInspector({
         {showHero && <HeroImagePicker {...hero!} />}
 
         {imageFields.map((f) => (
-          <RegionEditor key={f.key} field={f} saved={m.regions[f.key]} accentColour={accentColour} onChange={(patch) => onRegion(f.key, patch)} />
+          <RegionEditor key={f.key} field={f} saved={m.regions[f.key]} accentColour={accentColour} imageCategory={imageCategory} onChange={(patch) => onRegion(f.key, patch)} />
         ))}
 
         {info.images.map((src, i) => {
@@ -186,7 +191,7 @@ export function ModuleInspector({
           return (
             <AssetLibraryPicker
               key={src}
-              category={kind === 'profile' ? 'profile' : 'graphics'}
+              category={kind === 'profile' ? 'profile' : imageCategory ?? 'graphics'}
               label={same.length > 1 ? `${name} ${nth}` : name}
               url={saved?.src ?? ''}
               alt={saved?.alt ?? ''}
@@ -198,7 +203,7 @@ export function ModuleInspector({
             </>
           ) },
           { id: 'style', label: 'Style', show: info.boxes.length > 0, panel: (
-            <BoxModelEditor key={m.instanceId} boxes={info.boxes} styles={m.styles ?? {}} onStyle={onStyle} onClear={onClearStyle} />
+            <BoxModelEditor key={m.instanceId} boxes={info.boxes} styles={m.styles ?? {}} backgrounds={backgrounds} onStyle={onStyle} onClear={onClearStyle} />
           ) },
         ]}
       />

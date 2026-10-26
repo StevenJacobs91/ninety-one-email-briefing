@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { BrandThemeConfig } from '../../types/settings.types'
+import { THEME_ICONS } from '../../lib/themeIcons'
 
 function generateId(label: string): string {
   return label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -306,14 +307,19 @@ function ThemeEditRow({
       <div className="space-y-2 mb-3">
         <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Email Asset URLs</p>
         {[
-          { key: 'logoUrl' as const, label: 'Header Logo URL', placeholder: 'https://… (120×60 px)' },
-          { key: 'stripeUrl' as const, label: 'Stripe URL', placeholder: 'https://… (200×234 px)' },
-          { key: 'slimStripeUrl' as const, label: 'Slim Stripe URL', placeholder: 'https://… (slim variant)' },
-          { key: 'footerLogoUrl' as const, label: 'Footer Logo URL', placeholder: 'https://… (120×130 px)' },
-        ].map(({ key, label, placeholder }) => (
+          { key: 'logoUrl' as const, label: 'Header Logo URL', placeholder: 'https://… (120×60 px)', token: 'logo' },
+          { key: 'stripeUrl' as const, label: 'Stripe URL', placeholder: 'https://… (200×234 px)', token: 'stripe' },
+          { key: 'slimStripeUrl' as const, label: 'Slim Stripe URL', placeholder: 'https://… (slim variant)', token: 'slimStripe' },
+          { key: 'footerLogoUrl' as const, label: 'Footer Logo URL', placeholder: 'https://… (120×130 px)', token: 'footerLogo' },
+          { key: 'anniversaryLogoUrl' as const, label: '35 Year Logo URL', placeholder: 'https://… (300×300 px)', token: 'anniversary' },
+        ].map(({ key, label, placeholder, token }) => (
           <div key={key}>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+            <label htmlFor={`theme-${key}`} className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              {label}
+              <code className="font-mono text-[10px] text-gray-400 dark:text-gray-500">{`{{${token}}}`}</code>
+            </label>
             <input
+              id={`theme-${key}`}
               type="url"
               value={draft[key] ?? ''}
               onChange={(e) => onChange({ ...draft, [key]: e.target.value })}
@@ -322,6 +328,30 @@ function ThemeEditRow({
             />
           </div>
         ))}
+      </div>
+
+      {/* Icons: one image per type, each a variable for module code */}
+      <div className="space-y-2 mb-3">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Icon URLs</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500">Each icon has a variable to use in module code. Left empty, the icon from this theme&rsquo;s own library is used.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {THEME_ICONS.map(({ key, token, label, hint }) => (
+            <div key={key}>
+              <label htmlFor={`theme-icon-${key}`} className="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                {label} Icon URL
+                <code className="font-mono text-[10px] text-gray-400 dark:text-gray-500">{`{{${token}}}`}</code>
+              </label>
+              <input
+                id={`theme-icon-${key}`}
+                type="url"
+                value={draft.iconUrls?.[key] ?? ''}
+                onChange={(e) => onChange({ ...draft, iconUrls: { ...draft.iconUrls, [key]: e.target.value } })}
+                placeholder={`https://… (${hint})`}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs px-3 py-1.5 dark:text-gray-100 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono"
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Preview */}

@@ -2,11 +2,14 @@ import { RichTextarea } from '../ui/RichTextarea'
 import { AssetLibraryPicker } from './AssetLibraryPicker'
 import type { FieldInfo } from '../../lib/moduleEngine/describe'
 import type { RegionValue } from '../../lib/moduleEngine/regions'
+import type { AssetCategory } from '../../types/settings.types'
 
 interface Props {
   field: FieldInfo
   saved: RegionValue | undefined
   accentColour?: string
+  /** The media library an image starts in, unless the image is a profile photo; Graphics when not given */
+  imageCategory?: AssetCategory
   onChange: (patch: RegionValue) => void
 }
 
@@ -17,7 +20,7 @@ function plain(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export function RegionEditor({ field, saved, accentColour, onChange }: Props) {
+export function RegionEditor({ field, saved, accentColour, imageCategory, onChange }: Props) {
   const id = `region-${field.key}`
 
   if (field.kind === 'rich') {
@@ -37,7 +40,7 @@ export function RegionEditor({ field, saved, accentColour, onChange }: Props) {
     const profile = /\/profile_/i.test(field.value)
     return (
       <AssetLibraryPicker
-        category={profile ? 'profile' : 'graphics'}
+        category={profile ? 'profile' : imageCategory ?? 'graphics'}
         label={field.label}
         url={saved?.value ?? ''}
         alt={saved?.alt ?? ''}

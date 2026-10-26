@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { describePickerModule, groupPickerModules, PICKER_GROUPS } from './moduleKinds.ts'
+import { describePickerModule, groupPickerModules, isLayoutIcon, LAYOUT_ICONS, PICKER_GROUPS } from './moduleKinds.ts'
 
 test('calls to action are grouped and know how many buttons they hold', () => {
   assert.deepEqual(describePickerModule('Single Primary CTA'), { group: 'Calls to action', kind: 'buttons', buttons: 1, blurb: 'One button' })
@@ -27,6 +27,25 @@ test('modules are sorted into their groups by name', () => {
   assert.equal(g('Article List V3'), 'Articles')
   assert.equal(g('Tabs Anchors'), 'Navigation')
   assert.equal(g('Risk Warnings - UK'), 'Legal')
+})
+
+test('a layout icon chosen in Settings replaces the one the name suggests, and leaves the group and wording alone', () => {
+  const named = describePickerModule('Promo Banner', 'Content')
+  assert.equal(named.kind, 'generic')
+  const chosen = describePickerModule('Promo Banner', 'Content', 'imageLeft')
+  assert.deepEqual(chosen, { ...named, kind: 'imageLeft', buttons: 0 })
+  assert.equal(describePickerModule('Event Registration 2x CTA', 'Other', 'quote').kind, 'quote')
+  assert.equal(describePickerModule('Event Registration 2x CTA').kind, 'event', 'with none chosen the name decides')
+  assert.equal(describePickerModule('Promo Banner', 'Content', 'buttons').buttons, 1)
+  assert.equal(describePickerModule('Dual Secondary CTA', 'Other', 'buttons').buttons, 2)
+})
+
+test('every offered layout icon is a known kind, once', () => {
+  const kinds = LAYOUT_ICONS.map((i) => i.kind)
+  assert.equal(new Set(kinds).size, kinds.length)
+  assert.ok(kinds.every((k) => isLayoutIcon(k)))
+  assert.equal(isLayoutIcon('nonsense'), false)
+  assert.equal(isLayoutIcon(undefined), false)
 })
 
 test('a module nobody planned for still gets a group and a picture', () => {

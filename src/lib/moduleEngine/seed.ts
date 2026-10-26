@@ -53,7 +53,7 @@ export function withCustomHeaders(catalogue: ThemeCatalogue, settings: Pick<AppS
     const name = headerModuleFor(h.id, [h])
     if (!name) continue
     const tokens = themeTokensFor(catalogue, settings, { logo: h.assets?.logoUrl, stripe: h.assets?.stripeUrl, slimStripe: h.assets?.slimStripeUrl })
-    modules[name] = applyThemeTokens(usableSnippet(h)!, { ...tokens, anniversary: h.assets?.thirtyFiveYearGraphicUrl, heroImage: HERO_PLACEHOLDER })
+    modules[name] = applyThemeTokens(usableSnippet(h)!, { ...tokens, anniversary: h.assets?.thirtyFiveYearGraphicUrl || tokens.anniversary, heroImage: HERO_PLACEHOLDER })
     if (!order.includes(name)) order.push(name)
   }
   return { ...catalogue, modules, order }

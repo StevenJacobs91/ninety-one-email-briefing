@@ -4,6 +4,34 @@ export type PickerGroup = typeof PICKER_GROUPS[number]
 export type ModuleKind =
   | 'text' | 'numbered' | 'buttons' | 'podcast' | 'video' | 'gallery'
   | 'event' | 'table' | 'people' | 'list' | 'tabs' | 'legal' | 'generic'
+  | 'columns2' | 'columns3' | 'imageLeft' | 'imageRight' | 'hero' | 'quote'
+
+/** The layout icons someone can pick for a module they add in Settings, in the order they are offered. */
+export const LAYOUT_ICONS: { kind: ModuleKind; label: string }[] = [
+  { kind: 'text', label: 'Text' },
+  { kind: 'columns2', label: '2 columns' },
+  { kind: 'columns3', label: '3 columns' },
+  { kind: 'imageLeft', label: 'Image left' },
+  { kind: 'imageRight', label: 'Image right' },
+  { kind: 'hero', label: 'Image above text' },
+  { kind: 'gallery', label: 'Image grid' },
+  { kind: 'list', label: 'List' },
+  { kind: 'numbered', label: 'Numbered' },
+  { kind: 'quote', label: 'Quote' },
+  { kind: 'buttons', label: 'Button' },
+  { kind: 'event', label: 'Event' },
+  { kind: 'people', label: 'People' },
+  { kind: 'video', label: 'Video' },
+  { kind: 'podcast', label: 'Podcast' },
+  { kind: 'table', label: 'Table' },
+  { kind: 'tabs', label: 'Tabs' },
+  { kind: 'legal', label: 'Legal' },
+  { kind: 'generic', label: 'Other' },
+]
+
+export function isLayoutIcon(value: unknown): value is ModuleKind {
+  return LAYOUT_ICONS.some((i) => i.kind === value)
+}
 
 export interface PickerModuleInfo {
   group: PickerGroup
@@ -38,7 +66,13 @@ function buttonCount(name: string): number {
   return 1
 }
 
-export function describePickerModule(name: string, fallbackGroup: PickerGroup = 'Other'): PickerModuleInfo {
+export function describePickerModule(name: string, fallbackGroup: PickerGroup = 'Other', icon?: ModuleKind): PickerModuleInfo {
+  const named = describeByName(name, fallbackGroup)
+  // An icon chosen in Settings replaces the one the name suggests; where it is the button icon, one button is drawn unless the name says more.
+  return icon ? { ...named, kind: icon, buttons: icon === 'buttons' ? Math.max(named.buttons, 1) : 0 } : named
+}
+
+function describeByName(name: string, fallbackGroup: PickerGroup): PickerModuleInfo {
   const rule = RULES.find((r) => r.test.test(name))
   if (!rule) return { group: fallbackGroup, kind: 'generic', buttons: 0, blurb: '' }
   if (rule.kind !== 'buttons') return { group: rule.group, kind: rule.kind, buttons: 0, blurb: rule.blurb }

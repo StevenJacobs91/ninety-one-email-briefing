@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import type { FieldError } from 'react-hook-form'
+import { LazyCodeEditor } from './LazyCodeEditor'
 
 interface RichTextareaProps {
   label: string
@@ -35,8 +36,10 @@ export function RichTextarea({
   const [showLinkDialog, setShowLinkDialog] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
   const [activeFormats, setActiveFormats] = useState({ bold: false, italic: false, underline: false })
+  // Code view edits the HTML itself, for changes the toolbar cannot make.
+  const [codeView, setCodeView] = useState(false)
 
-  // Sync external value → contenteditable (only when value changes externally)
+  // Sync external value → contenteditable (only when value changes externally, or the visual editor comes back from code view)
   useEffect(() => {
     const el = editorRef.current
     if (!el) return
@@ -47,7 +50,7 @@ export function RichTextarea({
     if (el.innerHTML !== value) {
       el.innerHTML = value
     }
-  }, [value])
+  }, [value, codeView])
 
   const emit = useCallback(() => {
     const el = editorRef.current
@@ -220,6 +223,7 @@ export function RichTextarea({
 
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1.5 border border-b-0 border-gray-300 dark:border-gray-600 rounded-t-md bg-gray-50 dark:bg-gray-800/80">
+        <div className={codeView ? 'hidden' : 'contents'}>
         {/* Bold */}
         <button
           type="button"
@@ -276,18 +280,34 @@ export function RichTextarea({
             e.preventDefault()
             if (saveSelection()) setShowLinkDialog(true)
           }}
-          className="flex items-center gap-1.5 px-2 h-7 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+          className="w-8 h-7 flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
           title="Insert link (Ctrl+K)"
+          aria-label="Insert link (Ctrl+K)"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
           </svg>
-          Link
         </button>
+        </div>
 
         {/* Accent colour swatch */}
         <div className="ml-auto flex items-center gap-1.5 pr-1">
+          <button
+            type="button"
+            onClick={() => setCodeView((v) => !v)}
+            aria-pressed={codeView}
+            title={codeView ? 'Back to the visual editor' : 'Edit the HTML behind this text'}
+            aria-label="Code view"
+            className={`w-8 h-7 flex items-center justify-center rounded transition-colors ${
+              codeView ? 'bg-brand-primary text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="16 18 22 12 16 6" />
+              <polyline points="8 6 2 12 8 18" />
+            </svg>
+          </button>
           <span
             className="w-3 h-3 rounded-sm border border-gray-300 dark:border-gray-600 shrink-0"
             style={{ backgroundColor: accentColour }}
@@ -298,6 +318,11 @@ export function RichTextarea({
       </div>
 
       {/* Editor */}
+      {codeView ? (
+        <div className="border border-gray-300 dark:border-gray-600 rounded-b-md p-2 bg-white dark:bg-gray-800">
+          <LazyCodeEditor label={`${label} code`} value={value} onChange={onChange} placeholder={placeholder} />
+        </div>
+      ) : (
       <div
         ref={editorRef}
         contentEditable
@@ -318,6 +343,7 @@ export function RichTextarea({
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
       />
+      )}
 
       {/* Link dialog */}
       {showLinkDialog && (

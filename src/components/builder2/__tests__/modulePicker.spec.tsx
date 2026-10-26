@@ -21,6 +21,31 @@ describe('ModulePicker', () => {
     expect(within(ctas).getAllByRole('button').length).toBe(2)
   })
 
+  it('offers a filter for All and for each group, with how many modules each holds', () => {
+    setup()
+    const filters = within(screen.getByRole('group', { name: 'Show modules from' })).getAllByRole('button')
+    expect(filters.map((b) => b.textContent)).toEqual(['All 4', 'Content 1', 'Media 1', 'Calls to action 2'])
+    expect(filters[0].getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('shows only the chosen group, and All brings the rest back', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: /^Calls to action/ }))
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Calls to action'])
+    expect(screen.getByRole('button', { name: /^Calls to action/ }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByText('Podcast Module')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^All/ }))
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Content', 'Media', 'Calls to action'])
+  })
+
+  it('a search narrows the filters too, and a group it empties is dropped rather than leaving a blank list', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: /^Media/ }))
+    fireEvent.change(screen.getByPlaceholderText('Search modules…'), { target: { value: 'cta' } })
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Calls to action'])
+    expect(screen.queryByRole('group', { name: 'Show modules from' })).toBeNull()
+  })
+
   it('describes each module in a line', () => {
     setup()
     expect(screen.getByText('One button')).toBeTruthy()

@@ -106,6 +106,7 @@ export function renderBuild(
 ): { html: string; report: RenderReport } {
   const report: RenderReport = { droppedKeys: [], unknownModules: [] }
   const parts: string[] = []
+  const tokens = { ...themeTokensFor(cat, { brandThemes: opts.brandThemes ?? [] }), ...(opts.accent ? { accent: opts.accent } : {}) }
 
   for (const m of build.modules) {
     const original = cat.modules[m.moduleName]
@@ -130,7 +131,7 @@ export function renderBuild(
         if (!known.has(key)) report.droppedKeys.push({ instanceId: m.instanceId, key })
       }
       const regionEls = applyRegions(dom, m.regions, unitOf, { accent: opts.accent })
-      if (m.styles) applyBoxStyles(dom, m.styles, regionEls)
+      if (m.styles) applyBoxStyles(dom, m.styles, regionEls, tokens)
       if (m.disclaimerHtml !== undefined) applyDisclaimer(dom.root, m.disclaimerHtml)
       if (m.footer) applyFooter(dom, m.footer, { parse: opts.parse, footerV1Html: cat.modules['Footer v1'] })
       html = moduleHtml(dom)
@@ -152,6 +153,5 @@ export function renderBuild(
   const html = (opts.previewText !== undefined ? withPreviewText(cat.shell.head, opts.previewText) : cat.shell.head) + parts.join('\n') + cat.shell.tail
   // Code written in Settings (a signature, a sign-off, a disclaimer) can use {{accent}} and the other theme tokens too,
   // and is only added to the email above, so they are filled in for the whole email here. Pardot rejects one left in.
-  const tokens = { ...themeTokensFor(cat, { brandThemes: opts.brandThemes ?? [] }), ...(opts.accent ? { accent: opts.accent } : {}) }
   return { html: rgbToHex(applyThemeTokens(html, tokens)), report }
 }

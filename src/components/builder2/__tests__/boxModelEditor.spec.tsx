@@ -31,6 +31,23 @@ describe('BoxModelEditor', () => {
     expect((screen.getByLabelText('Class') as HTMLInputElement).placeholder).toBe('stack-mobile-none darkmode')
   })
 
+  it('offers the theme\'s primary and tints as the module background, and reports the choice', () => {
+    const { onStyle } = setup({ backgrounds: { primary: '#134848', tint01: '#e8eded', tint02: '#d0dbdb' } })
+    const group = screen.getByRole('radiogroup', { name: 'Background' })
+    expect(Array.from(group.querySelectorAll('input')).map((i) => i.getAttribute('aria-label'))).toEqual(['Design', 'Primary', 'Tint 01', 'Tint 02'])
+    expect((screen.getByRole('radio', { name: 'Design' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Tint 02' }))
+    expect(onStyle).toHaveBeenCalledWith('container', { background: 'tint02' })
+  })
+
+  it('shows the saved background as chosen, counts it as an override, and offers it only for the module container', () => {
+    setup({ backgrounds: { primary: '#134848', tint01: '#e8eded' }, styles: { container: { background: 'primary' } } })
+    expect((screen.getByRole('radio', { name: 'Primary' }) as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('button', { name: 'Reset to design' }) as HTMLButtonElement).disabled).toBe(false)
+    fireEvent.change(screen.getByLabelText('Element'), { target: { value: 'root.0' } })
+    expect(screen.queryByRole('radiogroup', { name: 'Background' })).toBeNull()
+  })
+
   it('reports a padding edit for the selected element', () => {
     const { onStyle } = setup()
     fireEvent.change(screen.getByLabelText('Padding top'), { target: { value: '12' } })

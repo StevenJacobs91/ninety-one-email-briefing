@@ -94,9 +94,9 @@ export function slug(text: string): string {
   return text.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'email'
 }
 
-export function submissionFiles(campaignName: string, isoDate: string): { email: string; summary: string } {
+export function submissionFiles(campaignName: string, isoDate: string): { email: string; text: string; summary: string } {
   const s = slug(campaignName)
-  return { email: `email-${s}-${isoDate}.html`, summary: `brief-summary-${s}-${isoDate}.html` }
+  return { email: `email-${s}-${isoDate}.html`, text: `email-${s}-${isoDate}.txt`, summary: `brief-summary-${s}-${isoDate}.html` }
 }
 
 export function boardLinks(origin: string, briefId: string): { html: string; summary: string } {

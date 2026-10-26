@@ -5,6 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const state = vi.hoisted(() => ({ settings: {} as Record<string, unknown>, updateSettings: vi.fn() }))
 vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: state.settings, updateSettings: state.updateSettings }) }))
 
+// The real editor is CodeMirror, loaded on demand; these tests are about what the form does with the code, so a textarea stands in.
+vi.mock('../../ui/LazyCodeEditor', async () => {
+  const React = await import('react')
+  return {
+    LazyCodeEditor: ({ value, onChange, label, invalid, placeholder }: { value: string; onChange: (v: string) => void; label: string; invalid?: boolean; placeholder?: string }) =>
+      React.createElement('textarea', { 'aria-label': label, 'aria-invalid': invalid || undefined, placeholder, value, onChange: (e: { target: { value: string } }) => onChange(e.target.value) }),
+  }
+})
+
 import { TabModules } from '../TabModules'
 
 const ROW = '<tr><td bgcolor="{{primary}}">Hello</td></tr>'
@@ -41,6 +50,48 @@ describe('Email Modules: module code', () => {
     expect(code()).toBeTruthy()
     expect(screen.getByText(/pardot-region/)).toBeTruthy()
     expect(screen.getByText('{{primary}}')).toBeTruthy()
+  })
+
+  it('asks before removing a module, and only the second click removes it', () => {
+    render(<TabModules />)
+    const row = () => screen.getByText('Promo Banner', { selector: 'p' }).closest('.group') as HTMLElement
+    fireEvent.click(row().querySelector('button[title="Remove"]') as HTMLElement)
+    expect(state.updateSettings).not.toHaveBeenCalled()
+    expect(screen.getByRole('group', { name: 'Remove Promo Banner?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(saved().some((m: { id: string }) => m.id === 'promo')).toBe(false)
+    expect(saved().some((m: { id: string }) => m.id === 'speakers')).toBe(true)
+  })
+
+  it('Cancel leaves the module alone and puts the remove button back', () => {
+    render(<TabModules />)
+    const row = () => screen.getByText('Promo Banner', { selector: 'p' }).closest('.group') as HTMLElement
+    fireEvent.click(row().querySelector('button[title="Remove"]') as HTMLElement)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(state.updateSettings).not.toHaveBeenCalled()
+    expect(screen.queryByRole('group', { name: /Remove Promo Banner/ })).toBeNull()
+    expect(row().querySelector('button[title="Remove"]')).toBeTruthy()
+  })
+
+  it('lets a layout icon be chosen for a new module, and saves it', () => {
+    render(<TabModules />)
+    fillNew(ROW)
+    const group = screen.getByRole('radiogroup', { name: 'Layout icon' })
+    expect(Array.from(group.querySelectorAll('input')).map((i) => i.getAttribute('aria-label')).slice(0, 4)).toEqual(['Auto', 'Text', '2 columns', '3 columns'])
+    expect((screen.getByRole('radio', { name: 'Auto' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Image left' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Module' }))
+    expect(saved().find((m: { id: string }) => m.id === 'new-one').layoutIcon).toBe('imageLeft')
+  })
+
+  it('shows a module\'s saved layout icon when editing, and Auto clears it', () => {
+    state.settings = { ...state.settings, htmlModules: [{ id: 'promo', label: 'Promo Banner', description: '', category: 'Content', enabled: true, html: ROW, layoutIcon: 'quote' }] }
+    render(<TabModules />)
+    fireEvent.click(editButton('Promo Banner'))
+    expect((screen.getByRole('radio', { name: 'Quote' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('radio', { name: 'Auto' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    expect(saved().find((m: { id: string }) => m.id === 'promo').layoutIcon).toBeUndefined()
   })
 
   it('saves the code with a new module', () => {

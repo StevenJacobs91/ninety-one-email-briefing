@@ -15,7 +15,8 @@ import { renderBuild } from '../../lib/moduleEngine/render'
 import { deriveCta } from '../../lib/moduleEngine/derive'
 import { applyGreeting } from '../../lib/moduleEngine/greeting'
 import { signoffSummary } from '../../lib/signoff'
-import { categoryGroup, disabledModuleNames } from '../../lib/customModules'
+import { categoryGroup, customLayoutIcons, disabledModuleNames } from '../../lib/customModules'
+import { describePickerModule } from '../../lib/moduleKinds'
 import type { FooterOptions } from '../../lib/moduleEngine/footer'
 import { defaultDisclaimerFor, disclaimerSource, disclaimerToText } from '../../lib/disclaimer'
 import { bindBrief, buildFromLegacy, headerModuleFor, headerRequiresHero, seedBuild } from '../../lib/moduleEngine/seed'
@@ -66,6 +67,8 @@ export function LibraryBuilder() {
   const themeSettings = settings.brandThemes?.find((t) => t.id === theme)
   // Bold text uses the selected theme's accent: the saved override, else the library colour.
   const accent = themeSettings?.accent ?? getThemeColours(theme).accent
+  // The module background can be the theme's primary or one of its tints: the same colours the email is rendered with.
+  const backgrounds = { primary: themeSettings?.primary ?? getThemeColours(theme).primary, tint01: themeSettings?.tint01, tint02: themeSettings?.tint02, tint03: themeSettings?.tint03 }
   const assets = useMemo(
     () => ({ logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, slimStripeUrl: themeSettings?.slimStripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl }),
     [themeSettings?.logoUrl, themeSettings?.stripeUrl, themeSettings?.slimStripeUrl, themeSettings?.footerLogoUrl],
@@ -86,6 +89,7 @@ export function LibraryBuilder() {
     () => Object.fromEntries((settings.htmlModules ?? []).filter((m) => m.html).map((m) => [m.label, categoryGroup(m.category)])),
     [settings.htmlModules],
   )
+  const customIcons = useMemo(() => customLayoutIcons(settings.htmlModules ?? []), [settings.htmlModules])
   useEffect(() => {
     if (!catalogue) return
     let b = build
@@ -153,6 +157,9 @@ export function LibraryBuilder() {
     const html = catalogue.modules[selected.moduleName]
     return html === undefined ? null : describeModule(selected.moduleName, html, browserParse, selected.repeats)
   }, [catalogue, selected])
+
+  // A module in the People group (speakers, authors, portfolio managers) has photos of people, so its images start in Profiles.
+  const imageCategory = selected && describePickerModule(selected.moduleName, customGroups[selected.moduleName]).group === 'People' ? 'profile' : 'graphics'
 
   if (cat.status === 'loading') return <p className="text-sm text-gray-500">Loading the module library…</p>
   if (cat.status === 'error') {
@@ -253,6 +260,7 @@ export function LibraryBuilder() {
                   <ModulePicker
                     names={pickable}
                     groups={customGroups}
+                    icons={customIcons}
                     onClose={() => setPickerAt(null)}
                     onPick={(name) => pick(name, i)}
                   />
@@ -286,7 +294,7 @@ export function LibraryBuilder() {
           })}
           <div className="mt-2">
             {pickerAt === build.modules.length ? (
-              <ModulePicker names={pickable} groups={customGroups} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
+              <ModulePicker names={pickable} groups={customGroups} icons={customIcons} onClose={() => setPickerAt(null)} onPick={(name) => pick(name, build.modules.length)} />
             ) : (
               <button type="button" onClick={() => setPickerAt(build.modules.length)} className="w-full py-2 text-sm font-medium text-brand-primary dark:text-brand-accent border border-dashed border-brand-primary/40 hover:bg-brand-primary/5">
                 + Add module
@@ -302,6 +310,8 @@ export function LibraryBuilder() {
             headerTypes={settings.headers ?? []}
             headerTypeId={headerTypeId}
             accentColour={accent}
+            backgrounds={backgrounds}
+            imageCategory={imageCategory}
             onRegion={(key, patch) => onRegion(selected, key, patch)}
             onRepeat={(group, count) => commit(setRepeat(build, selected.instanceId, group, count))}
             onImage={(key, patch) => commit(setImage(build, selected.instanceId, key, patch))}

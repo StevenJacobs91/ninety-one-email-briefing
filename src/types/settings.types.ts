@@ -12,6 +12,9 @@ export interface BrandThemeConfig {
   stripeUrl?: string      // Decorative stripe image URL (200×234 px)
   slimStripeUrl?: string  // The slim variant of the stripe, for slim headers
   footerLogoUrl?: string  // Footer logo image URL (120×130 px)
+  anniversaryLogoUrl?: string // The 35-year logo, for {{anniversary}}
+  /** One image per icon type (clock, calendar, location…), for {{iconClock}} and the other icon variables; see themeIcons.ts */
+  iconUrls?: Partial<Record<string, string>>
   /** Default body text colour for this theme — cream on dark backgrounds, charcoal on light */
   defaultTextColour?: '#e8e5ce' | '#424242'
 }
@@ -27,6 +30,8 @@ export interface HtmlModuleConfig {
   description: string
   category: ModuleCategory
   enabled: boolean
+  /** The layout icon shown for the module in the Add module picker (a ModuleKind from moduleKinds.ts); unset keeps the one its name suggests */
+  layoutIcon?: string
   /**
    * The module's HTML (a table row), for modules added in Settings. It joins the builder's library in every theme;
    * {{primary}}, {{accent}} and {{tint01}}-{{tint03}} become that theme's colours. Unset for the built-in library.

@@ -7,7 +7,7 @@ import { useCatalogue } from '../builder2/useCatalogue'
 import type { ThemeCatalogue } from '../../lib/moduleEngine/catalogue'
 import { generateEmailHtml, downloadEmailHtml, copyEmailHtmlToClipboard } from '../../lib/emailGenerator'
 import { generateBriefEmailBody, generateBriefHtml } from '../../lib/generateBriefHtml'
-import { generateTextEmail } from '../../lib/generateTextEmail'
+import { htmlToPlainText } from '../../lib/htmlToPlainText'
 import { buildEmailName } from '../../lib/emailName'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -66,7 +66,8 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
   const data = getValues() as BriefPayload
 
   const html = useMemo(() => generateEmailHtml(data, settings, { catalogue }), [data, settings, catalogue])
-  const textEmail = useMemo(() => generateTextEmail(data), [data])
+  // The plain-text part is the generated email itself as text, not a summary of the brief.
+  const textEmail = useMemo(() => htmlToPlainText(html), [html])
   const emailName = useMemo(
     () => buildEmailName(data.campaign.campaignName, data.audience.region, data.audience.channel, data.campaign.emailDescription),
     [data.campaign.campaignName, data.audience.region, data.audience.channel, data.campaign.emailDescription]
@@ -297,6 +298,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
     const linkedFiles = signedAttachmentLinks(data.assets.attachments ?? []).catch(() => [])
     const allAttachments = async (): Promise<DraftAttachment[]> => [
       { name: names.email, type: 'text/html', base64: textToBase64(html) },
+      { name: names.text, type: 'text/plain', base64: textToBase64(textEmail) },
       { name: names.summary, type: 'text/html', base64: textToBase64(briefHtml) },
       ...(await collected).found,
     ]
@@ -320,7 +322,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         links,
         html,
         briefHtml,
-        textEmail: generateTextEmail(data),
+        textEmail,
         attachments,
         attachmentLinks: await linkedFiles,
       }), settings.notifications)
@@ -342,7 +344,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
         const result = await triggerBriefSubmission(settings.powerAutomate, submitted, {
           html,
           briefHtml,
-          textEmail: generateTextEmail(data),
+          textEmail,
           emailName,
           submittedBy: createdByName,
           draftTo: DRAFT_RECIPIENT,

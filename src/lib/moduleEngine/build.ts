@@ -143,6 +143,7 @@ export function setStyle(b: EmailBuild, instanceId: string, key: string, patch: 
     const next: BoxStyle = {
       ...cur,
       ...(patch.class !== undefined ? { class: patch.class } : {}),
+      ...(patch.background !== undefined ? { background: patch.background } : {}),
       ...(patch.margin ? { margin: { ...cur.margin, ...patch.margin } } : {}),
       ...(patch.padding ? { padding: { ...cur.padding, ...patch.padding } } : {}),
     }

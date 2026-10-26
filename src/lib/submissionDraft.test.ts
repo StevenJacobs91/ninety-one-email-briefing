@@ -64,6 +64,7 @@ test('quotes in a filename cannot break out of the header', () => {
 test('the submission files are named from the campaign and date', () => {
   const f = submissionFiles('Important Information', '2026-10-20')
   assert.equal(f.email, 'email-important-information-2026-10-20.html')
+  assert.equal(f.text, 'email-important-information-2026-10-20.txt', 'the plain-text version sits beside the HTML email')
   assert.equal(f.summary, 'brief-summary-important-information-2026-10-20.html')
 })
 

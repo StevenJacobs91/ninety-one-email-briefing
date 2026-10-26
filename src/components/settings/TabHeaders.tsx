@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { HeaderTypeConfig, HeaderTypeAssets, BrandThemeConfig } from '../../types/settings.types'
 import { validateModuleHtml } from '../../lib/customModules'
+import { LazyCodeEditor } from '../ui/LazyCodeEditor'
 
 // ─── Header diagram previews ─────────────────────────────────
 
@@ -351,13 +352,12 @@ function HeaderTypeCard({
               {' '}<code>{'{{footerLogo}}'}</code>, <code>{'{{anniversary}}'}</code> for the badge above, <code>{'{{heroImage}}'}</code> where the email&rsquo;s own background image goes (it adds the image picker to Layout &amp; Content), and <code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code>,
               {' '}<code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for its colours. Leave it empty to keep the library&rsquo;s header.
             </p>
-            <textarea
+            <LazyCodeEditor
+              label="Header code"
               value={headerType.htmlSnippet}
-              onChange={(e) => onChange({ ...headerType, htmlSnippet: e.target.value })}
-              rows={10}
+              onChange={(v) => onChange({ ...headerType, htmlSnippet: v })}
+              invalid={!!headerType.htmlSnippet.trim() && !!validateModuleHtml(headerType.htmlSnippet)}
               placeholder={'<!-- Paste the HTML snippet for this header type here -->\n<table>\n  ...\n</table>'}
-              spellCheck={false}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-950 dark:bg-gray-950 px-3 py-2.5 text-xs text-green-400 font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:border-brand-primary resize-y"
             />
             {headerType.htmlSnippet.trim() && (() => {
               const problem = validateModuleHtml(headerType.htmlSnippet)

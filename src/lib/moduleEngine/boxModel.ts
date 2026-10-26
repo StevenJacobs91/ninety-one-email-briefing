@@ -11,7 +11,14 @@ export interface BoxStyle {
   margin?: Sides
   padding?: Sides
   class?: string
+  /** One of the theme's colours for the element's background. Saved as the token so a theme switch follows it; '' is the design's own. */
+  background?: BackgroundChoice | ''
 }
+
+export const BACKGROUND_CHOICES = ['primary', 'tint01', 'tint02', 'tint03'] as const
+export type BackgroundChoice = typeof BACKGROUND_CHOICES[number]
+/** The theme's colours behind the choices; a tint a theme does not define is missing. */
+export type BackgroundColours = Partial<Record<BackgroundChoice, string>>
 
 export interface BoxRead {
   margin: SideValues
@@ -80,12 +87,18 @@ function writeSides(decls: Declaration[], prop: 'margin' | 'padding', current: S
   return [...rest, [prop, full]]
 }
 
-export function applyBox(el: Element, style: BoxStyle): void {
+export function applyBox(el: Element, style: BoxStyle, colours: BackgroundColours = {}): void {
   const read = readBox(el)
   let decls = parseStyle(el.getAttribute('style'))
   decls = writeSides(decls, 'margin', read.margin, style.margin)
   decls = writeSides(decls, 'padding', read.padding, style.padding)
-  if (style.margin || style.padding) {
+  const background = style.background ? colours[style.background] : undefined
+  if (background) {
+    // The design sets its colour as bgcolor and as a style; both change, so no client keeps the old one.
+    decls = [...decls.filter(([p]) => p !== 'background' && p !== 'background-color'), ['background-color', background]]
+    el.setAttribute('bgcolor', background)
+  }
+  if (style.margin || style.padding || background) {
     if (decls.length) el.setAttribute('style', serializeStyle(decls))
     else el.removeAttribute('style')
   }
@@ -110,9 +123,9 @@ export function allowsMargin(el: Element): boolean {
 }
 
 /** Applies saved overrides. Keys with no matching element are ignored. */
-export function applyBoxStyles(dom: ModuleDom, styles: Record<string, BoxStyle>, regionEls: Map<string, Element[]>): void {
+export function applyBoxStyles(dom: ModuleDom, styles: Record<string, BoxStyle>, regionEls: Map<string, Element[]>, colours: BackgroundColours = {}): void {
   for (const [key, style] of Object.entries(styles)) {
     const targets = key === 'container' ? [moduleContainer(dom)].filter((e): e is Element => !!e) : regionEls.get(key) ?? []
-    for (const el of targets) applyBox(el, style)
+    for (const el of targets) applyBox(el, style, colours)
   }
 }

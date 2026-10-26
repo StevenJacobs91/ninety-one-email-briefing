@@ -1,10 +1,11 @@
 import type { AppSettings, HtmlModuleConfig, ModuleCategory } from '../types/settings.types'
 import { getThemeColours } from './themeColours'
 import { rgbToHex } from './hexColours'
+import { ANNIVERSARY_FIND, libraryImage, THEME_ICONS, type ThemeIconToken } from './themeIcons'
 import type { ThemeCatalogue } from './moduleEngine/catalogue'
-import type { PickerGroup } from './moduleKinds'
+import { isLayoutIcon, type ModuleKind, type PickerGroup } from './moduleKinds'
 
-export interface ThemeColours {
+export interface ThemeColours extends Partial<Record<ThemeIconToken, string>> {
   primary: string
   accent: string
   tint01?: string
@@ -21,7 +22,10 @@ export interface ThemeColours {
   heroImage?: string
 }
 
-export const THEME_TOKENS = ['primary', 'accent', 'tint01', 'tint02', 'tint03', 'logo', 'stripe', 'slimStripe', 'footerLogo', 'anniversary', 'heroImage'] as const
+export const THEME_TOKENS: readonly (keyof ThemeColours)[] = [
+  'primary', 'accent', 'tint01', 'tint02', 'tint03', 'logo', 'stripe', 'slimStripe', 'footerLogo', 'anniversary', 'heroImage',
+  ...THEME_ICONS.map((i) => i.token),
+]
 
 /** The builder swaps this for the header image chosen on the email (the same way it replaces any placeholder image). */
 export const HERO_PLACEHOLDER = 'https://placehold.co/640x270/221b3b/e8e5ce.jpg?text=Background+image+640x270'
@@ -76,6 +80,11 @@ const GROUP: Record<ModuleCategory, PickerGroup> = {
   Articles: 'Articles', Media: 'Media', Navigation: 'Navigation', Footers: 'Other',
 }
 
+/** The layout icon chosen in Settings for each module, by name. */
+export function customLayoutIcons(modules: readonly HtmlModuleConfig[]): Record<string, ModuleKind> {
+  return Object.fromEntries(modules.filter((m) => isLayoutIcon(m.layoutIcon)).map((m) => [m.label, m.layoutIcon as ModuleKind]))
+}
+
 /** The picker group a custom module's category belongs to. */
 export function categoryGroup(category: ModuleCategory): PickerGroup {
   return GROUP[category]
@@ -110,6 +119,9 @@ export function themeTokensFor(
     stripe: theme?.stripeUrl || own.stripe || found('stripe'),
     slimStripe: theme?.slimStripeUrl || own.slimStripe || found('slimStripe'),
     footerLogo: theme?.footerLogoUrl || undefined,
+    // The 35-year logo and each icon: set in Brand Themes, else the one the theme's own library modules use.
+    anniversary: theme?.anniversaryLogoUrl || libraryImage(library, ANNIVERSARY_FIND),
+    ...Object.fromEntries(THEME_ICONS.map((i) => [i.token, theme?.iconUrls?.[i.key] || libraryImage(library, i.find)])),
   }
 }
 
