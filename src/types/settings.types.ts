@@ -57,6 +57,15 @@ export interface FormFieldConfig {
   order: number
 }
 
+export interface BriefLayoutConfig {
+  sectionOrder: string[]
+  requiredFields: Record<string, boolean>
+  /** The order of each section's fields, by section id; a section with none saved keeps the built-in order */
+  fieldOrder?: Record<string, string[]>
+  /** Fields switched off: not shown on the form, and never asked for */
+  hiddenFields?: string[]
+}
+
 export interface FormStepConfig {
   id: string
   label: string
@@ -99,6 +108,10 @@ export interface BrandGuardianConfig {
 }
 
 export interface SenderDefaults {
+  /** Who new briefs are sent as; general when not set */
+  senderType?: 'general' | 'specific' | 'assigned'
+  /** The Pardot user ID a specific-user send starts with */
+  specificUser?: string
   fromName: string
   fromAddress: string
   replyToEmail: string
@@ -258,6 +271,8 @@ export interface CampaignEntry {
    * Numeric ID extracted from the campaign URL, e.g. "12345".
    */
   pardotCampaignId?: string
+  /** The UTM campaign value new briefs for this campaign start with; unset uses the campaign name. */
+  utmCampaign?: string
 }
 
 // ─── Greetings / Salutations ────────────────────────────────
@@ -469,6 +484,8 @@ export interface AppSettings {
   moduleCategories?: ModuleCategoryConfig[]
   formSteps: FormStepConfig[]
   formFields: FormFieldConfig[]
+  /** How the brief is laid out on Brief & Build: the order of its sections, and which fields are required (by field path) */
+  briefLayout?: BriefLayoutConfig
   brandGuardian: BrandGuardianConfig
   senderDefaults: SenderDefaults
   formDefaults: FormDefaults

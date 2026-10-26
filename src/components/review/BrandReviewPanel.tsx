@@ -11,7 +11,8 @@ const SEVERITY_ORDER = { error: 0, warning: 1, pass: 2 } as const
 
 interface Props {
   state: BrandReviewState
-  onGoToTab: (tab: BriefTabId) => void
+  /** Goes to a tab, and, when the item is about one field, to that field */
+  onGoToTab: (tab: BriefTabId, field?: string) => void
 }
 
 export function BrandReviewPanel({ state, onGoToTab }: Props) {
@@ -92,7 +93,7 @@ export function BrandReviewPanel({ state, onGoToTab }: Props) {
   )
 }
 
-function FeedbackRow({ item, onGoToTab }: { item: BrandFeedbackItem; onGoToTab: (tab: BriefTabId) => void }) {
+function FeedbackRow({ item, onGoToTab }: { item: BrandFeedbackItem; onGoToTab: (tab: BriefTabId, field?: string) => void }) {
   const tab = fieldToTab(item.field)
   const tone = item.severity === 'error' ? 'text-red-600' : item.severity === 'warning' ? 'text-amber-600' : 'text-green-600'
   const symbol = item.severity === 'error' ? '✗' : item.severity === 'warning' ? '!' : '✓'
@@ -101,7 +102,7 @@ function FeedbackRow({ item, onGoToTab }: { item: BrandFeedbackItem; onGoToTab: 
       <span className={`font-bold w-3 shrink-0 ${tone}`} aria-hidden="true">{symbol}</span>
       <span className="min-w-0 flex-1 text-brand-text-body dark:text-gray-300 leading-snug">{item.message}</span>
       {item.severity !== 'pass' && tab && (
-        <button type="button" onClick={() => onGoToTab(tab)}
+        <button type="button" onClick={() => onGoToTab(tab, item.field)}
           className="shrink-0 text-brand-primary dark:text-brand-accent hover:underline whitespace-nowrap">
           {TAB_LABEL[tab]}
         </button>

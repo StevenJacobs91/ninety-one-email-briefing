@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { BriefFormData } from '../../lib/schema'
+import { senderLine } from '../../lib/senderSummary'
 import { EMAIL_TYPE_LABELS, BRAND_THEMES } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
 
@@ -30,7 +31,7 @@ export function PrintBrief({ data }: PrintBriefProps) {
         <div>
           <h3>Subject Line</h3><p>${data.campaign.subjectLine || '—'}</p>
           <h3>Preview Text</h3><p>${data.campaign.previewText || '—'}</p>
-          <h3>From</h3><p>${data.campaign.fromName} &lt;${data.campaign.fromAddress}&gt;</p>
+          <h3>From</h3><p>${senderLine(data.campaign).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
         </div>
       </div>
 

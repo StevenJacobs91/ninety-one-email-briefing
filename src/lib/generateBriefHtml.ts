@@ -2,6 +2,7 @@ import type { BriefPayload } from '../types/brief.types'
 import { BRAND_THEMES, EMAIL_TYPE_LABELS, EMAIL_MODULES } from './constants'
 import type { EmailType } from './constants'
 import { buildEmailName } from './emailName'
+import { senderRows } from './senderSummary'
 
 function formatDate(iso: string): string {
   if (!iso) return '—'
@@ -105,8 +106,7 @@ export function generateBriefHtml(brief: BriefPayload): string {
           </tr>
           ${row('Subject Line', brief.campaign.subjectLine)}
           ${row('Preview Text', brief.campaign.previewText)}
-          ${row('From Name', brief.campaign.fromName)}
-          ${row('From Address', brief.campaign.fromAddress)}
+          ${senderRows(brief.campaign).map(([label, value]) => row(label, value)).join('')}
           ${brief.campaign.replyToEmail ? row('Reply-To', brief.campaign.replyToEmail) : ''}
         </table>
       </div>

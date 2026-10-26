@@ -3,6 +3,8 @@ export type KanbanColumn = 'briefed' | 'in-progress' | 'distributed'
 export interface KanbanColumnHistory {
   column: KanbanColumn
   at: string
+  /** Set when an admin distributed it without the approval the team requires */
+  override?: boolean
 }
 
 export interface CampaignComment {

@@ -28,7 +28,7 @@ export function TabCampaignInsights() {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Campaign Insights</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Shows a sidebar summary and slide-over panel on the Campaign step, displaying engagement metrics and recommendations from previous sends.
+            Adds a Campaign insights button to Brief & Build that opens a slide-over panel, displaying engagement metrics and recommendations from previous sends.
           </p>
         </div>
         <button

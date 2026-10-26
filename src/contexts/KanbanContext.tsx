@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { KanbanCard, KanbanColumn, CampaignComment, ManualCardInput } from '../types/kanban.types'
 import type { BriefFormData } from '../lib/schema'
@@ -6,6 +6,10 @@ import { useAuth } from './AuthContext'
 import { useSettings } from './SettingsContext'
 import { writeAuditLog } from '../lib/auditLog'
 import { triggerNotification } from '../lib/notificationService'
+import { distributeWithOverride } from '../lib/approvalsService'
+import { parseDistributionBlock, type DistributionBlockCode } from '../lib/approvalRouting'
+import { overrideNotification } from '../lib/approvalNotifications'
+import { DistributionBlockedDialog } from '../components/board/DistributionBlockedDialog'
 import {
   fetchKanbanCards,
   insertKanbanCard,
@@ -34,6 +38,11 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   const teamId = profile?.teamId
   const [cards, setCards] = useState<KanbanCard[]>([])
   const [loading, setLoading] = useState(true)
+  // Always the latest cards, so a move reads the card as it is now rather than as it was when the callback was made
+  const cardsRef = useRef<KanbanCard[]>([])
+  cardsRef.current = cards
+  // A move to Distributed the database refused, waiting for the person to read why (and for an admin to override)
+  const [blocked, setBlocked] = useState<{ cardId: string; code: DistributionBlockCode } | null>(null)
 
   const auditCtx = teamId && user && profile ? {
     teamId,
@@ -103,47 +112,87 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     })
   }, [teamId])
 
-  const moveCard = useCallback((id: string, column: KanbanColumn) => {
-    const now = new Date().toISOString()
-    setCards((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c
-        const fromCol = c.column
-        const updated = { ...c, column, columnHistory: [...c.columnHistory, { column, at: now }] }
-
-        // Async persist
-        updateKanbanCard(id, { column: updated.column, columnHistory: updated.columnHistory }).catch(
-          (err) => console.error('Failed to move kanban card:', err)
-        )
-
-        // Audit
-        if (auditCtx) {
-          writeAuditLog(auditCtx, settings.audit, {
-            action: `Moved card from ${fromCol} to ${column}`,
-            category: 'kanban',
-            entityType: 'kanban_card',
-            entityId: id,
-            details: { emailName: c.emailName, from: fromCol, to: column },
-          })
-        }
-
-        // Notification
-        if (settings.notifications) {
-          triggerNotification('kanban_moved', {
-            emailName: c.emailName,
-            briefId: c.briefId,
-            fromColumn: fromCol,
-            toColumn: column,
-            movedBy: profile?.displayName ?? '',
-            sendDate: c.sendDate ?? '',
-            urgency: c.urgency,
-          }, settings.notifications).catch(console.error)
-        }
-
-        return updated
+  /** The audit entry and the "moved" notification, once a move has gone through. */
+  const announceMove = useCallback((card: KanbanCard, column: KanbanColumn) => {
+    if (auditCtx) {
+      writeAuditLog(auditCtx, settings.audit, {
+        action: `Moved card from ${card.column} to ${column}`,
+        category: 'kanban',
+        entityType: 'kanban_card',
+        entityId: card.id,
+        details: { emailName: card.emailName, from: card.column, to: column },
       })
-    )
+    }
+    if (settings.notifications) {
+      triggerNotification('kanban_moved', {
+        emailName: card.emailName,
+        briefId: card.briefId,
+        fromColumn: card.column,
+        toColumn: column,
+        movedBy: profile?.displayName ?? '',
+        sendDate: card.sendDate ?? '',
+        urgency: card.urgency,
+      }, settings.notifications).catch(console.error)
+    }
   }, [auditCtx, settings.audit, settings.notifications, profile])
+
+  const moveCard = useCallback((id: string, column: KanbanColumn) => {
+    const card = cardsRef.current.find((c) => c.id === id)
+    if (!card) return
+    const updated: KanbanCard = { ...card, column, columnHistory: [...card.columnHistory, { column, at: new Date().toISOString() }] }
+
+    // Shown straight away, then put back if the database refuses (a card needing approval cannot be distributed without it).
+    setCards((prev) => prev.map((c) => (c.id === id ? updated : c)))
+
+    updateKanbanCard(id, { column: updated.column, columnHistory: updated.columnHistory })
+      .then(() => { if (column === 'distributed') announceMove(card, column) })
+      .catch((err: unknown) => {
+        const code = parseDistributionBlock(err instanceof Error ? err.message : String(err))
+        if (code) {
+          setCards((prev) => prev.map((c) => (c.id === id ? card : c)))
+          setBlocked({ cardId: id, code })
+          return
+        }
+        console.error('Failed to move kanban card:', err)
+      })
+
+    if (column !== 'distributed') announceMove(card, column)
+  }, [announceMove])
+
+  /** An admin distributes a blocked card anyway. The database records the reason; the card and the team are updated here. */
+  const overrideBlocked = useCallback(async (reason: string) => {
+    if (!blocked) return
+    const card = cardsRef.current.find((c) => c.id === blocked.cardId)
+    if (!card) { setBlocked(null); return }
+
+    await distributeWithOverride({ cardId: card.id, reason })
+
+    const at = new Date().toISOString()
+    setCards((prev) => prev.map((c) => (c.id === card.id
+      ? { ...c, column: 'distributed', columnHistory: [...c.columnHistory, { column: 'distributed', at, override: true }] }
+      : c)))
+    announceMove(card, 'distributed')
+    if (auditCtx) {
+      writeAuditLog(auditCtx, settings.audit, {
+        action: 'Distributed without the required approval',
+        category: 'kanban',
+        entityType: 'kanban_card',
+        entityId: card.id,
+        details: { emailName: card.emailName, reason, blockedFor: blocked.code },
+      })
+    }
+    if (settings.notifications) {
+      const { eventType, data } = overrideNotification({
+        emailName: card.emailName,
+        briefId: card.briefId,
+        overriddenBy: profile?.displayName ?? '',
+        reason,
+        requester: card.submittedByEmail ? { name: card.submittedByName ?? '', email: card.submittedByEmail } : undefined,
+      })
+      triggerNotification(eventType, data, settings.notifications).catch(console.error)
+    }
+    setBlocked(null)
+  }, [blocked, announceMove, auditCtx, settings.audit, settings.notifications, profile])
 
   const addManualCard = useCallback((data: ManualCardInput) => {
     if (!teamId) return
@@ -239,6 +288,18 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   return (
     <KanbanContext.Provider value={{ cards, loading, addCard, addManualCard, moveCard, updateCardNotes, updateCardMeta, addComment, removeCard, getColumnCards }}>
       {children}
+      {blocked && (() => {
+        const card = cards.find((c) => c.id === blocked.cardId)
+        return card ? (
+          <DistributionBlockedDialog
+            emailName={card.emailName}
+            code={blocked.code}
+            canOverride={profile?.role === 'admin'}
+            onClose={() => setBlocked(null)}
+            onOverride={overrideBlocked}
+          />
+        ) : null
+      })()}
     </KanbanContext.Provider>
   )
 }

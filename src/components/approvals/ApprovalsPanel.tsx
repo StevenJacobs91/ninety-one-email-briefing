@@ -4,8 +4,12 @@ import { useApprovals } from '../../contexts/ApprovalsContext'
 import { ApprovalStatusBadge } from './ApprovalStatusBadge'
 import { ApprovalDecisionDrawer } from './ApprovalDecisionDrawer'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSettings } from '../../contexts/SettingsContext'
+import { canManageApprovals } from '../../lib/approvalRouting'
 
-type PanelTab = 'pending' | 'all' | 'mine'
+// What each person sees: what is waiting on them, what they submitted, what they decided; and, for those who manage
+// approvals, everything.
+type PanelTab = 'awaiting' | 'mine' | 'decided' | 'all'
 
 const ROLE_LABEL: Record<string, string> = {
   brand_guardian: 'Brand Guardian',
@@ -83,9 +87,11 @@ interface ApprovalsPanelProps {
 }
 
 export function ApprovalsPanel({ isOpen, onClose }: ApprovalsPanelProps) {
-  const { approvals, pendingCount, loading, error, refreshApprovals } = useApprovals()
+  const { approvals, awaitingMine: awaiting, mySubmissions: submitted, decidedByMe: decided, pendingCount, loading, error, refreshApprovals } = useApprovals()
   const { profile } = useAuth()
-  const [activeTab, setActiveTab] = useState<PanelTab>('pending')
+  const { settings } = useSettings()
+  const manage = canManageApprovals(profile?.role, settings.rolePermissions)
+  const [activeTab, setActiveTab] = useState<PanelTab>('awaiting')
   const [selectedApproval, setSelectedApproval] = useState<ApprovalRecord | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -101,21 +107,26 @@ export function ApprovalsPanel({ isOpen, onClose }: ApprovalsPanelProps) {
 
   if (!isOpen) return null
 
-  const pending = approvals.filter((a) => a.status === 'pending')
-  const mine = approvals.filter(
-    (a) => a.decidedBy === profile?.id || a.requestedBy === profile?.id
-  )
-
   const tabItems: { id: PanelTab; label: string; count?: number }[] = [
-    { id: 'pending', label: 'Pending', count: pending.length },
-    { id: 'all', label: 'All', count: approvals.length },
-    { id: 'mine', label: 'My Activity', count: mine.length },
+    { id: 'awaiting', label: 'Needs my decision', count: awaiting.length },
+    { id: 'mine', label: 'My submissions', count: submitted.length },
+    { id: 'decided', label: 'Decided by me', count: decided.length },
+    ...(manage ? [{ id: 'all' as const, label: 'All', count: approvals.length }] : []),
   ]
 
+  const shown: PanelTab = tabItems.some((t) => t.id === activeTab) ? activeTab : 'awaiting'
   const displayed =
-    activeTab === 'pending' ? pending :
-    activeTab === 'mine' ? mine :
+    shown === 'awaiting' ? awaiting :
+    shown === 'mine' ? submitted :
+    shown === 'decided' ? decided :
     approvals
+
+  const EMPTY: Record<PanelTab, { title: string; hint: string }> = {
+    awaiting: { title: 'Nothing waiting for you', hint: 'Briefs that need your decision will appear here.' },
+    mine: { title: 'You have not submitted anything', hint: 'Submit a brief for approval from its card on the board.' },
+    decided: { title: 'You have not decided anything yet', hint: 'Approvals you decide will be listed here.' },
+    all: { title: 'No approvals yet', hint: 'Approvals will appear here once briefs are submitted.' },
+  }
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -200,8 +211,9 @@ export function ApprovalsPanel({ isOpen, onClose }: ApprovalsPanelProps) {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
+              aria-pressed={shown === tab.id}
               className={`flex-1 text-xs font-medium py-3 px-2 border-b-2 transition-colors ${
-                activeTab === tab.id
+                shown === tab.id
                   ? 'border-brand-primary text-brand-primary dark:border-brand-accent dark:text-brand-accent'
                   : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
@@ -240,10 +252,10 @@ export function ApprovalsPanel({ isOpen, onClose }: ApprovalsPanelProps) {
                 </svg>
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {activeTab === 'pending' ? 'No pending approvals' : 'No approvals found'}
+                {EMPTY[shown].title}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                {activeTab === 'pending' ? 'All clear — nothing waiting for review.' : 'Approvals will appear here once briefs are submitted.'}
+                {EMPTY[shown].hint}
               </p>
             </div>
           ) : (
@@ -253,7 +265,7 @@ export function ApprovalsPanel({ isOpen, onClose }: ApprovalsPanelProps) {
                   key={approval.id}
                   approval={approval}
                   onReview={setSelectedApproval}
-                  showActions={activeTab === 'pending'}
+                  showActions={shown === 'awaiting'}
                 />
               ))}
             </div>

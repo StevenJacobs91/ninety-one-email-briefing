@@ -1,16 +1,20 @@
 import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { briefResolver } from '../lib/briefResolver'
+import { defaultRequiredMap, type RequiredMap } from '../lib/briefRequirements'
 import { v4 as uuidv4 } from 'uuid'
-import { briefSchema, type BriefFormData } from '../lib/schema'
+import type { BriefFormData } from '../lib/schema'
 import { getStepFields } from '../lib/validateStep'
 import { downloadBriefJson, copyBriefToClipboard } from '../lib/exportBrief'
 import { saveBrief } from '../lib/supabaseQueries'
 import type { BriefPayload } from '../types/brief.types'
+import type { SenderType } from '../lib/constants'
 
-const DEFAULT_TOTAL_STEPS = 3
+const DEFAULT_TOTAL_STEPS = 2
 
 interface BriefFormDefaults {
+  senderType?: SenderType
+  specificUser?: string
   fromName?: string
   fromAddress?: string
   replyToEmail?: string
@@ -35,6 +39,8 @@ function createDefaultValues(defaults?: BriefFormDefaults): BriefFormData {
       theme: (defaults?.theme ?? 'leatherback-coral') as BriefFormData['campaign']['theme'],
       subjectLine: '',
       previewText: '',
+      senderType: defaults?.senderType ?? 'general',
+      specificUser: defaults?.specificUser ?? '',
       fromName: defaults?.fromName ?? 'Ninety One',
       fromAddress: defaults?.fromAddress ?? '',
       replyToEmail: defaults?.replyToEmail ?? '',
@@ -92,12 +98,16 @@ export function useBriefForm(
   supabaseCtx?: SupabaseContext,
   totalBriefSteps = DEFAULT_TOTAL_STEPS,
   onSubmitSuccess?: (payload: BriefPayload) => void,
+  /** The team's required/optional choices for the brief's fields, read when the form is checked */
+  getRequired?: () => RequiredMap,
+  /** The fields switched off in Settings, which the form does not ask for */
+  getHidden?: () => ReadonlySet<string>,
 ) {
   const [currentStep, setCurrentStep] = useState(0)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   const form = useForm<BriefFormData>({
-    resolver: zodResolver(briefSchema),
+    resolver: briefResolver(() => getRequired?.() ?? defaultRequiredMap(), getHidden),
     defaultValues: createDefaultValues(defaults),
     mode: 'onTouched',
   })

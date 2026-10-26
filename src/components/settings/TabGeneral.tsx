@@ -1,6 +1,6 @@
 import { useSettings } from '../../contexts/SettingsContext'
-import { EMAIL_TYPES, EMAIL_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/constants'
-import type { EmailType } from '../../lib/constants'
+import { EMAIL_TYPES, EMAIL_TYPE_LABELS, SENDER_TYPES, SENDER_TYPE_LABELS, URGENCY_OPTIONS } from '../../lib/constants'
+import type { EmailType, SenderType } from '../../lib/constants'
 import { VISIBILITY_OPTIONS, isShown } from '../../lib/uiVisibility'
 import { DEFAULT_SPAM_TERMS, SpamWordListEditor } from '../../features/subject-line-tester'
 import { EmailEditorSetting } from './EmailEditorSetting'
@@ -10,6 +10,7 @@ import { Switch } from '../ui/Switch'
 export function TabGeneral() {
   const { settings, updateSettings, resetSettings } = useSettings()
   const { senderDefaults, formDefaults } = settings
+  const senderType: SenderType = senderDefaults.senderType ?? 'general'
 
   return (
     <div className="space-y-8">
@@ -22,25 +23,58 @@ export function TabGeneral() {
         </p>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From Name</label>
-            <input
-              type="text"
-              value={senderDefaults.fromName}
-              onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromName: e.target.value } })}
-              placeholder="Ninety One"
+            <label htmlFor="default-sender-type" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Default Sender</label>
+            <select
+              id="default-sender-type"
+              value={senderType}
+              onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, senderType: e.target.value as SenderType } })}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-            />
+            >
+              {SENDER_TYPES.map((type) => (
+                <option key={type} value={type}>{SENDER_TYPE_LABELS[type]}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Who new briefs are sent as in Pardot. A brief can choose another in its Sender Details.</p>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From Address</label>
-            <input
-              type="email"
-              value={senderDefaults.fromAddress}
-              onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromAddress: e.target.value } })}
-              placeholder="noreply@ninetyone.com"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
-            />
-          </div>
+          {senderType === 'general' && (
+            <>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From Name</label>
+              <input
+                type="text"
+                value={senderDefaults.fromName}
+                onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromName: e.target.value } })}
+                placeholder="Ninety One"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From Address</label>
+              <input
+                type="email"
+                value={senderDefaults.fromAddress}
+                onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, fromAddress: e.target.value } })}
+                placeholder="noreply@ninetyone.com"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+              />
+            </div>
+            </>
+          )}
+          {senderType === 'specific' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Specific User</label>
+              <input
+                type="text"
+                value={senderDefaults.specificUser ?? ''}
+                onChange={(e) => updateSettings({ senderDefaults: { ...senderDefaults, specificUser: e.target.value } })}
+                placeholder="Pardot user ID, e.g. 12345"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+              />
+            </div>
+          )}
+          {senderType === 'assigned' && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">Each recipient gets the email from their own assigned Pardot user, so there is no from name or address to set.</p>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Reply-To Email</label>
             <input
@@ -121,10 +155,10 @@ export function TabGeneral() {
 
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Show Tags section in Campaign tab</p>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Show Tags section in Brief & Build</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Tags are always collected — this controls visibility only</p>
             </div>
-            <Switch checked={formDefaults.showTagsSection ?? true} label="Show Tags section in Campaign tab" onChange={(on) => updateSettings({ formDefaults: { ...formDefaults, showTagsSection: on } })} />
+            <Switch checked={formDefaults.showTagsSection ?? true} label="Show Tags section in Brief & Build" onChange={(on) => updateSettings({ formDefaults: { ...formDefaults, showTagsSection: on } })} />
           </div>
         </div>
       </section>

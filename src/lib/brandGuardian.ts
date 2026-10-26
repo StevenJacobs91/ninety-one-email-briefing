@@ -163,9 +163,12 @@ export function runBrandGuardianReview(brief: BriefPayload, opts?: BrandGuardian
 
   // ─── BRAND VOICE & MESSAGING ────────────────────────────────────
 
-  // 7. From name consistency
+  // 7. From name consistency. An email sent as a Pardot user (specific or assigned) has no from name of its own.
+  const sentAsGeneralUser = (brief.campaign.senderType ?? 'general') === 'general'
   const fromName = brief.campaign.fromName
-  if (fromName === 'Ninety One' || fromName.toLowerCase().includes('ninety one')) {
+  if (!sentAsGeneralUser) {
+    // Nothing to check
+  } else if (fromName === 'Ninety One' || fromName.toLowerCase().includes('ninety one')) {
     items.push({
       field: 'campaign.fromName',
       category: 'Brand Voice',
@@ -577,7 +580,7 @@ export function runBrandGuardianReview(brief: BriefPayload, opts?: BrandGuardian
   // ─── BRAND PROTECTION & CONSISTENCY ─────────────────────────────
 
   // 30. From address domain check
-  const fromAddress = brief.campaign.fromAddress
+  const fromAddress = sentAsGeneralUser ? brief.campaign.fromAddress : ''
   if (fromAddress && fromAddress.endsWith('@ninetyone.com')) {
     items.push({
       field: 'campaign.fromAddress',

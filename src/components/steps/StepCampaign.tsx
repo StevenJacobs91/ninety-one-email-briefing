@@ -5,10 +5,15 @@ import {
   EMAIL_TYPES, EMAIL_TYPE_LABELS, CLIENT_GROUPS, CHANNELS,
   CLIENT_GROUP_REGIONS,
 } from '../../lib/constants'
-import type { EmailType, ClientGroup, Region, Channel } from '../../lib/constants'
+import { SENDER_TYPES, SENDER_TYPE_LABELS, type EmailType, type ClientGroup, type Region, type Channel, type SenderType } from '../../lib/constants'
 import { FieldText } from '../ui/FieldText'
+import { ThemeSelect } from '../ui/ThemeSelect'
+import { campaignUtm, slugifyUtm } from '../../lib/utm'
 import { FieldTextarea } from '../ui/FieldTextarea'
-import { SubSection } from '../ui/SubSection'
+import { BriefSection } from '../brief/BriefSection'
+import { FieldSlot } from '../brief/FieldSlot'
+import { useBriefAttention } from '../brief/BriefAttention'
+import { defaultRequiredMap } from '../../lib/briefRequirements'
 import { SupportingMaterial } from './SupportingMaterial'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -27,14 +32,32 @@ function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
   return [...builtIn, ...extras]
 }
 
+const DEFAULT_REQUIRED = defaultRequiredMap()
+
+/** The red asterisk, and its screen-reader text, for a field that is required. */
+function RequiredMark({ on }: { on: boolean }) {
+  if (!on) return null
+  return <><span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span></>
+}
+
+const SELECT_CLASS = 'w-full border px-3 py-3 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 border-brand-border-field dark:border-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary dark:focus-visible:ring-brand-accent focus:border-brand-primary dark:focus:border-brand-accent transition-colors'
+
 // ─── Main StepCampaign ─────────────────────────────────────────────────────────
+/** What the campaign presets put in the from name when the email is sent as the prospect's own Pardot user. */
+const ASSIGNED_USER_PRESET = "Prospect's Assigned User"
+
 export function StepCampaign() {
+  // Whether each field is required is set in Settings → Form Layout.
+  const attention = useBriefAttention()
+  const isRequired = (path: string) => !!(attention?.required ?? DEFAULT_REQUIRED)[path]
   const { register, watch, formState: { errors }, setValue, getValues } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
   const { profile } = useAuth()
 
   // ── Campaign fields ──
   const emailDescription = watch('campaign.emailDescription') ?? ''
+  const senderDefaults = settings.senderDefaults
+  const senderType = (watch('campaign.senderType') ?? 'general') as SenderType
   const subjectLine = watch('campaign.subjectLine') ?? ''
   const previewText = watch('campaign.previewText') ?? ''
   const selectedTheme = watch('campaign.theme')
@@ -112,8 +135,17 @@ export function StepCampaign() {
     setValue('campaign.campaignName', campaignName, { shouldValidate: true })
     const campaign = allCampaigns.find((c) => c.name === campaignName)
 
+    // The UTM starts as the one set for the campaign in Settings, else its name; it can still be changed.
+    setValue('campaign.utmCampaign', campaign ? campaignUtm(campaign) : slugifyUtm(campaignName), { shouldDirty: true })
+
     if (campaign?.senderPreset) {
-      if (campaign.senderPreset.fromName) setValue('campaign.fromName', campaign.senderPreset.fromName, { shouldValidate: false })
+      // A preset that sends as the prospect's own user is an assigned-user send, which has no from name or address of its own.
+      const assigned = campaign.senderPreset.fromName === ASSIGNED_USER_PRESET
+      setValue('campaign.senderType', assigned ? 'assigned' : 'general', { shouldValidate: true })
+      if (assigned) {
+        setValue('campaign.fromName', senderDefaults.fromName, { shouldValidate: false })
+        setValue('campaign.fromAddress', senderDefaults.fromAddress, { shouldValidate: false })
+      } else if (campaign.senderPreset.fromName) setValue('campaign.fromName', campaign.senderPreset.fromName, { shouldValidate: false })
       if (campaign.senderPreset.fromAddress) setValue('campaign.fromAddress', campaign.senderPreset.fromAddress, { shouldValidate: false })
       if (campaign.senderPreset.replyToEmail !== undefined) setValue('campaign.replyToEmail', campaign.senderPreset.replyToEmail, { shouldValidate: false })
     }
@@ -210,31 +242,9 @@ export function StepCampaign() {
     }
   }
 
-  return (
-    <div>
-      {/* Sub-section: Deadlines */}
-      <SubSection title="Deadlines">
-        {settings.sendTimeOptimisation?.enabled && profile?.teamId && (
-          <SendTimeSuggestion
-            teamId={profile.teamId}
-            emailType={watch('campaign.emailType') ?? ''}
-            enabled={settings.sendTimeOptimisation.enabled}
-            onApply={(isoDate) => {
-              const dateOnly = isoDate.split('T')[0]
-              setValue('deadlines.sendDate', dateOnly, { shouldValidate: true })
-            }}
-          />
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-          <FieldText
-            label="Send Date"
-            registration={register('deadlines.sendDate')}
-            error={errors.deadlines?.sendDate}
-            required
-            type="date"
-            min={today}
-          />
-          {/* 1-1 Required — two-segment Yes / No control */}
+  // Whether the send date is switched off in Settings; the 1-1 control sits beside it and stays either way.
+  const sendDateHidden = attention?.hidden.has('deadlines.sendDate') ?? false
+  const oneOneRequired = (
           <div className="mb-4">
             <p className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-2">
               1-1 Required?
@@ -266,34 +276,72 @@ export function StepCampaign() {
               </button>
             </div>
           </div>
-        </div>
+  )
 
+  return (
+    // A column, so each section's own order (set in briefSections.ts) puts the email identity first without moving any of the code.
+    <div className="flex flex-col">
+      {/* Sub-section: Deadlines */}
+      <BriefSection id="deadlines" title="Deadlines">
+        {sendDateHidden ? (
+          <div style={{ order: 0 }}>{oneOneRequired}</div>
+        ) : (
+          <FieldSlot path="deadlines.sendDate">
+        {settings.sendTimeOptimisation?.enabled && profile?.teamId && (
+          <SendTimeSuggestion
+            teamId={profile.teamId}
+            emailType={watch('campaign.emailType') ?? ''}
+            enabled={settings.sendTimeOptimisation.enabled}
+            onApply={(isoDate) => {
+              const dateOnly = isoDate.split('T')[0]
+              setValue('deadlines.sendDate', dateOnly, { shouldValidate: true })
+            }}
+          />
+        )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+          <FieldText
+            label="Send Date"
+            registration={register('deadlines.sendDate')}
+            error={errors.deadlines?.sendDate}
+            required={isRequired('deadlines.sendDate')}
+            type="date"
+            min={today}
+          />
+              {oneOneRequired}
+            </div>
+          </FieldSlot>
+        )}
+
+        <FieldSlot path="deadlines.notes">
         <FieldTextarea
           label="Notes"
           registration={register('deadlines.notes')}
+          required={isRequired('deadlines.notes')}
           error={errors.deadlines?.notes}
           placeholder="Any additional notes (max 300 characters)"
           maxLength={300}
           currentLength={notes.length}
           rows={3}
         />
-      </SubSection>
+        </FieldSlot>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+      </BriefSection>
+
 
       {/* Sub-section: Targeting */}
-      <SubSection title="Targeting">
+      <BriefSection id="targeting" title="Targeting">
+        <FieldSlot path="audience.clientGroup">
         {/* Client Group */}
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Client Group<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+              Client Group<RequiredMark on={isRequired('audience.clientGroup')} />
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedClientGroups.length > 0 ? `${selectedClientGroups.length} selected` : 'Select all that apply'}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-field="audience.clientGroup">
             {allClientGroups.map((group) => (
               <button
                 key={group}
@@ -314,12 +362,14 @@ export function StepCampaign() {
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.clientGroup.message}</p>
           )}
         </div>
+        </FieldSlot>
 
+        <FieldSlot path="audience.region">
         {/* Region */}
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Region<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+              Region<RequiredMark on={isRequired('audience.region')} />
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedClientGroups.length === 0
@@ -334,7 +384,7 @@ export function StepCampaign() {
               Select a client group above to filter available regions.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-field="audience.region">
               {availableRegions.map((region) => (
                 <button
                   key={region}
@@ -356,18 +406,20 @@ export function StepCampaign() {
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.region.message}</p>
           )}
         </div>
+        </FieldSlot>
 
+        <FieldSlot path="audience.channel">
         {/* Channel */}
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Channel/Audience<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+              Channel/Audience<RequiredMark on={isRequired('audience.channel')} />
             </label>
             <span className="text-xs text-gray-400 dark:text-gray-500">
               {selectedChannels.length > 0 ? `${selectedChannels.length} of ${allChannels.length} selected` : 'Select all that apply'}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-field="audience.channel">
             {allChannels.map((channel) => (
               <button
                 key={channel}
@@ -388,31 +440,36 @@ export function StepCampaign() {
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.audience.channel.message}</p>
           )}
         </div>
-      </SubSection>
+        </FieldSlot>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+      </BriefSection>
+
 
       {/* Sub-section: Email Identity */}
-      <SubSection title="Email Identity">
+      <BriefSection id="identity" title="Email Identity">
+        <FieldSlot path="campaign.emailDescription">
         {/* Email Description */}
         <FieldText
           label="Email Description"
           registration={register('campaign.emailDescription')}
+          required={isRequired('campaign.emailDescription')}
           error={errors.campaign?.emailDescription}
           placeholder="Short description (e.g. Q2 Market Update) — max 80 characters"
           maxLength={80}
           currentLength={emailDescription.length}
           hint="Appears in the email name: MMYY Region Audience Campaign - Description"
         />
+        </FieldSlot>
 
+        <FieldSlot path="campaign.emailType">
         {/* Email Type — single-select pills */}
         <div>
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email Type<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+              Email Type<RequiredMark on={isRequired('campaign.emailType')} />
             </label>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-field="campaign.emailType">
             {allEmailTypes.map((et) => (
               <button
                 key={et.id}
@@ -433,192 +490,202 @@ export function StepCampaign() {
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.emailType.message}</p>
           )}
         </div>
+        </FieldSlot>
 
-        {/* Campaign + Theme — 2-column side-by-side layout */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Campaign selector — filtered by region + channel */}
-          <div>
-            <p id="campaign-label" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
-              Campaign<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
+        {/* Campaign, then Brand Theme, one under the other as drop-downs */}
+        <FieldSlot path="campaign.campaignName">
+        {/* Campaign selector — filtered by region + channel */}
+        <div>
+          <label htmlFor="campaign-campaignName" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+            Campaign<RequiredMark on={isRequired('campaign.campaignName')} />
+          </label>
+          {allCampaigns.length === 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+              No campaigns configured. Add campaigns in <strong>Settings → Campaigns</strong>.
             </p>
-            {allCampaigns.length === 0 ? (
-              <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-                No campaigns configured. Add campaigns in <strong>Settings → Campaigns</strong>.
-              </p>
-            ) : availableCampaigns.length === 0 ? (
-              <div className="px-3 py-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 italic">
-                No campaigns match the selected targeting. Adjust Targeting or add campaigns in Settings.
-              </div>
-            ) : (
-              <div className="relative">
-                <div
-                  className="grid grid-cols-1 gap-1.5 max-h-52 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
-                  role="radiogroup"
-                  aria-labelledby="campaign-label"
-                >
-                  {availableCampaigns.map((c) => (
-                    <label
-                      key={c.id}
-                      role="radio"
-                      aria-checked={campaignName === c.name}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
-                        campaignName === c.name
-                          ? 'bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value={c.name}
-                        checked={campaignName === c.name}
-                        onChange={() => handleCampaignSelect(c.name)}
-                        className="sr-only"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-700 dark:text-gray-300 leading-tight">{c.name}</p>
-                        {(c.regions.length > 0 || c.channels.length > 0) && (
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            {[...c.regions, ...c.channels].join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
-              </div>
-            )}
-            {errors.campaign?.campaignName && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.campaignName.message}</p>
-            )}
-          </div>
-
-          {/* Theme selector */}
-          <div>
-            <p id="theme-label" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
-              Brand Theme<span className="text-red-500 ml-0.5" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
-            </p>
-            <div className="relative">
-              <div
-                className="grid grid-cols-1 gap-1.5 max-h-52 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2"
-                role="radiogroup"
-                aria-labelledby="theme-label"
-              >
-                {(settings.brandThemes ?? []).map((theme) => {
-                  // Themes with no module library cannot be built in Layout & Content.
-                  const pending = availableThemes !== null && !availableThemes.includes(theme.id)
-                  return (
-                    <label
-                      key={theme.id}
-                      role="radio"
-                      aria-checked={selectedTheme === theme.id}
-                      aria-disabled={pending}
-                      title={pending ? 'No module library for this theme yet' : undefined}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-md transition-colors ${
-                        pending
-                          ? 'opacity-50 cursor-not-allowed'
-                          : selectedTheme === theme.id
-                            ? 'cursor-pointer bg-brand-primary/10 dark:bg-brand-primary/20 ring-1 ring-brand-primary dark:ring-brand-accent'
-                            : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      <input type="radio" {...register('campaign.theme')} value={theme.id} disabled={pending && selectedTheme !== theme.id} className="sr-only" />
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: theme.primary }} />
-                        <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: theme.accent }} />
-                      </div>
-                      <span className="text-xs text-gray-700 dark:text-gray-300 leading-tight">
-                        {theme.label}
-                        {pending && <span className="block text-[10px] text-gray-400">Module library pending</span>}
-                        {!pending && approximateThemes.includes(theme.id) && <span className="block text-[10px] text-gray-400">Approximate module library</span>}
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 rounded-b-lg bg-gradient-to-t from-white dark:from-gray-900 to-transparent" />
+          ) : availableCampaigns.length === 0 ? (
+            <div className="px-3 py-2.5 rounded-md border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500 italic">
+              No campaigns match the selected targeting. Adjust Targeting or add campaigns in Settings.
             </div>
-            {errors.campaign?.theme && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.theme.message}</p>
-            )}
-          </div>
+          ) : (
+            <select
+              id="campaign-campaignName"
+              name="campaign.campaignName"
+              value={campaignName}
+              onChange={(e) => handleCampaignSelect(e.target.value)}
+              className={SELECT_CLASS}
+            >
+              <option value="" disabled>Select a campaign</option>
+              {availableCampaigns.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}{(c.regions.length > 0 || c.channels.length > 0) ? ` — ${[...c.regions, ...c.channels].join(' · ')}` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          {errors.campaign?.campaignName && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.campaignName.message}</p>
+          )}
         </div>
-      </SubSection>
+        </FieldSlot>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+        <FieldSlot path="campaign.theme">
+        {/* Theme selector: the colours sit beside each name, in the list and in the closed control */}
+        <div>
+          <label id="campaign-theme-label" htmlFor="campaign-theme" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+            Brand Theme<RequiredMark on={isRequired('campaign.theme')} />
+          </label>
+          <ThemeSelect
+            id="campaign-theme"
+            name="campaign.theme"
+            labelledBy="campaign-theme-label"
+            value={selectedTheme ?? ''}
+            options={(settings.brandThemes ?? []).map((theme) => {
+              // Themes with no module library cannot be built in Layout & Content.
+              const pending = availableThemes !== null && !availableThemes.includes(theme.id)
+              return {
+                id: theme.id,
+                label: theme.label,
+                primary: theme.primary,
+                accent: theme.accent,
+                disabled: pending && selectedTheme !== theme.id,
+                note: pending ? 'Module library pending' : approximateThemes.includes(theme.id) ? 'Approximate module library' : undefined,
+              }
+            })}
+            onChange={(id) => setValue('campaign.theme', id, { shouldValidate: true, shouldDirty: true })}
+          />
+          {errors.campaign?.theme && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.campaign.theme.message}</p>
+          )}
+        </div>
+        </FieldSlot>
+
+        <FieldSlot path="campaign.utmCampaign">
+        {/* Filled in from the campaign chosen above, and can be changed */}
+        <FieldText
+          label="UTM Campaign"
+          registration={register('campaign.utmCampaign')}
+          required={isRequired('campaign.utmCampaign')}
+          placeholder="e.g. women-and-investing-newsletter"
+          hint="Filled in from the campaign. Applied as utm_campaign= on all links, with hyphens between the words"
+        />
+        </FieldSlot>
+
+      </BriefSection>
+
 
       {/* Sub-section: Message Envelope */}
-      <SubSection title="Message Envelope">
+      <BriefSection id="envelope" title="Message Envelope">
+        <FieldSlot path="campaign.subjectLine">
         <FieldText
           label="Subject Line"
           registration={register('campaign.subjectLine')}
           error={errors.campaign?.subjectLine}
-          required
+          required={isRequired('campaign.subjectLine')}
           placeholder="Suggested: up to 60 characters"
           suggestedLength={60}
           currentLength={subjectLine.length}
         />
+        </FieldSlot>
 
+        <FieldSlot path="campaign.previewText">
         <FieldText
           label="Preview Text"
           registration={register('campaign.previewText')}
           error={errors.campaign?.previewText}
-          required
+          required={isRequired('campaign.previewText')}
           placeholder="Suggested: up to 90 characters"
           suggestedLength={90}
           currentLength={previewText.length}
         />
+        </FieldSlot>
 
+        <FieldSlot path="campaign.subjectLine" last>
         <SubjectLineScore
           deps={subjectLineDeps}
           subject={subjectLine}
-          senderName={watch('campaign.fromName') ?? ''}
+          senderName={senderType === 'general' ? (watch('campaign.fromName') ?? '') : SENDER_TYPE_LABELS[senderType]}
           preheader={previewText}
           onApplySubject={(subject) => setValue('campaign.subjectLine', subject, { shouldValidate: true, shouldDirty: true })}
         />
-      </SubSection>
+        </FieldSlot>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
+      </BriefSection>
+
 
       {/* Sub-section: Sender Details */}
-      <SubSection title="Sender Details">
-        <FieldText
-          label="From Name"
-          registration={register('campaign.fromName')}
-          error={errors.campaign?.fromName}
-          required
-          placeholder="e.g. Ninety One"
-        />
+      <BriefSection id="sender" title="Sender Details">
+        {/* Who the email is sent as in Pardot */}
+        <div>
+          <label htmlFor="campaign-senderType" className="block text-xs tracking-[0.12em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-1.5">
+            Sender
+          </label>
+          <select id="campaign-senderType" {...register('campaign.senderType')} className={SELECT_CLASS}>
+            {SENDER_TYPES.map((type) => (
+              <option key={type} value={type}>{SENDER_TYPE_LABELS[type]}</option>
+            ))}
+          </select>
+        </div>
 
-        <FieldText
-          label="From Address"
-          registration={register('campaign.fromAddress')}
-          error={errors.campaign?.fromAddress}
-          required
-          type="email"
-          placeholder="noreply@ninetyone.com"
-        />
+        {senderType === 'general' && (
+          <>
+            <FieldSlot path="campaign.fromName">
+            <FieldText
+              label="From Name"
+              registration={register('campaign.fromName')}
+              error={errors.campaign?.fromName}
+              required={isRequired('campaign.fromName')}
+              placeholder="e.g. Ninety One"
+            />
+            </FieldSlot>
 
+            <FieldSlot path="campaign.fromAddress">
+            <FieldText
+              label="From Address"
+              registration={register('campaign.fromAddress')}
+              error={errors.campaign?.fromAddress}
+              required={isRequired('campaign.fromAddress')}
+              type="email"
+              placeholder="noreply@ninetyone.com"
+            />
+            </FieldSlot>
+
+          </>
+        )}
+
+        {senderType === 'specific' && (
+          <FieldText
+            label="Specific User"
+            registration={register('campaign.specificUser')}
+            error={errors.campaign?.specificUser}
+            required
+            placeholder="e.g. 12345"
+            hint="The Pardot user ID this email is sent from"
+          />
+        )}
+
+        {senderType === 'assigned' && (
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Each recipient gets the email from their own assigned Pardot user, so there is no from name or address to set.
+          </p>
+        )}
+
+        <FieldSlot path="campaign.replyToEmail">
         <FieldText
           label="Reply-To Email"
           registration={register('campaign.replyToEmail')}
+          required={isRequired('campaign.replyToEmail')}
           error={errors.campaign?.replyToEmail}
           type="email"
           placeholder="Optional — reply@ninetyone.com"
         />
+        </FieldSlot>
 
-        <FieldText
-          label="UTM Campaign"
-          registration={register('campaign.utmCampaign')}
-          placeholder="e.g. taking-stock-sa-q2-2026"
-          hint="Applied as utm_campaign= on all links in the generated email"
-        />
-      </SubSection>
+      </BriefSection>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
       {/* Auto-generated Tags — visibility controlled by Settings → General → Show Tags section */}
-      {(settings.formDefaults.showTagsSection ?? true) && <SubSection title="Tags">
+      {(settings.formDefaults.showTagsSection ?? true) && <BriefSection id="tags" title="Tags">
         <div className="flex items-center justify-between mb-1">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Auto-generated Tags
@@ -652,16 +719,14 @@ export function StepCampaign() {
         <div className="px-3 py-2.5 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-600 dark:text-gray-400 select-all leading-relaxed font-mono break-all">
           {tags || '—'}
         </div>
-      </SubSection>}
+      </BriefSection>}
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
       {/* Sub-section: Audience (distribution lists + Pardot) */}
-      <SubSection title="Audience">
+      <BriefSection id="audience" title="Audience">
         <StepAudience />
-      </SubSection>
+      </BriefSection>
 
-      <hr className="border-gray-100 dark:border-gray-800 mb-6" />
 
       <SupportingMaterial />
     </div>

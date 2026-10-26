@@ -2,7 +2,7 @@ import type { BriefPayload } from '../types/brief.types'
 import type { AppSettings } from '../types/settings.types'
 import { BRAND_THEMES } from './constants'
 import { generateModuleHtml } from './moduleHtml'
-import { appendUtm, applyUtmToHtml } from './utm'
+import { appendUtm, applyUtmToHtml, slugifyUtm } from './utm'
 import type { ThemeCatalogue } from './moduleEngine/catalogue'
 import { renderBuild } from './moduleEngine/render'
 import { browserParse, type ParseDoc } from './moduleEngine/regions'
@@ -55,10 +55,11 @@ function generateFromBuild(brief: BriefPayload, settings: AppSettings | undefine
     previewText: brief.campaign.previewText?.trim() ?? '',
     assets: { logoUrl: themeSettings?.logoUrl, stripeUrl: themeSettings?.stripeUrl, slimStripeUrl: themeSettings?.slimStripeUrl, footerLogoUrl: themeSettings?.footerLogoUrl },
   })
-  const utm = brief.campaign.utmCampaign?.trim() || brief.campaign.campaignName || ''
+  // Hyphens between the words, never "+" or "%20"; see slugifyUtm.
+  const utm = slugifyUtm(brief.campaign.utmCampaign?.trim() || brief.campaign.campaignName || '')
   if (!utm) return html
   // Library links carry an empty utm_campaign slot; fill it, then tag absolute URLs.
-  const filled = html.replace(/utm_campaign=(?=["'&])/g, `utm_campaign=${encodeURIComponent(utm)}`)
+  const filled = html.replace(/utm_campaign=(?=["'&])/g, `utm_campaign=${utm}`)
   return applyUtmToHtml(filled, utm)
 }
 
@@ -86,7 +87,7 @@ export function generateEmailHtml(brief: BriefPayload, settings?: AppSettings, o
   const cta = brief.content.cta
   const campaignName = brief.campaign.campaignName ?? ''
   // Use explicit UTM campaign value if provided, otherwise fall back to campaign name
-  const utmValue = brief.campaign.utmCampaign?.trim() || campaignName
+  const utmValue = slugifyUtm(brief.campaign.utmCampaign?.trim() || campaignName)
 
   // Generate HTML for selected modules
   const selectedModules = brief.content.modules ?? []

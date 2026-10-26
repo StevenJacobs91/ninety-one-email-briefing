@@ -22,6 +22,10 @@ export interface CampaignDetails {
   theme: string
   subjectLine: string
   previewText: string
+  /** Who the email is sent as in Pardot; absent on briefs saved before this existed, which are general-user sends */
+  senderType?: 'general' | 'specific' | 'assigned'
+  /** The Pardot user ID a specific-user send comes from */
+  specificUser?: string
   fromName: string
   fromAddress: string
   replyToEmail?: string

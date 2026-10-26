@@ -282,6 +282,8 @@ export const DEFAULT_BRAND_GUARDIAN: BrandGuardianConfig = {
 // ─── Default Sender Defaults ────────────────────────────────
 
 export const DEFAULT_SENDER_DEFAULTS: SenderDefaults = {
+  senderType: 'general',
+  specificUser: '',
   fromName: 'Ninety One',
   fromAddress: '',
   replyToEmail: '',
@@ -423,7 +425,6 @@ const DEFAULT_APPROVALS: ApprovalConfig = {
   enabled: false,
   defaultStages: [],
   emailTypeConfigs: [],
-  selfServiceRequest: true,
   blockDistributionWithoutApproval: false,
 }
 
@@ -454,6 +455,7 @@ export function createDefaultSettings(): AppSettings {
     moduleCategories: DEFAULT_MODULE_CATEGORIES,
     formSteps: DEFAULT_FORM_STEPS,
     formFields: DEFAULT_FORM_FIELDS,
+    briefLayout: { sectionOrder: [], requiredFields: {} },
     brandGuardian: DEFAULT_BRAND_GUARDIAN,
     senderDefaults: DEFAULT_SENDER_DEFAULTS,
     formDefaults: DEFAULT_FORM_DEFAULTS,

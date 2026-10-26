@@ -3,6 +3,10 @@ import type { ApprovalStatus } from '../../types/approval.types'
 interface ApprovalStatusBadgeProps {
   status: ApprovalStatus | 'none'
   size?: 'sm' | 'md'
+  /** The brief changed after this was decided, so the decision no longer covers it */
+  stale?: boolean
+  /** Which submission this is; shown from the second one on */
+  round?: number
 }
 
 const STATUS_CONFIG: Record<
@@ -26,10 +30,23 @@ const STATUS_CONFIG: Record<
     label: 'Changes Requested',
     className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   },
+  withdrawn: {
+    label: 'Withdrawn',
+    className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  },
+  superseded: {
+    label: 'Closed: brief changed',
+    className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  },
 }
 
-export function ApprovalStatusBadge({ status, size = 'sm' }: ApprovalStatusBadgeProps) {
-  const config = STATUS_CONFIG[status]
+const OUT_OF_DATE = {
+  label: 'Approved, out of date',
+  className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+}
+
+export function ApprovalStatusBadge({ status, size = 'sm', stale = false, round }: ApprovalStatusBadgeProps) {
+  const config = status === 'approved' && stale ? OUT_OF_DATE : STATUS_CONFIG[status]
   if (!config) return null
 
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs'
@@ -38,7 +55,7 @@ export function ApprovalStatusBadge({ status, size = 'sm' }: ApprovalStatusBadge
     <span
       className={`inline-flex items-center px-2.5 py-1 rounded-full font-medium ${textSize} ${config.className}`}
     >
-      {config.label}
+      {config.label}{round && round > 1 ? ` · v${round}` : ''}
     </span>
   )
 }

@@ -1,14 +1,21 @@
 import type { FormStepConfig } from '../types/settings.types'
 
-export type BriefTabId = 'campaign' | 'content' | 'review'
+export type BriefTabId = 'build' | 'review'
 
-// The brief has three fixed tabs. Saved settings may still hold the older
-// three-step list (Campaign / Content / Brief Review), so reads normalise it.
+// The brief has two fixed tabs: the brief and the email are built together, then reviewed. Saved settings may still hold an
+// older three-step list (Campaign / Layout & Content / Review), so reads normalise it to these two.
 export const BRIEF_TABS: readonly { id: BriefTabId; label: string }[] = [
-  { id: 'campaign', label: 'Campaign' },
-  { id: 'content', label: 'Layout & Content' },
+  { id: 'build', label: 'Brief & Build' },
   { id: 'review', label: 'Review and Submission' },
 ]
+
+/**
+ * The tab a saved field belongs to. Fields were stored against the three steps Campaign (0), Layout & Content (1) and
+ * Review (2); the first two are now one tab, so 0 and 1 are Brief & Build (order 0) and 2 is Review (order 1).
+ */
+export function tabOrderForStepIndex(stepIndex: number): number {
+  return stepIndex >= 2 ? 1 : 0
+}
 
 export function resolveTabs(_saved?: FormStepConfig[]): FormStepConfig[] {
   return BRIEF_TABS.map((t, order) => ({ ...t, order, visible: true }))

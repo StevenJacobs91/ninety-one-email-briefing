@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { PartialTesterConfig } from '../engine/config'
 import type { AnalyzerDeps } from '../engine/context'
 import { SubjectLineTester } from './SubjectLineTester'
@@ -24,9 +25,11 @@ export function SubjectLineTesterDialog({ initial, deps, config, onClose, onAppl
     return () => opener?.focus?.()
   }, [])
 
-  return (
+  // Drawn on the page itself, not where it was opened: the Brief panel is sticky, which would hold the dialog's z-index
+  // inside the panel and let the email and inspector columns paint over it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
@@ -59,6 +62,7 @@ export function SubjectLineTesterDialog({ initial, deps, config, onClose, onAppl
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

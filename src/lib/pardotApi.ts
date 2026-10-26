@@ -10,6 +10,7 @@
 
 import type { PardotConfig } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
+import { PARDOT_SENDER_TYPE } from './constants'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -231,21 +232,27 @@ export async function submitBriefToPardot(
     ? listIdFromAudience.split(/[,\s]+/).map(Number).filter((n) => !isNaN(n) && n > 0)
     : []
 
+  const briefSenderType = brief.campaign?.senderType
+
   // Build the list-email payload
   const emailPayload: PardotListEmailPayload = {
     name: emailName,
     subject: brief.campaign?.subjectLine || emailName,
     html_message: html,
     text_message: textBody,
-    from_name: brief.campaign?.fromName || 'Ninety One',
-    from_email: (brief.campaign as unknown as Record<string, string>)?.fromAddress || '',
+    // A specific or assigned user send comes from that Pardot user, so it carries no from name or address of its own.
+    from_name: briefSenderType && briefSenderType !== 'general' ? '' : brief.campaign?.fromName || 'Ninety One',
+    from_email: briefSenderType && briefSenderType !== 'general' ? '' : (brief.campaign as unknown as Record<string, string>)?.fromAddress || '',
     reply_to_email: brief.campaign?.replyToEmail || '',
-    sender_type: (cfg.senderType as PardotListEmailPayload['sender_type']) || 'general_user',
+    // What the brief chose wins; a brief from before sender types existed keeps the sender type set in Settings → Pardot.
+    sender_type: briefSenderType ? PARDOT_SENDER_TYPE[briefSenderType] : (cfg.senderType as PardotListEmailPayload['sender_type']) || 'general_user',
     operational_email: false,
   }
 
   if (listIds.length > 0) emailPayload.list_ids = listIds
-  if (cfg.senderUserId) emailPayload.sender_id = Number(cfg.senderUserId)
+  const specificUserId = Number(brief.campaign?.specificUser)
+  if (briefSenderType === 'specific' && specificUserId > 0) emailPayload.sender_id = specificUserId
+  else if (!briefSenderType && cfg.senderUserId) emailPayload.sender_id = Number(cfg.senderUserId)
 
   // Apply any extra field mappings configured in settings
   if (cfg.fieldMappings?.length) {

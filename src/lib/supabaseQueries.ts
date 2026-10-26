@@ -14,8 +14,13 @@ export async function fetchSettings(teamId: string): Promise<AppSettings | null>
     .eq('team_id', teamId)
     .single()
 
-  if (error || !data) return null
-  return data.data as AppSettings
+  // No row means the team has not saved settings yet. Any other failure is an error, never "no settings", so a failed
+  // load cannot be mistaken for a blank slate and saved over what the team has.
+  if (error) {
+    if (error.code === 'PGRST116') return null
+    throw new Error(`Failed to load settings: ${error.message}`)
+  }
+  return data ? (data.data as AppSettings) : null
 }
 
 export async function upsertSettings(teamId: string, settings: AppSettings): Promise<void> {

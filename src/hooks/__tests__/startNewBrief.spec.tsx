@@ -39,9 +39,9 @@ describe('useBriefForm: start a new brief', () => {
 
   it('goes back to the first step and forgets that the last brief was submitted', async () => {
     const { result } = renderHook(() => useBriefForm(DEFAULTS))
-    act(() => result.current.goToStep(2))
+    act(() => result.current.goToStep(1))
     act(() => result.current.setSubmitStatus('success'))
-    expect(result.current.currentStep).toBe(2)
+    expect(result.current.currentStep).toBe(1)
     act(() => result.current.startNewBrief())
     expect(result.current.currentStep).toBe(0)
     expect(result.current.submitStatus).toBe('idle')

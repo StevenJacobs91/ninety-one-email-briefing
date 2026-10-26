@@ -6,7 +6,7 @@ import { forgetFile, rememberFiles } from '../../lib/attachmentStore'
 import { MAX_ATTACHMENTS, validateUpload } from '../../lib/attachmentRules'
 import { removeStoredAttachment, uploadAttachment } from '../../lib/attachmentStorage'
 import { useAuth } from '../../contexts/AuthContext'
-import { SubSection } from '../ui/SubSection'
+import { BriefSection } from '../brief/BriefSection'
 
 // Brief metadata, not email content: extra asset links and attached files.
 // Attached files are saved to storage as soon as they are chosen, so they survive a reload and travel with the
@@ -76,7 +76,7 @@ export function SupportingMaterial() {
   }, [getValues, setValue])
 
   return (
-    <SubSection title="Supporting Material">
+    <BriefSection id="materials" title="Supporting Material">
         {/* Additional Asset URLs */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -178,6 +178,6 @@ export function SupportingMaterial() {
             </div>
           )}
         </div>
-    </SubSection>
+    </BriefSection>
   )
 }

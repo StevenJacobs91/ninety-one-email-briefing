@@ -257,3 +257,20 @@ export const REGION_LEGAL_DISCLAIMERS: Record<string, string> = {
   'ASIA': 'This communication is for institutional investors only and is not intended for retail investors. Recipients should seek their own legal, regulatory, tax and financial advice.',
   'GLOBAL': 'This communication is intended for professional and institutional investors only. Not for distribution to retail investors. Please refer to the relevant fund documentation for full risk disclosures.',
 }
+
+/** How an email is sent in Pardot: from a set address, from one named user, or from the prospect's own assigned user. */
+export const SENDER_TYPES = ['general', 'specific', 'assigned'] as const
+export type SenderType = typeof SENDER_TYPES[number]
+
+export const SENDER_TYPE_LABELS: Record<SenderType, string> = {
+  general: 'General user',
+  specific: 'Specific user',
+  assigned: 'Assigned user',
+}
+
+/** Pardot's own name for each, as the list-email API takes it. */
+export const PARDOT_SENDER_TYPE: Record<SenderType, 'general_user' | 'specific_user' | 'assigned_user'> = {
+  general: 'general_user',
+  specific: 'specific_user',
+  assigned: 'assigned_user',
+}

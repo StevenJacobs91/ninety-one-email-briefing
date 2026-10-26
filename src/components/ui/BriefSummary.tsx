@@ -2,6 +2,7 @@ import type { BriefFormData } from '../../lib/schema'
 import { BRAND_THEMES, EMAIL_TYPE_LABELS, EMAIL_MODULES } from '../../lib/constants'
 import type { EmailType } from '../../lib/constants'
 import { buildEmailName } from '../../lib/emailName'
+import { senderRows } from '../../lib/senderSummary'
 import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { buildTags } from '../../lib/tags'
@@ -45,8 +46,7 @@ export function BriefSummary({ data }: BriefSummaryProps) {
           <Row label="Theme" value={theme?.label ?? data.campaign.theme} />
           <Row label="Subject Line" value={data.campaign.subjectLine} />
           <Row label="Preview Text" value={data.campaign.previewText} />
-          <Row label="From Name" value={data.campaign.fromName} />
-          <Row label="From Address" value={data.campaign.fromAddress} />
+          {senderRows(data.campaign).map(([label, value]) => <Row key={label} label={label} value={value} />)}
           {data.campaign.replyToEmail && <Row label="Reply-To" value={data.campaign.replyToEmail} />}
         </Section>
       )}

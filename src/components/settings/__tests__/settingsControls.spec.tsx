@@ -36,7 +36,9 @@ vi.mock('../../../hooks/useAuditLog', () => ({ useAuditLog: () => ({ log: () => 
 vi.mock('../../../lib/supabase', () => ({ supabase: { from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: null }), then: (r: (v: unknown) => void) => r({ data: [], error: null }) }) }) }), auth: { getSession: () => Promise.resolve({ data: { session: null } }) }, functions: { invoke: () => Promise.resolve({ data: null, error: null }) } } }))
 vi.mock('../../../lib/supabaseQueries', async (orig) => ({ ...(await orig<Record<string, unknown>>()), fetchTeamMembers: () => Promise.resolve([]), fetchAuditLog: () => Promise.resolve([]), fetchBenchmarks: () => Promise.resolve([]) }))
 vi.mock('../../../contexts/KanbanContext', () => ({ useKanban: () => ({ cards: [], moveCard: () => {}, updateCardMeta: () => {} }) }))
-vi.mock('../../../contexts/ApprovalsContext', () => ({ useApprovals: () => ({ getApprovalStatusForBrief: () => 'none' }) }))
+// One stable value, as the real provider gives.
+const approvals = vi.hoisted(() => ({ value: { getApprovalStatusForBrief: () => 'none', pools: {}, setPool: async () => {} } }))
+vi.mock('../../../contexts/ApprovalsContext', () => ({ useApprovals: () => approvals.value }))
 
 import { createDefaultSettings } from '../../../lib/settingsDefaults'
 import { TabGeneral } from '../TabGeneral'

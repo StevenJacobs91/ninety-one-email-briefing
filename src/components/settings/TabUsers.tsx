@@ -355,7 +355,7 @@ function MemberRow({
       {showPresets && (
         <div className="mx-4 mb-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
           <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-            Targeting Preset — auto-fills Campaign tab on login
+            Targeting Preset — auto-fills Brief & Build on login
           </p>
           <div>
             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Client Group</p>

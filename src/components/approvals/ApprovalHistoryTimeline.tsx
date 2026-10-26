@@ -17,6 +17,8 @@ const STATUS_LABEL: Record<string, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   changes_requested: 'Changes requested',
+  withdrawn: 'Withdrawn',
+  superseded: 'Closed because the brief changed',
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -24,6 +26,8 @@ const STATUS_DOT: Record<string, string> = {
   approved: 'bg-green-500',
   rejected: 'bg-red-500',
   changes_requested: 'bg-orange-400',
+  withdrawn: 'bg-gray-400',
+  superseded: 'bg-gray-400',
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -57,7 +61,7 @@ export function ApprovalHistoryTimeline({ approvals }: ApprovalHistoryTimelinePr
     // Submission event
     events.push({
       at: approval.requestedAt,
-      label: `Stage ${approval.stage}/${approval.totalStages} — Submitted for ${ROLE_LABEL[approval.approverRole] ?? approval.approverRole} review`,
+      label: `${approval.round > 1 ? `Version ${approval.round}, ` : ''}stage ${approval.stage}/${approval.totalStages}: submitted for ${ROLE_LABEL[approval.approverRole] ?? approval.approverRole} review`,
       actor: approval.requestedByName,
       dotClass: 'bg-brand-primary dark:bg-brand-accent',
       stage: approval.stage,
@@ -68,7 +72,9 @@ export function ApprovalHistoryTimeline({ approvals }: ApprovalHistoryTimelinePr
     if (approval.decidedAt && approval.status !== 'pending') {
       events.push({
         at: approval.decidedAt,
-        label: `${STATUS_LABEL[approval.status] ?? approval.status} by ${ROLE_LABEL[approval.approverRole] ?? approval.approverRole}`,
+        label: approval.status === 'withdrawn' || approval.status === 'superseded'
+          ? (STATUS_LABEL[approval.status] ?? approval.status)
+          : `${STATUS_LABEL[approval.status] ?? approval.status} by ${ROLE_LABEL[approval.approverRole] ?? approval.approverRole}`,
         actor: approval.decidedByName ?? '',
         comment: approval.decisionComment,
         dotClass: STATUS_DOT[approval.status] ?? 'bg-gray-400',

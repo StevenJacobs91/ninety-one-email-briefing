@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { FormProvider } from 'react-hook-form'
 import { v4 as uuidv4 } from 'uuid'
 import { useBriefForm } from '../../hooks/useBriefForm'
@@ -22,11 +23,13 @@ import { resolveTabs, type BriefTabId } from '../../lib/briefTabs'
 import { CampaignInsightsSlideOver } from '../steps/CampaignInsightsSlideOver'
 import { CampaignBoardShell } from '../board/CampaignBoardShell'
 import { clearAttachmentStore } from '../../lib/attachmentStore'
-import { PAGE_X } from './pageGrid'
+import { PAGE_X, WORKSPACE_X } from './pageGrid'
+import { BriefBuildWorkspace } from './BriefBuildWorkspace'
+import { WorkspaceProblems, WorkspaceStatusBar } from './WorkspaceStatusBar'
 import { FitText } from '../ui/FitText'
 import { resolveBoardSettings } from '../../lib/boardConfig'
 import { opensOnBoard, resolveCustomRole } from '../../lib/customRoles'
-import { describeFormErrors, type FormProblem } from '../../lib/formErrors'
+import type { FormProblem } from '../../lib/formErrors'
 import { ApprovalsPanel } from '../approvals/ApprovalsPanel'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { AudienceHealthDashboard } from '../analytics/AudienceHealthDashboard'
@@ -40,31 +43,17 @@ import { useDrafts } from '../../hooks/useDrafts'
 import type { SavedDraft } from '../../hooks/useDrafts'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { buildEmailName } from '../../lib/emailName'
-import { getStepFields } from '../../lib/validateStep'
+import { briefProblems } from '../../lib/briefProblems'
+import { senderLine } from '../../lib/senderSummary'
+import { resolveRequired } from '../../lib/briefRequirements'
+import { fieldPositions, resolveHidden, resolveSectionOrder, sectionOrderMap } from '../../lib/briefLayout'
+import { BriefAttentionProvider } from '../brief/BriefAttention'
 import { triggerNotification } from '../../lib/notificationService'
 import type { BriefPayload } from '../../types/brief.types'
 
 
+// The help panel shows on the review step only: Brief & Build has the whole page to itself.
 const STEP_HELP_BY_ID: Record<string, { title: string; body: string; tips: string[] }> = {
-  campaign: {
-    title: 'Setting up your campaign',
-    body: 'Define the campaign details, target audience, email type, subject line, and brand theme. These fields control how your email is categorised, who receives it, and how recipients experience it in their inbox.',
-    tips: [
-      'Subject lines under 50 characters perform best across email clients',
-      'Preview text should complement the subject — not repeat it',
-      'Select all regions and channels that apply — legal disclaimers are applied per-region automatically',
-      'Your brand theme controls the full colour palette of the generated email',
-    ],
-  },
-  content: {
-    title: 'Layout and content',
-    body: 'Craft your headline, body introduction, and content sections. Use the rich text tools for brand-consistent inline formatting.',
-    tips: [
-      'Headlines under 80 characters render cleanly across most email clients',
-      'Add between 1 and 4 content sections to structure longer emails',
-      'Bold and linked text in the editor will appear correctly in the generated HTML',
-    ],
-  },
   review: {
     title: 'Review and submission',
     body: 'Check the rendered email, work through the Brand Review beside it, then send a test or submit. The brief summary and JSON/PDF export sit in the collapsed section at the top.',
@@ -91,6 +80,8 @@ interface BriefSummaryData {
   sendDate: string
   subjectLine: string
   previewText: string
+  senderType?: 'general' | 'specific' | 'assigned'
+  specificUser?: string
   fromName: string
   fromAddress: string
   replyToEmail: string
@@ -106,19 +97,13 @@ interface HelpPanelProps {
   stepId: string
   currentStepIndex: number
   totalBriefSteps: number
-  currentTheme: string
-  onChangeTemplate?: () => void
-  campaignName?: string
-  onOpenInsights?: () => void
   briefSummary?: BriefSummaryData
   brandReview?: BrandReviewState
-  onGoToTab?: (tab: BriefTabId) => void
+  onGoToTab?: (tab: BriefTabId, field?: string) => void
 }
 
-function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, onChangeTemplate, campaignName, onOpenInsights, briefSummary, brandReview, onGoToTab }: HelpPanelProps) {
-  const { settings } = useSettings()
-  const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['campaign']
-  const theme = (settings.brandThemes ?? []).find((t) => t.id === currentTheme)
+function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, briefSummary, brandReview, onGoToTab }: HelpPanelProps) {
+  const help = STEP_HELP_BY_ID[stepId] ?? STEP_HELP_BY_ID['review']
   const eyebrow = `Step ${currentStepIndex + 1} of ${totalBriefSteps} · ${help.title}`
 
   return (
@@ -191,10 +176,18 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
             {/* Sender */}
             <div>
               <dt className="text-[10px] tracking-[0.15em] uppercase text-brand-text-muted dark:text-gray-500 font-ni-heading mb-0.5">Sender</dt>
-              <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">{briefSummary.fromName || '—'}</dd>
-              {briefSummary.fromAddress && (
-                <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.fromAddress}>
-                  {briefSummary.fromAddress}
+              {briefSummary.senderType === 'general' || briefSummary.senderType === undefined ? (
+                <>
+                  <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">{briefSummary.fromName || '—'}</dd>
+                  {briefSummary.fromAddress && (
+                    <dd className="text-xs text-brand-text-muted dark:text-gray-400 mt-0.5 font-mono truncate" title={briefSummary.fromAddress}>
+                      {briefSummary.fromAddress}
+                    </dd>
+                  )}
+                </>
+              ) : (
+                <dd className="text-sm font-medium text-brand-primary dark:text-gray-200">
+                  {senderLine(briefSummary)}
                 </dd>
               )}
               {briefSummary.replyToEmail && (
@@ -325,93 +318,6 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, currentTheme, on
           </dl>
         </div>
       )}
-
-      {/* Active brand theme swatch */}
-      {theme && stepId !== 'review' && (
-        <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
-          <p className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400 mb-4">Active Brand Theme</p>
-          <div className="flex items-start gap-3">
-            <div className="flex gap-1.5 shrink-0">
-              <span className="w-7 h-7 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: theme.primary }} />
-              <span className="w-7 h-7 rounded-full shadow-sm border border-black/10" style={{ backgroundColor: theme.accent }} />
-            </div>
-            <div className="min-w-0">
-              <p
-                className="text-sm font-ni-heading text-brand-primary dark:text-gray-200 leading-tight"
-                title={theme.label}
-              >
-                {theme.label}
-              </p>
-              <p className="text-xs text-brand-text-muted dark:text-gray-500 mt-0.5">{theme.primary} · {theme.accent}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Campaign Insights summary — shown on Campaign step when a campaign is selected and insights enabled */}
-      {stepId === 'campaign' && campaignName && settings.campaignInsights?.enabled !== false && (
-        <div className="bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2.5 mb-3">
-            <span className="shrink-0 w-6 h-6 rounded-md bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </span>
-            <p className="text-xs tracking-[0.15em] uppercase font-ni-heading text-brand-text-muted dark:text-gray-400">Campaign Insights</p>
-          </div>
-          <p className="text-sm font-ni-heading text-brand-primary dark:text-gray-200 leading-tight mb-2 truncate" title={campaignName}>
-            {campaignName}
-          </p>
-
-          {/* Key metrics — dummy data */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
-              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">5.2%</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">Avg Unique CTR</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
-              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">3,240</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">Avg Delivered</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
-              <p className="text-xs font-semibold text-green-600 dark:text-green-400">+12%</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">CTR Trend</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-md p-2.5">
-              <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">5</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500">Recent Sends</p>
-            </div>
-          </div>
-
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3 leading-relaxed">
-            Simulated data. Connect the Pardot API in Settings for live metrics.
-          </p>
-
-          {onOpenInsights && (
-            <button
-              type="button"
-              onClick={onOpenInsights}
-              className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white text-xs font-medium py-2 rounded-md hover:bg-teal-700 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              View Campaign Insights & Recommendations
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Change template — only on Campaign step */}
-      {stepId === 'campaign' && onChangeTemplate && (
-        <button
-          type="button"
-          onClick={onChangeTemplate}
-          className="w-full text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 py-2.5 transition-colors"
-        >
-          Change template
-        </button>
-      )}
     </aside>
   )
 }
@@ -434,6 +340,16 @@ export function FormShell() {
   )
   const lastBriefStep = Math.max(0, visibleBriefSteps.length - 1)
 
+  // What the team has set in Settings → Form Layout: which fields are required, and the order of the brief's sections.
+  const required = useMemo(() => resolveRequired(settings.briefLayout?.requiredFields), [settings.briefLayout?.requiredFields])
+  const requiredRef = useRef(required)
+  requiredRef.current = required
+  const sectionOrder = useMemo(() => sectionOrderMap(resolveSectionOrder(settings.briefLayout?.sectionOrder)), [settings.briefLayout?.sectionOrder])
+  const fieldOrder = useMemo(() => fieldPositions(settings.briefLayout?.fieldOrder), [settings.briefLayout?.fieldOrder])
+  const hiddenFields = useMemo(() => resolveHidden(settings.briefLayout?.hiddenFields), [settings.briefLayout?.hiddenFields])
+  const hiddenRef = useRef(hiddenFields)
+  hiddenRef.current = hiddenFields
+
   const {
     form,
     currentStep,
@@ -444,6 +360,8 @@ export function FormShell() {
     submitBrief,
     submitStatus,
   } = useBriefForm({
+    senderType: senderDefaults.senderType,
+    specificUser: senderDefaults.specificUser,
     fromName: senderDefaults.fromName,
     fromAddress: senderDefaults.fromAddress,
     replyToEmail: senderDefaults.replyToEmail,
@@ -481,9 +399,9 @@ export function FormShell() {
         requesterEmail: user?.email ?? '',
       }, settings.notifications).catch(console.error)
     }
-  }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]))
+  }, [addCard, audit, settings.notifications, profile?.displayName, user?.email]), () => requiredRef.current, () => hiddenRef.current)
 
-  const { clearDraft, saveStatus } = useDraftPersistence(form)
+  const { clearDraft, saveStatus, lastSavedAt } = useDraftPersistence(form)
   const { mode, setMode } = useDarkMode()
   const { drafts, saveDraft, deleteDraft, renameDraft, isOpen: isDraftsOpen, openDrawer: openDrafts, closeDrawer: closeDrafts } = useDrafts()
 
@@ -515,8 +433,10 @@ export function FormShell() {
   const cardRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
-  const currentBriefStepId = visibleBriefSteps[currentStep]?.id ?? 'campaign'
+  const currentBriefStepId = visibleBriefSteps[currentStep]?.id ?? 'build'
   const currentStepId = currentBriefStepId
+  // Brief & Build has three columns to fit, so every row of the page takes the wider gutter on that tab and the edges still line up.
+  const pageX = currentBriefStepId === 'build' ? WORKSPACE_X : PAGE_X
   const indicatorStep = currentStep
 
   const handleSignOut = useCallback(() => {
@@ -552,49 +472,54 @@ export function FormShell() {
 
   const [advanceProblems, setAdvanceProblems] = useState<FormProblem[]>([])
   useEffect(() => { setAdvanceProblems([]) }, [currentStep])
+  // Once Continue has been pressed, sections with something wrong turn red. Set again for each new or loaded brief.
+  const [attempted, setAttempted] = useState(false)
+  // Where the brief's status controls are drawn: the nav row, which is outside the form they belong to.
+  const [navSlot, setNavSlot] = useState<HTMLElement | null>(null)
+  // Opens a field's section and focuses it; filled in by the Brief panel while it is on screen.
+  const jumpRef = useRef<((path: string) => void) | null>(null)
+  // A field to jump to as soon as the Brief & Build tab is showing, for links that arrive from the review tab.
+  const [pendingJump, setPendingJump] = useState<string | null>(null)
 
-  const handleBriefSubmitAndAdvance = useCallback(async () => {
-    const valid = await form.trigger()
-    setAdvanceProblems([])
-    if (!valid) {
-      const errors = form.formState.errors
-      for (let i = 0; i < visibleBriefSteps.length; i++) {
-        const fields = getStepFields(visibleBriefSteps[i].id)
-        const hasError = fields.some((field) => {
-          const parts = field.split('.')
-          let obj: unknown = errors
-          for (const part of parts) {
-            if (obj && typeof obj === 'object' && part in obj) {
-              obj = (obj as Record<string, unknown>)[part]
-            } else {
-              return false
-            }
-          }
-          return obj != null
-        })
-        if (hasError) {
-          goToStep(i)
-          return
-        }
-      }
-      // The fault is in a field no tab lists (the headline, the button, notes…): say so rather than do nothing.
-      setAdvanceProblems(describeFormErrors(form.formState.errors))
+  // Continue checks the whole brief. The brief and the email are on one tab now, so there is no other tab to send someone to:
+  // every problem is listed here, and the first field that can take focus gets it. It never stops without saying why.
+  const continueToReview = useCallback(async () => {
+    // Puts each field's own message beside it.
+    await form.trigger()
+    const problems = briefProblems(form.getValues(), required, hiddenFields)
+    setAdvanceProblems(problems)
+    setAttempted(true)
+    if (problems.length === 0) {
+      goToStep(lastBriefStep)
       return
     }
-    goToStep(lastBriefStep)
-  }, [form, goToStep, visibleBriefSteps, lastBriefStep])
+    // Opens the section the first problem is in and focuses it; a field in the email scrolls to the builder.
+    jumpRef.current?.(problems[0].path)
+  }, [form, goToStep, lastBriefStep, required, hiddenFields])
 
   const handleGoToTab = useCallback(
-    (tab: BriefTabId) => {
+    (tab: BriefTabId, field?: string) => {
       const idx = visibleBriefSteps.findIndex((t) => t.id === tab)
       if (idx >= 0) goToStep(idx)
+      if (field) setPendingJump(field)
     },
     [goToStep, visibleBriefSteps]
   )
 
+  // A link from the review tab to a field: once Brief & Build is showing, open its section and focus it.
+  useEffect(() => {
+    if (!pendingJump || currentBriefStepId !== 'build') return
+    const timer = window.setTimeout(() => {
+      jumpRef.current?.(pendingJump)
+      setPendingJump(null)
+    }, 60)
+    return () => window.clearTimeout(timer)
+  }, [pendingJump, currentBriefStepId])
+
   const handleLoadDraft = useCallback((draft: SavedDraft) => {
     form.reset(draft.data)
     setShowTemplatePicker(false)
+    setAttempted(false)
     goToStep(0)
     setHighestStep(0)
     closeDrafts()
@@ -624,6 +549,7 @@ export function FormShell() {
     clearAttachmentStore()
     setHighestStep(0)
     setSubmitted(false)
+    setAttempted(false)
     setShowTemplatePicker(true)
     window.scrollTo({ top: 0 })
   }, [startNewBrief, clearDraft])
@@ -638,13 +564,14 @@ export function FormShell() {
   const isReviewTab = currentBriefStepId === 'review'
   const brandReview = useBrandReviewGate(form.control, isReviewTab)
 
-  const currentTheme = form.watch('campaign.theme')
   const watchedCampaignName = form.watch('campaign.campaignName') ?? ''
   const watchedRegions = form.watch('audience.region') ?? []
   const watchedChannels = form.watch('audience.channel') ?? []
   const watchedDescription = form.watch('campaign.emailDescription') ?? ''
   const watchedSubjectLine = form.watch('campaign.subjectLine') ?? ''
   const watchedPreviewText = form.watch('campaign.previewText') ?? ''
+  const watchedSenderType = form.watch('campaign.senderType')
+  const watchedSpecificUser = form.watch('campaign.specificUser') ?? ''
   const watchedFromName = form.watch('campaign.fromName') ?? ''
   const watchedFromAddress = (form.watch('campaign') as Record<string, string>)?.fromAddress ?? ''
   const watchedReplyToEmail = form.watch('campaign.replyToEmail') ?? ''
@@ -692,7 +619,7 @@ export function FormShell() {
     <div className="min-h-screen bg-brand-bg-warm dark:bg-[#1a1714] flex flex-col">
       {/* ── Sticky navigation bar ── */}
       <header className="sticky top-0 z-40 bg-brand-primary dark:bg-brand-primary-dark">
-        <div className={`${PAGE_X} h-14 flex items-center justify-between gap-4`}>
+        <div className={`${pageX} h-14 flex items-center justify-between gap-4`}>
           {/* Logo + platform dropdown */}
           <div className="flex items-center gap-0 shrink-0">
             <img src="https://weare.ninetyone.com/l/28902/2021-09-09/9984n4/28902/1631175749gVO1StAs/91_logo_digital_cape_coral_header_300x150.png" alt="Ninety One" className="h-5 w-auto" />
@@ -964,15 +891,19 @@ export function FormShell() {
         const hasData = watchedCampaignName || watchedRegions.length > 0 || watchedChannels.length > 0
         return (
           <div className={`bg-brand-primary dark:bg-brand-primary-dark ${showTemplatePicker ? 'py-8' : 'py-5'}`}>
-            <div className={`${PAGE_X} flex items-end justify-between gap-6`}>
+            <div className={`${pageX} flex items-end justify-between gap-6`}>
               <div className="min-w-0 flex-1">
                 <p className="text-brand-accent text-xs tracking-[0.2em] uppercase font-ni-heading mb-1.5">Marketing Operations</p>
                 <h1 className={`font-ni-display text-[#e8e5ce] leading-none tracking-tight ${showTemplatePicker ? 'text-4xl lg:text-5xl' : ''}`}>
                   {!showTemplatePicker && hasData ? (
                     <>
-                      <span className="block text-white/50 text-2xl lg:text-3xl mb-1">Email Briefing:</span>
-                      {/* The name shrinks to fit the width beside the step counter; it never wraps or runs off the band. */}
-                      <FitText text={dynamicName} max={30} min={14} className="leading-tight pb-0.5" />
+                      {/* One line: the label, then the name, which shrinks to fit the width beside the step counter and never wraps or runs off the band. */}
+                      <span className="flex items-baseline gap-3">
+                        <span className="shrink-0 text-white/50 text-2xl lg:text-3xl">Email Briefing:</span>
+                        <span className="flex-1 min-w-0">
+                          <FitText text={dynamicName} max={30} min={14} className="leading-tight pb-0.5" />
+                        </span>
+                      </span>
                     </>
                   ) : (
                     <span className={showTemplatePicker ? '' : 'text-2xl lg:text-3xl'}>Email Briefing</span>
@@ -1004,18 +935,20 @@ export function FormShell() {
 
       {/* ── Step tabs (sticky below nav) ── */}
       {!showBoard && <div className="sticky top-14 z-30 bg-white dark:bg-gray-900 border-b border-brand-border-warm dark:border-gray-700 overflow-x-auto">
-        <div className={PAGE_X}>
+        <div className={`${pageX} flex items-center justify-between gap-4`}>
           <StepIndicator
             currentStep={indicatorStep}
             highestStepReached={highestStep}
             onStepClick={goToStep}
             briefSteps={visibleBriefSteps}
           />
+          {/* On Brief & Build the draft state, Brand Review score and Continue live here, drawn in by the page below. */}
+          {currentBriefStepId === 'build' && !showTemplatePicker && <div ref={setNavSlot} className="shrink-0" />}
         </div>
       </div>}
 
       {/* ── Main content ── */}
-      {!showBoard && <div ref={cardRef} className={`flex-1 ${PAGE_X} w-full py-8`}>
+      {!showBoard && <div ref={cardRef} className={`flex-1 ${pageX} w-full py-8`}>
         <FormProvider {...form}>
           <form onSubmit={(e) => e.preventDefault()}>
             {showTemplatePicker ? (
@@ -1030,10 +963,40 @@ export function FormShell() {
               /* Two-column on lg+: form card + help panel. Single column on md and below. */
               <div className="flex flex-col lg:flex-row gap-8 items-start">
                 {/* Form card */}
-                <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700">
-                  <div ref={stepContentRef} className="p-8 lg:p-10">
-                    {currentBriefStepId === 'campaign' && <StepCampaign />}
-                    {currentBriefStepId === 'content' && <StepContent />}
+                <div className={currentBriefStepId === 'build' ? 'flex-1 min-w-0' : 'flex-1 min-w-0 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700'}>
+                  <div ref={stepContentRef} className={currentBriefStepId === 'build' ? '' : 'p-8 lg:p-10'}>
+                    {currentBriefStepId === 'build' && (
+                      <BriefAttentionProvider attempted={attempted} problems={advanceProblems} required={required} order={sectionOrder} fieldOrder={fieldOrder} hidden={hiddenFields} jumpRef={jumpRef}>
+                       {navSlot && createPortal(
+                        <WorkspaceStatusBar
+                          saveStatus={saveStatus}
+                          savedAt={lastSavedAt}
+                          score={brandReview.review.score}
+                          minimumScore={brandReview.minimumScore}
+                          onContinue={continueToReview}
+                          onJump={(path) => jumpRef.current?.(path)}
+                        />,
+                        navSlot,
+                       )}
+                       <BriefBuildWorkspace
+                        statusBar={<WorkspaceProblems problems={advanceProblems} onJump={(path) => jumpRef.current?.(path)} />}
+                        brief={<>
+                        <div className="flex flex-wrap items-center gap-2 mb-3 px-4">
+                          <button type="button" onClick={handleChangeTemplate} className="text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 px-3 py-2 transition-colors">
+                            Change template
+                          </button>
+                          {watchedCampaignName && settings.campaignInsights?.enabled !== false && (
+                            <button type="button" onClick={() => setShowInsights(true)} className="text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 px-3 py-2 transition-colors">
+                              Campaign insights
+                            </button>
+                          )}
+                        </div>
+                        <StepCampaign />
+                       </>}
+                        canvas={<div id="brief-email-builder"><StepContent /></div>}
+                       />
+                      </BriefAttentionProvider>
+                    )}
                     {isReviewTab && (
                       <StepReviewSubmission
                         onExport={submitBrief}
@@ -1051,15 +1014,11 @@ export function FormShell() {
                 </div>
 
                 {/* Help panel — full width on < lg, fixed sidebar on lg+. The builder tab uses the full width. */}
-                {currentBriefStepId !== 'content' && <div className="w-full lg:w-[320px] xl:w-[340px] shrink-0">
+                {currentBriefStepId !== 'build' && <div className="w-full lg:w-[320px] xl:w-[340px] shrink-0">
                   <HelpPanel
                     stepId={currentStepId}
                     currentStepIndex={currentStep}
                     totalBriefSteps={visibleBriefSteps.length}
-                    currentTheme={currentTheme}
-                    onChangeTemplate={currentBriefStepId === 'campaign' ? handleChangeTemplate : undefined}
-                    campaignName={watchedCampaignName || undefined}
-                    onOpenInsights={watchedCampaignName ? () => setShowInsights(true) : undefined}
                     brandReview={brandReview}
                     onGoToTab={handleGoToTab}
                     briefSummary={isReviewTab ? {
@@ -1067,6 +1026,8 @@ export function FormShell() {
                       sendDate: watchedSendDate,
                       subjectLine: watchedSubjectLine,
                       previewText: watchedPreviewText,
+                      senderType: watchedSenderType,
+                      specificUser: watchedSpecificUser,
                       fromName: watchedFromName,
                       fromAddress: watchedFromAddress,
                       replyToEmail: watchedReplyToEmail,
@@ -1085,10 +1046,10 @@ export function FormShell() {
         </FormProvider>
       </div>}
 
-      {/* ── Sticky footer navigation — brief steps only ── */}
-      {!showBoard && !showTemplatePicker && (
+      {/* ── Sticky footer navigation — brief steps only. Brief & Build has its own Continue in the status bar. ── */}
+      {!showBoard && !showTemplatePicker && currentBriefStepId !== 'build' && (
         <footer className="sticky bottom-0 z-30 bg-white dark:bg-gray-900 border-t border-brand-border-warm dark:border-gray-700">
-          <div className={`${PAGE_X} py-3 flex items-center justify-between gap-4`}>
+          <div className={`${pageX} py-3 flex items-center justify-between gap-4`}>
             {!isFirstStep ? (
               <button
                 type="button"
@@ -1108,7 +1069,11 @@ export function FormShell() {
               <div role="alert" className="flex-1 min-w-0 text-xs text-red-700 dark:text-red-300">
                 <p className="font-medium">Can&rsquo;t continue yet. Fix {advanceProblems.length === 1 ? 'this' : 'these'}:</p>
                 <ul className="mt-0.5 space-y-0.5">
-                  {advanceProblems.slice(0, 3).map((p) => <li key={p.field} className="truncate">{p.field}: {p.message}</li>)}
+                  {advanceProblems.slice(0, 3).map((p) => (
+                    <li key={p.path} className="truncate">
+                      <button type="button" onClick={() => jumpRef.current?.(p.path)} className="underline underline-offset-2 hover:no-underline text-left">{p.field}</button>: {p.message}
+                    </li>
+                  ))}
                   {advanceProblems.length > 3 && <li>…and {advanceProblems.length - 3} more</li>}
                 </ul>
               </div>
@@ -1135,7 +1100,7 @@ export function FormShell() {
             ) : currentStep === lastBriefStep - 1 ? (
               <button
                 type="button"
-                onClick={handleBriefSubmitAndAdvance}
+                onClick={continueToReview}
                 className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
               >
                 Continue to {visibleBriefSteps[currentStep + 1]?.label ?? ''}

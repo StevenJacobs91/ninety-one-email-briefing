@@ -5,8 +5,10 @@ import { createDefaultSettings, mergeHtmlModules, mergePowerAutomate, DEFAULT_HE
 import { mergeFormSteps } from '../lib/briefTabs'
 import { useAuth } from './AuthContext'
 import { fetchSettings, upsertSettings } from '../lib/supabaseQueries'
+import { protectThemeAssets } from '../lib/themeAssetGuard'
 
 const SAVE_DEBOUNCE_MS = 1000
+const LOAD_RETRY_MS = 5000
 
 interface SettingsContextValue {
   settings: AppSettings
@@ -29,6 +31,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>()
   const settingsRef = useRef(settings)
   settingsRef.current = settings
+  // Nothing is saved until the team's settings have loaded (or it is known there are none), so the built-in defaults a page
+  // starts on can never be written over what the team saved. The themes as loaded let a save tell a URL cleared on purpose
+  // from one this session never saw.
+  const loadedOkRef = useRef(false)
+  const loadedThemesRef = useRef<BrandThemeConfig[]>([])
 
   // Fetch settings from Supabase on mount / team change
   useEffect(() => {
@@ -38,14 +45,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false
+    let retry: ReturnType<typeof setTimeout> | undefined
+    loadedOkRef.current = false
     setLoading(true)
 
-    fetchSettings(teamId).then((remote) => {
+    const load = () => fetchSettings(teamId).then((remote) => {
       if (cancelled) return
       if (remote) {
         // Merge with defaults to pick up any new fields
         const defaults = createDefaultSettings()
-        setSettings({
+        const next: AppSettings = {
           ...defaults,
           ...remote,
           // Merge brand themes: apply user edits to built-in IDs, append custom themes
@@ -65,6 +74,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           pardot: { ...defaults.pardot, ...(remote.pardot ?? {}) },
           powerAutomate: mergePowerAutomate(remote.powerAutomate),
           formSteps: mergeFormSteps(remote.formSteps),
+          briefLayout: { sectionOrder: [], requiredFields: {}, ...(remote.briefLayout ?? {}) },
           campaigns: remote.campaigns ?? defaults.campaigns,
           signoffs: remote.signoffs ?? defaults.signoffs,
           customEmailTypes: remote.customEmailTypes ?? defaults.customEmailTypes,
@@ -104,24 +114,53 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                 }),
               }
             : defaults.notifications,
-        })
+        }
+        setSettings(next)
+        loadedThemesRef.current = next.brandThemes
+      } else {
+        // The team has not saved settings yet, so the defaults are the starting point.
+        loadedThemesRef.current = settingsRef.current.brandThemes
       }
+      loadedOkRef.current = true
       setLoading(false)
-    }).catch(() => {
-      if (!cancelled) setLoading(false)
+    }).catch((err: unknown) => {
+      if (cancelled) return
+      // Not loaded: changes are not saved, so the defaults cannot overwrite the team's settings. Try again shortly.
+      console.error('Settings could not be loaded; changes will not be saved until they can:', err)
+      setLoading(false)
+      retry = setTimeout(load, LOAD_RETRY_MS)
     })
 
-    return () => { cancelled = true }
+    load()
+    return () => {
+      cancelled = true
+      if (retry) clearTimeout(retry)
+    }
   }, [teamId])
 
   // Debounced save to Supabase whenever settings change
   const scheduleRemoteSave = useCallback(() => {
     if (!teamId) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    saveTimerRef.current = setTimeout(() => {
-      upsertSettings(teamId, settingsRef.current).catch((err) => {
+    saveTimerRef.current = setTimeout(async () => {
+      if (!loadedOkRef.current) return
+      try {
+        const current = settingsRef.current
+        // What is stored now is checked first: a theme URL this session never saw is kept, not overwritten with an empty one.
+        const stored = await fetchSettings(teamId)
+        let toSave = current
+        if (stored?.brandThemes) {
+          const { themes, restored } = protectThemeAssets(current.brandThemes, loadedThemesRef.current, stored.brandThemes)
+          if (restored > 0) {
+            toSave = { ...current, brandThemes: themes }
+            setSettings((prev) => ({ ...prev, brandThemes: themes }))
+          }
+        }
+        await upsertSettings(teamId, toSave)
+        loadedThemesRef.current = toSave.brandThemes
+      } catch (err) {
         console.error('Settings save failed:', err)
-      })
+      }
     }, SAVE_DEBOUNCE_MS)
   }, [teamId])
 

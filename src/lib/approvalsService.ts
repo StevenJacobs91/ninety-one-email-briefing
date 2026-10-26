@@ -7,7 +7,9 @@ import type {
   CommentType,
   CommentCategory,
   ApprovalStageConfig,
+  ApprovalPools,
 } from '../types/approval.types'
+import { APPROVAL_ROLE_LABELS, friendlyApprovalError } from './approvalRouting'
 import type { BriefPayload } from '../types/brief.types'
 
 // ─── Private DB row shapes ────────────────────────────────────
@@ -30,6 +32,10 @@ interface ApprovalRow {
   due_date: string | null
   stage: number
   total_stages: number
+  stages_snapshot: ApprovalStageConfig[] | null
+  round: number | null
+  content_hash: string | null
+  stale: boolean | null
   version_snapshot: Record<string, unknown>
   created_at: string
   updated_at: string
@@ -75,6 +81,10 @@ function rowToApproval(row: ApprovalRow): ApprovalRecord {
     dueDate: row.due_date,
     stage: row.stage,
     totalStages: row.total_stages,
+    stagesSnapshot: row.stages_snapshot ?? [],
+    round: row.round ?? 1,
+    contentHash: row.content_hash ?? null,
+    stale: row.stale ?? false,
     versionSnapshot: row.version_snapshot,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -104,47 +114,81 @@ function rowToComment(row: CommentRow): ApprovalComment {
 
 // ─── Approvals ────────────────────────────────────────────────
 
+/** The database's refusals arrive as short codes; this turns them into something a person can act on. */
+function approvalError(prefix: string, message: string): Error {
+  const friendly = friendlyApprovalError(message, APPROVAL_ROLE_LABELS)
+  return new Error(friendly === message ? `${prefix}: ${message}` : friendly)
+}
+
+/**
+ * Submits a brief for approval, or resubmits it after changes were asked for. The database reads the brief itself (so what
+ * is approved is what is saved), checks that every stage still to run has someone who could decide it other than the
+ * person submitting, and refuses a second open approval. `startStage` above 1 resumes at the stage that asked for changes,
+ * keeping the approvals already given for the stages before it.
+ */
 export async function requestApproval(params: {
-  teamId: string
   briefId: string
   emailName: string
-  requestedBy: string
-  requestedByName: string
-  briefSnapshot: BriefPayload
   stages: ApprovalStageConfig[]
+  startStage?: number
 }): Promise<ApprovalRecord> {
-  const { teamId, briefId, emailName, requestedBy, requestedByName, briefSnapshot, stages } = params
+  const { briefId, emailName, stages, startStage = 1 } = params
 
   if (stages.length === 0) {
     throw new Error('At least one approval stage is required')
   }
 
-  const firstStage = stages[0]
-  const dueDate = firstStage.dueDaysFromRequest
-    ? new Date(Date.now() + firstStage.dueDaysFromRequest * 86400000).toISOString()
-    : null
+  const { data, error } = await supabase.rpc('request_approval', {
+    p_brief_id: briefId,
+    p_email_name: emailName,
+    p_stages: stages as unknown as Record<string, unknown>[],
+    p_start_stage: startStage,
+  })
 
-  const { data, error } = await supabase
-    .from('approvals')
-    .insert({
-      team_id: teamId,
-      brief_id: briefId,
-      email_name: emailName,
-      status: 'pending',
-      requested_by: requestedBy,
-      requested_by_name: requestedByName,
-      approver_role: firstStage.role,
-      approver_user_id: firstStage.assignedUserId ?? null,
-      due_date: dueDate,
-      stage: 1,
-      total_stages: stages.length,
-      version_snapshot: briefSnapshot as unknown as Record<string, unknown>,
-    })
-    .select()
-    .single()
-
-  if (error) throw new Error(`Failed to request approval: ${error.message}`)
+  if (error) throw approvalError('Failed to request approval', error.message)
   return rowToApproval(data as ApprovalRow)
+}
+
+/** The requester (or an admin) takes a pending approval back. */
+export async function withdrawApproval(params: { id: string; reason?: string }): Promise<ApprovalRecord> {
+  const { data, error } = await supabase.rpc('withdraw_approval', { p_id: params.id, p_reason: params.reason ?? '' })
+  if (error) throw approvalError('Failed to withdraw the approval', error.message)
+  return rowToApproval(data as ApprovalRow)
+}
+
+/** The people who could decide an approval, so they can be told it is waiting. */
+export async function getApprovalRecipients(approvalId: string): Promise<{ userId: string; displayName: string; email: string }[]> {
+  const { data, error } = await supabase.rpc('approval_recipients', { p_approval_id: approvalId })
+  if (error) throw approvalError('Failed to look up the approvers', error.message)
+  return ((data ?? []) as { user_id: string; display_name: string | null; email: string | null }[])
+    .map((r) => ({ userId: r.user_id, displayName: r.display_name ?? '', email: r.email ?? '' }))
+}
+
+/** Admins only: distribute a card the approval rules would block, with a reason that is kept on record. */
+export async function distributeWithOverride(params: { cardId: string; reason: string }): Promise<void> {
+  const { error } = await supabase.rpc('distribute_with_override', { p_card_id: params.cardId, p_reason: params.reason })
+  if (error) throw approvalError('Failed to distribute', error.message)
+}
+
+export interface ApprovalOverride {
+  id: string
+  briefId: string
+  actorName: string
+  reason: string
+  blockedFor: string
+  createdAt: string
+}
+
+/** Every time an admin distributed a brief without the approval the team requires. */
+export async function getApprovalOverrides(teamId: string): Promise<ApprovalOverride[]> {
+  const { data, error } = await supabase
+    .from('approval_overrides')
+    .select('id, brief_id, actor_name, reason, blocked_for, created_at')
+    .eq('team_id', teamId)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`Failed to fetch overrides: ${error.message}`)
+  return ((data ?? []) as { id: string; brief_id: string; actor_name: string; reason: string; blocked_for: string; created_at: string }[])
+    .map((r) => ({ id: r.id, briefId: r.brief_id, actorName: r.actor_name, reason: r.reason, blockedFor: r.blocked_for, createdAt: r.created_at }))
 }
 
 export async function getApprovals(
@@ -176,62 +220,48 @@ export async function getApprovalById(id: string): Promise<ApprovalRecord | null
   return rowToApproval(data as ApprovalRow)
 }
 
-export async function updateApprovalStatus(params: {
+/**
+ * Records a decision. The database checks that the person is one of the approvers for the stage, is not the one who
+ * submitted it, and that it is still pending, then starts the next stage in the same step.
+ */
+export async function decideApproval(params: {
   id: string
-  status: ApprovalStatus
-  decidedBy: string
-  decidedByName: string
-  decisionComment: string
-  teamId: string
-  allStages?: ApprovalStageConfig[]
+  decision: 'approved' | 'rejected' | 'changes_requested'
+  comment: string
 }): Promise<ApprovalRecord> {
-  const { id, status, decidedBy, decidedByName, decisionComment, teamId, allStages } = params
+  const { data, error } = await supabase.rpc('decide_approval', {
+    p_id: params.id,
+    p_decision: params.decision,
+    p_comment: params.comment,
+  })
 
-  // Conditional update — only update if still pending to prevent race conditions
+  if (error) throw approvalError('Failed to record the decision', error.message)
+  return rowToApproval(data as ApprovalRow)
+}
+
+// ─── Approvers ────────────────────────────────────────────────
+
+/** Who may decide each role's stages. */
+export async function getApprovalPools(teamId: string): Promise<ApprovalPools> {
   const { data, error } = await supabase
-    .from('approvals')
-    .update({
-      status,
-      decided_by: decidedBy,
-      decided_by_name: decidedByName,
-      decided_at: new Date().toISOString(),
-      decision_comment: decisionComment,
-    })
-    .eq('id', id)
-    .eq('status', 'pending')
-    .select()
-    .single()
+    .from('approval_pool_members')
+    .select('role, user_id')
+    .eq('team_id', teamId)
 
-  if (error) throw new Error(`Failed to update approval: ${error.message}`)
-
-  const updated = rowToApproval(data as ApprovalRow)
-
-  // If approved and more stages remain, insert the next stage
-  if (status === 'approved' && updated.stage < updated.totalStages && allStages) {
-    const nextStageConfig = allStages.find((s) => s.stage === updated.stage + 1)
-    if (nextStageConfig) {
-      const dueDate = nextStageConfig.dueDaysFromRequest
-        ? new Date(Date.now() + nextStageConfig.dueDaysFromRequest * 86400000).toISOString()
-        : null
-
-      await supabase.from('approvals').insert({
-        team_id: teamId,
-        brief_id: updated.briefId,
-        email_name: updated.emailName,
-        status: 'pending',
-        requested_by: updated.requestedBy,
-        requested_by_name: updated.requestedByName,
-        approver_role: nextStageConfig.role,
-        approver_user_id: nextStageConfig.assignedUserId ?? null,
-        due_date: dueDate,
-        stage: nextStageConfig.stage,
-        total_stages: updated.totalStages,
-        version_snapshot: updated.versionSnapshot,
-      })
-    }
+  if (error) throw new Error(`Failed to fetch approvers: ${error.message}`)
+  const pools: ApprovalPools = {}
+  for (const row of (data ?? []) as { role: ApprovalRole; user_id: string }[]) {
+    pools[row.role] = [...(pools[row.role] ?? []), row.user_id]
   }
+  return pools
+}
 
-  return updated
+/** Replaces a role's approvers. Admins only; the database refuses anyone else. */
+export async function setApprovalPool(role: ApprovalRole, userIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc('set_approval_pool', { p_role: role, p_user_ids: userIds })
+  if (error) {
+    throw new Error(error.message === 'admin_only' ? 'Only admins can change who the approvers are.' : `Failed to save approvers: ${error.message}`)
+  }
 }
 
 export async function fetchBriefById(briefId: string): Promise<BriefPayload | null> {

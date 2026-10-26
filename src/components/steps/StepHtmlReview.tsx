@@ -336,7 +336,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
       const warnings: string[] = []
       const { missing } = await collected
       if (missing.length > 0) {
-        warnings.push(`${missing.length} attachment${missing.length > 1 ? 's were' : ' was'} not attached because the page was reloaded after adding ${missing.length > 1 ? 'them' : 'it'}: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} again on the Campaign tab.`)
+        warnings.push(`${missing.length} attachment${missing.length > 1 ? 's were' : ' was'} not attached because the page was reloaded after adding ${missing.length > 1 ? 'them' : 'it'}: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} again in Brief & Build.`)
       }
       const attachments = await allAttachments()
 

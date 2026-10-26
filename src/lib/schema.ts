@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LOGO_VARIANTS, URGENCY_OPTIONS } from './constants'
+import { LOGO_VARIANTS, SENDER_TYPES, URGENCY_OPTIONS } from './constants'
 
 const contentSectionSchema = z.object({
   id: z.string(),
@@ -29,6 +29,10 @@ const campaignSchema = z.object({
   theme: z.string().min(1, 'Theme is required'),
   subjectLine: z.string().min(1, 'Subject line is required'),
   previewText: z.string().min(1, 'Preview text is required'),
+  /** Who the email is sent as in Pardot. Briefs saved before this existed are general-user sends. */
+  senderType: z.enum(SENDER_TYPES).optional().default('general'),
+  /** The Pardot user a specific-user send comes from (their user ID) */
+  specificUser: z.string().optional().default(''),
   fromName: z.string().min(1, 'From name is required'),
   fromAddress: z.string().email('Must be a valid email address'),
   replyToEmail: z.string().email('Must be a valid email address').or(z.literal('')).optional(),

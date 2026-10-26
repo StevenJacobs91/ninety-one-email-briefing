@@ -3,6 +3,7 @@ import type { ApprovalRecord } from '../../types/approval.types'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { ApprovalCommentThread } from './ApprovalCommentThread'
 import { ApprovalStatusBadge } from './ApprovalStatusBadge'
+import { DECISION_BLOCK_MESSAGE } from '../../lib/approvalRouting'
 
 const ROLE_LABEL: Record<string, string> = {
   brand_guardian: 'Brand Guardian',
@@ -32,7 +33,10 @@ const DECISION_LABELS: Record<Decision, string> = {
 }
 
 export function ApprovalDecisionDrawer({ approval, onClose }: ApprovalDecisionDrawerProps) {
-  const { approve, reject, requestChanges } = useApprovals()
+  const { approve, reject, requestChanges, decisionBlockFor } = useApprovals()
+  // Whether this person may decide it: the database applies the same rules, this lets the screen say so first.
+  const block = decisionBlockFor(approval)
+  const canDecide = block === null
   const [decision, setDecision] = useState<Decision | null>(null)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -173,8 +177,20 @@ export function ApprovalDecisionDrawer({ approval, onClose }: ApprovalDecisionDr
               </section>
             )}
 
-            {/* Decision form — only when pending */}
-            {approval.status === 'pending' && (
+            {/* Why there is no decision form, when this person cannot decide it */}
+            {approval.status === 'pending' && !canDecide && block && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-gray-800" />
+                <section>
+                  <p role="status" className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+                    {DECISION_BLOCK_MESSAGE[block]}
+                  </p>
+                </section>
+              </>
+            )}
+
+            {/* Decision form — only when pending, and only for someone who may decide it */}
+            {approval.status === 'pending' && canDecide && (
               <>
                 <div className="h-px bg-gray-100 dark:bg-gray-800" />
                 <section>
@@ -221,7 +237,7 @@ export function ApprovalDecisionDrawer({ approval, onClose }: ApprovalDecisionDr
                   </div>
 
                   {error && (
-                    <p className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>
+                    <p role="alert" className="text-xs text-red-600 dark:text-red-400 mt-2">{error}</p>
                   )}
                 </section>
               </>
@@ -230,7 +246,7 @@ export function ApprovalDecisionDrawer({ approval, onClose }: ApprovalDecisionDr
         </div>
 
         {/* Footer */}
-        {approval.status === 'pending' && (
+        {approval.status === 'pending' && canDecide && (
           <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-6 py-4 flex gap-3">
             <button
               type="button"

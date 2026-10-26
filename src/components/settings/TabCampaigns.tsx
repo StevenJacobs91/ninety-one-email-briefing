@@ -4,6 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
 import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
 import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
+import { slugifyUtm } from '../../lib/utm'
 import { campaignSearchParts, matchesSearch } from '../../lib/settingsSearch'
 import { SettingsSearchField } from './SettingsSearchField'
 
@@ -66,6 +67,7 @@ interface CampaignFormState {
   clientGroups: string[]
   channels: string[]
   pardotCampaignId: string
+  utmCampaign: string
   hasSenderPreset: boolean
   preset: CampaignSenderPreset
   hasContentPreset: boolean
@@ -91,6 +93,7 @@ const EMPTY_FORM: CampaignFormState = {
   clientGroups: [],
   channels: [],
   pardotCampaignId: '',
+  utmCampaign: '',
   hasSenderPreset: false,
   preset: EMPTY_PRESET,
   hasContentPreset: false,
@@ -103,6 +106,7 @@ function formFromEntry(c: CampaignEntry): CampaignFormState {
     clientGroups: [...(c.clientGroups ?? [])],
     channels: [...c.channels],
     pardotCampaignId: c.pardotCampaignId ?? '',
+    utmCampaign: c.utmCampaign ?? '',
     hasSenderPreset: !!c.senderPreset,
     preset: c.senderPreset ? { ...c.senderPreset } : { ...EMPTY_PRESET },
     hasContentPreset: !!c.contentPreset,
@@ -137,6 +141,7 @@ function entryFromForm(id: string, form: CampaignFormState): CampaignEntry {
     clientGroups: form.clientGroups,
     channels: form.channels,
     pardotCampaignId: extractCampaignId(form.pardotCampaignId) || undefined,
+    utmCampaign: form.utmCampaign.trim() || undefined,
     senderPreset: form.hasSenderPreset && form.preset.fromName.trim()
       ? { fromName: form.preset.fromName.trim(), fromAddress: form.preset.fromAddress.trim(), replyToEmail: form.preset.replyToEmail.trim() }
       : undefined,
@@ -419,6 +424,25 @@ function CampaignForm({
         selected={form.channels}
         onChange={(v) => onChange({ channels: v })}
       />
+
+      {/* UTM campaign: what new briefs for this campaign start with */}
+      <div>
+        <label htmlFor="campaign-utm" className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+          UTM Campaign
+          <span className="ml-1.5 font-normal text-gray-400">optional</span>
+        </label>
+        <input
+          id="campaign-utm"
+          type="text"
+          value={form.utmCampaign}
+          onChange={(e) => onChange({ utmCampaign: e.target.value })}
+          placeholder={form.name.trim() ? slugifyUtm(form.name) : 'e.g. women-and-investing-newsletter'}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary font-mono placeholder:font-sans placeholder:text-xs"
+        />
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          Fills the UTM Campaign field when this campaign is chosen. Left blank, the campaign name is used. In links, words are joined with hyphens.
+        </p>
+      </div>
 
       {/* Pardot Campaign URL */}
       <div>

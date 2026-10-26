@@ -28,11 +28,11 @@ export function evaluateGate(i: GateInput): GateResult {
 }
 
 const TAB_BY_PREFIX: ReadonlyArray<[string, BriefTabId]> = [
-  ['campaign', 'campaign'],
-  ['audience', 'campaign'],
-  ['assets', 'campaign'],
-  ['deadlines', 'campaign'],
-  ['content', 'content'],
+  ['campaign', 'build'],
+  ['audience', 'build'],
+  ['assets', 'build'],
+  ['deadlines', 'build'],
+  ['content', 'build'],
 ]
 
 export function fieldToTab(field: string): BriefTabId | null {

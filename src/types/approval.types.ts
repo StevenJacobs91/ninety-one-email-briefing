@@ -5,6 +5,9 @@ export type ApprovalStatus =
   | 'approved'
   | 'rejected'
   | 'changes_requested'
+  | 'withdrawn'
+  /** The brief changed after it was submitted, so the database closed the approval */
+  | 'superseded'
 
 export type ApprovalRole =
   | 'brand_guardian'
@@ -49,6 +52,15 @@ export interface ApprovalRecord {
 
   stage: number
   totalStages: number
+  /** The stages this approval is following, saved when it was submitted, so later changes to Settings do not rewrite it */
+  stagesSnapshot: ApprovalStageConfig[]
+
+  /** Which submission this belongs to: 1 for the first, 2 after a resubmission, and so on */
+  round: number
+  /** A fingerprint of the brief's content when it was submitted */
+  contentHash: string | null
+  /** True once the brief has changed since this was decided, so the decision no longer covers it */
+  stale: boolean
 
   // Full BriefPayload at time of request — typed loosely to avoid circular import
   versionSnapshot: Record<string, unknown>
@@ -103,6 +115,8 @@ export interface ApprovalConfig {
   enabled: boolean
   defaultStages: ApprovalStageConfig[]
   emailTypeConfigs: EmailTypeApprovalConfig[]
-  selfServiceRequest: boolean
   blockDistributionWithoutApproval: boolean
 }
+
+/** Who may decide each role's stages: role to user ids. Kept in its own table, which only admins can change. */
+export type ApprovalPools = Partial<Record<ApprovalRole, string[]>>

@@ -1,4 +1,21 @@
 /**
+ * A campaign name as it goes in a link: lower case, with hyphens between the words ("women-and-investing-newsletter"),
+ * never "+" or "%20". Anything that is not a letter, digit, hyphen, underscore or dot becomes a hyphen.
+ */
+export function slugifyUtm(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9_.~-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/** What a campaign puts in the UTM field: the one set for it in Settings if there is one, else its name. Either way, as a slug. */
+export function campaignUtm(campaign: { name: string; utmCampaign?: string }): string {
+  return slugifyUtm(campaign.utmCampaign?.trim() || campaign.name)
+}
+
+/**
  * Appends UTM tracking parameters to a URL.
  * Preserves any existing query parameters.
  */
@@ -8,7 +25,8 @@ export function appendUtm(url: string, campaignName: string): string {
     const u = new URL(url)
     u.searchParams.set('utm_medium', 'email')
     u.searchParams.set('utm_source', 'pardot')
-    u.searchParams.set('utm_campaign', campaignName)
+    const campaign = slugifyUtm(campaignName)
+    if (campaign) u.searchParams.set('utm_campaign', campaign)
     return u.toString()
   } catch {
     // Not a valid absolute URL — return as-is

@@ -18,8 +18,27 @@ const NAMES: Record<string, string> = {
 }
 
 export interface FormProblem {
+  /** The name a person would recognise, such as "Button label" */
   field: string
   message: string
+  /** The field's path in the brief, such as "content.cta.label", so a problem can be jumped to */
+  path: string
+}
+
+const nameOf = (path: string[]) => NAMES[path.join('.')] ?? path.map((p) => (/^\d+$/.test(p) ? String(Number(p) + 1) : p)).join(' › ')
+
+/** The problems a schema check found, one for each field, in the order found. */
+export function describeIssues(issues: readonly { path: readonly PropertyKey[]; message: string }[]): FormProblem[] {
+  const seen = new Set<string>()
+  const problems: FormProblem[] = []
+  for (const issue of issues) {
+    const path = issue.path.map(String)
+    const key = path.join('.')
+    if (seen.has(key)) continue
+    seen.add(key)
+    problems.push({ field: nameOf(path), message: issue.message || 'Not valid', path: key })
+  }
+  return problems
 }
 
 /** Every failing field in the form, with its message, so a stalled "Continue" can say what to fix. */
@@ -30,10 +49,10 @@ export function describeFormErrors(errors: FieldErrors<BriefFormData>): FormProb
     const entry = node as Record<string, unknown>
     // A leaf error has a message or a type; anything else is a group of fields or a list.
     if ('message' in entry || 'type' in entry) {
-      const key = path.join('.')
       problems.push({
-        field: NAMES[key] ?? path.map((p) => (/^\d+$/.test(p) ? String(Number(p) + 1) : p)).join(' › '),
+        field: nameOf(path),
         message: typeof entry.message === 'string' && entry.message ? entry.message : 'Not valid',
+        path: path.join('.'),
       })
       return
     }

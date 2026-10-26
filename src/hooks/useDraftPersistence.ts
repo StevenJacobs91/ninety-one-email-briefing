@@ -24,6 +24,8 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
   const localTimerRef = useRef<ReturnType<typeof setTimeout>>()
   const remoteTimerRef = useRef<ReturnType<typeof setTimeout>>()
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  // When the draft was last written, kept after the 'saved' badge has faded so the page can still say when.
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   // Restore draft on mount — check both localStorage and Supabase
@@ -81,6 +83,7 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
         if (!best.content?.modules) best.content.modules = []
         form.reset(best)
         setSaveStatus('saved')
+        setLastSavedAt(Math.max(localTime, remoteTime) || null)
       }
     }
 
@@ -102,6 +105,7 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(values))
           localStorage.setItem(DRAFT_VERSION_KEY, String(CURRENT_VERSION))
           setSaveStatus('saved')
+          setLastSavedAt(Date.now())
           savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000)
         } catch {
           setSaveStatus('idle')
@@ -144,6 +148,7 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
   const clearDraft = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
     setSaveStatus('idle')
+    setLastSavedAt(null)
 
     // Also clear remote auto-draft
     if (teamId && userId) {
@@ -159,5 +164,5 @@ export function useDraftPersistence(form: UseFormReturn<BriefFormData>) {
     }
   }, [teamId, userId])
 
-  return { clearDraft, saveStatus }
+  return { clearDraft, saveStatus, lastSavedAt }
 }

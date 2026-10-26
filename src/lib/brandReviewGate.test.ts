@@ -53,9 +53,10 @@ test('post-submission AI mode never blocks on the AI review', () => {
 })
 
 test('fieldToTab maps brief field paths onto tabs', () => {
-  assert.equal(fieldToTab('campaign.subjectLine'), 'campaign')
-  assert.equal(fieldToTab('deadlines.sendDate'), 'campaign')
-  assert.equal(fieldToTab('content.headline'), 'content')
+  assert.equal(fieldToTab('campaign.subjectLine'), 'build')
+  assert.equal(fieldToTab('deadlines.sendDate'), 'build')
+  assert.equal(fieldToTab('audience.region'), 'build')
+  assert.equal(fieldToTab('content.headline'), 'build', 'the brief and the email are on the same tab now')
   assert.equal(fieldToTab('something.else'), null)
 })
 

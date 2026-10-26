@@ -9,6 +9,9 @@ export type NotificationEventType =
   | 'approval_requested'
   | 'approval_approved'
   | 'approval_rejected'
+  | 'approval_changes_requested'
+  | 'approval_withdrawn'
+  | 'approval_overridden'
   | 'approval_expired'
   | 'user_invited'
   | 'deadline_approaching'
@@ -80,6 +83,27 @@ export const NOTIFICATION_EVENT_META: Record<NotificationEventType, Notification
     group: 'approval',
     defaultSubject: 'Brief Rejected: {{campaignName}}',
     mergeTags: ['{{campaignName}}', '{{rejectedBy}}', '{{reason}}'],
+  },
+  approval_changes_requested: {
+    label: 'Changes Requested',
+    description: 'Fires when an approver sends a brief back to the requester with changes to make.',
+    group: 'approval',
+    defaultSubject: 'Changes Requested: {{campaignName}}',
+    mergeTags: ['{{campaignName}}', '{{requestedBy}}', '{{reason}}', '{{approverRole}}'],
+  },
+  approval_withdrawn: {
+    label: 'Approval Withdrawn',
+    description: 'Fires when the requester takes a brief back from approval.',
+    group: 'approval',
+    defaultSubject: 'Approval Withdrawn: {{campaignName}}',
+    mergeTags: ['{{campaignName}}', '{{withdrawnBy}}', '{{reason}}'],
+  },
+  approval_overridden: {
+    label: 'Approval Overridden',
+    description: 'Fires when an admin distributes a brief without the approval the team requires.',
+    group: 'approval',
+    defaultSubject: 'Distributed Without Approval: {{campaignName}}',
+    mergeTags: ['{{campaignName}}', '{{overriddenBy}}', '{{reason}}'],
   },
   approval_expired: {
     label: 'Approval Overdue',

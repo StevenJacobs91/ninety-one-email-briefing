@@ -25,7 +25,7 @@ export function loadCatalogue(themeId: string, fetchImpl: typeof fetch = fetch):
     try {
       return JSON.parse(await res.text()) as ThemeCatalogue
     } catch {
-      throw new Error(`There is no module library for the theme "${themeId}" yet. Choose another theme on the Campaign tab.`)
+      throw new Error(`There is no module library for the theme "${themeId}" yet. Choose another theme in the brief.`)
     }
   })()
   cache.set(themeId, pending)

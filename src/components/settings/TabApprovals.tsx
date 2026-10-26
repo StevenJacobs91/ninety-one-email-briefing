@@ -1,5 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { useApprovals } from '../../contexts/ApprovalsContext'
+import { fetchTeamMembers, type TeamMember } from '../../lib/supabaseQueries'
+import { APPROVAL_ROLE_LABELS } from '../../lib/approvalRouting'
 import type { ApprovalConfig, ApprovalStageConfig, ApprovalRole, EmailTypeApprovalConfig } from '../../types/approval.types'
 import { Switch } from '../ui/Switch'
 
@@ -14,7 +18,6 @@ const DEFAULT_APPROVALS_CONFIG: ApprovalConfig = {
   enabled: false,
   defaultStages: [],
   emailTypeConfigs: [],
-  selfServiceRequest: true,
   blockDistributionWithoutApproval: false,
 }
 
@@ -43,9 +46,11 @@ function Toggle({
 interface StageBuilderProps {
   stages: ApprovalStageConfig[]
   onChange: (stages: ApprovalStageConfig[]) => void
+  /** The team, for naming a specific approver on a stage */
+  members: TeamMember[]
 }
 
-function StageBuilder({ stages, onChange }: StageBuilderProps) {
+function StageBuilder({ stages, onChange, members }: StageBuilderProps) {
   function addStage() {
     const newStage: ApprovalStageConfig = {
       stage: stages.length + 1,
@@ -126,6 +131,22 @@ function StageBuilder({ stages, onChange }: StageBuilderProps) {
                 />
               </div>
               <div className="col-span-2">
+                <label htmlFor={`stage-${i}-approver`} className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
+                  Approver
+                </label>
+                <select
+                  id={`stage-${i}-approver`}
+                  value={stage.assignedUserId ?? ''}
+                  onChange={(e) => updateStage(i, { assignedUserId: e.target.value || null })}
+                  className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent"
+                >
+                  <option value="">Anyone in the {APPROVAL_ROLE_LABELS[stage.role]} approvers</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.displayName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-2">
                 <label className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
                   Stage Label (optional)
                 </label>
@@ -155,10 +176,89 @@ function StageBuilder({ stages, onChange }: StageBuilderProps) {
   )
 }
 
+function ApproversEditor({ members, usedRoles }: { members: TeamMember[]; usedRoles: Set<ApprovalRole> }) {
+  const { profile } = useAuth()
+  const { pools, setPool } = useApprovals()
+  const [saving, setSaving] = useState<ApprovalRole | null>(null)
+  const [error, setError] = useState('')
+  const isAdmin = profile?.role === 'admin'
+
+  async function toggle(role: ApprovalRole, userId: string, on: boolean) {
+    const current = pools[role] ?? []
+    const next = on ? [...current, userId] : current.filter((id) => id !== userId)
+    setSaving(role)
+    setError('')
+    try {
+      await setPool(role, next)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the approvers')
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {!isAdmin && (
+        <p className="text-xs text-gray-500 dark:text-gray-400">Only admins can change who the approvers are.</p>
+      )}
+      {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {ROLE_OPTIONS.map(({ value: role, label }) => {
+        const chosen = pools[role] ?? []
+        const empty = chosen.length === 0
+        return (
+          <fieldset key={role} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800/40" disabled={!isAdmin || saving === role}>
+            <legend className="px-1 text-xs font-medium text-gray-700 dark:text-gray-300">{label}</legend>
+            {members.length === 0 ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500">No team members to choose from.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                {members.map((m) => (
+                  <label key={m.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={chosen.includes(m.id)}
+                      onChange={(e) => toggle(role, m.id, e.target.checked)}
+                      className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                    />
+                    {m.displayName}
+                  </label>
+                ))}
+              </div>
+            )}
+            {empty && usedRoles.has(role) && (
+              <p role="status" className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+                Nobody can approve {label} stages yet, so briefs with a {label} stage cannot be submitted.
+              </p>
+            )}
+          </fieldset>
+        )
+      })}
+    </div>
+  )
+}
+
 export function TabApprovals() {
   const { settings, updateSettings } = useSettings()
+  const { profile } = useAuth()
   const config: ApprovalConfig = settings.approvals ?? DEFAULT_APPROVALS_CONFIG
   const [expandedEmailType, setExpandedEmailType] = useState<string | null>(null)
+  const [members, setMembers] = useState<TeamMember[]>([])
+
+  useEffect(() => {
+    if (!profile?.teamId || !config.enabled) return
+    let cancelled = false
+    fetchTeamMembers(profile.teamId)
+      .then((list) => { if (!cancelled) setMembers(list) })
+      .catch(() => { /* the lists are then empty, and say so */ })
+    return () => { cancelled = true }
+  }, [profile?.teamId, config.enabled])
+
+  // The roles some stage depends on, so an empty list for one of them can be flagged
+  const usedRoles = new Set<ApprovalRole>([
+    ...(config.defaultStages ?? []).map((s) => s.role),
+    ...(config.emailTypeConfigs ?? []).flatMap((c) => c.stages.map((s) => s.role)),
+  ])
 
   function patch(updates: Partial<ApprovalConfig>) {
     updateSettings({ approvals: { ...config, ...updates } })
@@ -212,12 +312,6 @@ export function TabApprovals() {
             <>
               <div className="h-px bg-gray-200 dark:bg-gray-700" />
               <Toggle
-                checked={config.selfServiceRequest}
-                onChange={(v) => patch({ selfServiceRequest: v })}
-                label="Allow self-service requests"
-                description="Requesters can submit their own briefs for approval. When off, only producers and admins can submit."
-              />
-              <Toggle
                 checked={config.blockDistributionWithoutApproval}
                 onChange={(v) => patch({ blockDistributionWithoutApproval: v })}
                 label="Block distribution without approval"
@@ -227,6 +321,23 @@ export function TabApprovals() {
           )}
         </div>
       </section>
+
+      {/* Who may decide each role's stages */}
+      {config.enabled && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="inline-block w-6 h-px bg-brand-primary dark:bg-brand-accent" />
+            <h3 className="text-xs tracking-[0.2em] uppercase font-ni-heading text-brand-primary dark:text-brand-accent">
+              Approvers
+            </h3>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Choose who can decide each role&rsquo;s stages. Anyone ticked can approve a stage for that role. A stage can also name one
+            person instead. Nobody can approve a brief they submitted themselves.
+          </p>
+          <ApproversEditor members={members} usedRoles={usedRoles} />
+        </section>
+      )}
 
       {/* Default stage sequence */}
       {config.enabled && (
@@ -243,6 +354,7 @@ export function TabApprovals() {
           <StageBuilder
             stages={config.defaultStages ?? []}
             onChange={(stages) => patch({ defaultStages: stages })}
+            members={members}
           />
         </section>
       )}
@@ -307,6 +419,7 @@ export function TabApprovals() {
                         onChange={(stages) =>
                           updateEmailTypeConfig(emailType, { ...typeConfig, stages })
                         }
+                        members={members}
                       />
                     </div>
                   )}

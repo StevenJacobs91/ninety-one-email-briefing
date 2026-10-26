@@ -37,9 +37,11 @@ test('a brief with a build renders the library shell and the edited modules', ()
   assert.ok(html.includes('Single Primary CTA'))
 })
 
-test('empty utm_campaign slots in library links are filled with the campaign name', () => {
+test('empty utm_campaign slots in library links are filled with the campaign name, joined with hyphens', () => {
   const html = generateEmailHtml(brief(true), undefined, { catalogue: cat, parse })
-  assert.ok(html.includes('utm_campaign=My%20Campaign'))
+  assert.ok(html.includes('utm_campaign=my-campaign'))
+  assert.ok(!html.includes('utm_campaign=My%20Campaign'))
+  assert.ok(!/utm_campaign=[^"'&]*(\+|%20)/.test(html))
   assert.ok(!/utm_campaign=(?=["'&])/.test(html))
 })
 
