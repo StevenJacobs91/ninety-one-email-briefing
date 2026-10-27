@@ -11,6 +11,7 @@ import { useKanban } from '../../contexts/KanbanContext'
 import { StepIndicator } from '../ui/StepIndicator'
 import { DarkModeToggle } from '../ui/DarkModeToggle'
 import { TemplatePicker } from '../ui/TemplatePicker'
+import { StartNewBriefDialog } from './StartNewBriefDialog'
 import { DraftsDrawer } from '../ui/DraftsDrawer'
 import { SettingsPanel } from '../settings/SettingsPanel'
 import { StepCampaign } from '../steps/StepCampaign'
@@ -408,6 +409,8 @@ export function FormShell() {
   const [highestStep, setHighestStep] = useState(0)
   // Set once the brief has gone through Submit Brief & Template; the footer then offers a fresh brief.
   const [submitted, setSubmitted] = useState(false)
+  // The "Start new brief" button asks first, since it throws the brief being worked on away.
+  const [confirmingNewBrief, setConfirmingNewBrief] = useState(false)
   const briefSubmitted = submitted || submitStatus === 'success'
   const [showTemplatePicker, setShowTemplatePicker] = useState(
     () => !localStorage.getItem('ni-email-brief-draft')
@@ -551,6 +554,19 @@ export function FormShell() {
     setSubmitted(false)
     setAttempted(false)
     setShowTemplatePicker(true)
+    window.scrollTo({ top: 0 })
+  }, [startNewBrief, clearDraft])
+
+  // The "Start new brief" button: everything cleared, no template, straight to an empty Brief & Build.
+  const handleStartBlankBrief = useCallback(() => {
+    startNewBrief()
+    clearDraft()
+    clearAttachmentStore()
+    setHighestStep(0)
+    setSubmitted(false)
+    setAttempted(false)
+    setShowTemplatePicker(false)
+    setConfirmingNewBrief(false)
     window.scrollTo({ top: 0 })
   }, [startNewBrief, clearDraft])
 
@@ -943,9 +959,27 @@ export function FormShell() {
             briefSteps={visibleBriefSteps}
           />
           {/* On Brief & Build the draft state, Brand Review score and Continue live here, drawn in by the page below. */}
-          {currentBriefStepId === 'build' && !showTemplatePicker && <div ref={setNavSlot} className="shrink-0" />}
+          <div className="flex items-center gap-4 shrink-0">
+            {!showTemplatePicker && (
+              <button
+                type="button"
+                onClick={() => setConfirmingNewBrief(true)}
+                className="flex items-center gap-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-xs font-ni-heading tracking-[0.12em] uppercase px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Start new brief
+              </button>
+            )}
+            {currentBriefStepId === 'build' && !showTemplatePicker && <div ref={setNavSlot} className="shrink-0" />}
+          </div>
         </div>
       </div>}
+
+      {confirmingNewBrief && (
+        <StartNewBriefDialog onConfirm={handleStartBlankBrief} onCancel={() => setConfirmingNewBrief(false)} />
+      )}
 
       {/* ── Main content ── */}
       {!showBoard && <div ref={cardRef} className={`flex-1 ${pageX} w-full py-8`}>
