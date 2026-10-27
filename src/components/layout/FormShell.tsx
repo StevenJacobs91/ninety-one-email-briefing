@@ -960,18 +960,6 @@ export function FormShell() {
           />
           {/* On Brief & Build the draft state, Brand Review score and Continue live here, drawn in by the page below. */}
           <div className="flex items-center gap-4 shrink-0">
-            {!showTemplatePicker && (
-              <button
-                type="button"
-                onClick={() => setConfirmingNewBrief(true)}
-                className="flex items-center gap-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-xs font-ni-heading tracking-[0.12em] uppercase px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Start new brief
-              </button>
-            )}
             {currentBriefStepId === 'build' && !showTemplatePicker && <div ref={setNavSlot} className="shrink-0" />}
           </div>
         </div>
@@ -1018,6 +1006,9 @@ export function FormShell() {
                         <div className="flex flex-wrap items-center gap-2 mb-3 px-4">
                           <button type="button" onClick={handleChangeTemplate} className="text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 px-3 py-2 transition-colors">
                             Change template
+                          </button>
+                          <button type="button" onClick={() => setConfirmingNewBrief(true)} className="text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 px-3 py-2 transition-colors">
+                            Start new brief
                           </button>
                           {watchedCampaignName && settings.campaignInsights?.enabled !== false && (
                             <button type="button" onClick={() => setShowInsights(true)} className="text-xs text-brand-text-muted dark:text-gray-400 hover:text-brand-primary dark:hover:text-brand-accent border border-brand-border-warm dark:border-gray-700 px-3 py-2 transition-colors">
