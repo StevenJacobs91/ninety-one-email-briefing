@@ -7,11 +7,15 @@ interface Props {
   onComplete: () => void
   blocked: boolean
   blockReason: string | null
+  /** The nav row beside the step tabs, where the submit button is drawn */
+  navSlot?: HTMLElement | null
+  submitted?: boolean
+  onStartNew?: () => void
 }
 
 // Tab 3. The brief summary and export controls that used to be their own step
 // are folded in, collapsed, above the rendered email and submit controls.
-export function StepReviewSubmission({ onExport, exportStatus, onComplete, blocked, blockReason }: Props) {
+export function StepReviewSubmission({ onExport, exportStatus, onComplete, blocked, blockReason, navSlot, submitted, onStartNew }: Props) {
   return (
     <div className="space-y-8">
       <details className="border border-brand-border-warm dark:border-gray-700 group">
@@ -22,7 +26,7 @@ export function StepReviewSubmission({ onExport, exportStatus, onComplete, block
           <StepReview onSubmit={onExport} submitStatus={exportStatus} />
         </div>
       </details>
-      <StepHtmlReview onComplete={onComplete} blocked={blocked} blockReason={blockReason} />
+      <StepHtmlReview onComplete={onComplete} blocked={blocked} blockReason={blockReason} navSlot={navSlot} submitted={submitted} onStartNew={onStartNew} />
     </div>
   )
 }

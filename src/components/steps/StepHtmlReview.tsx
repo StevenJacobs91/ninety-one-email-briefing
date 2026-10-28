@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useFormContext } from 'react-hook-form'
 import type { BriefFormData } from '../../lib/schema'
 import type { BriefPayload, HtmlEdit } from '../../types/brief.types'
@@ -34,6 +35,11 @@ interface StepHtmlReviewProps {
   /** Brand Review gate: disables both submit buttons and shows the reason. */
   blocked?: boolean
   blockReason?: string | null
+  /** The nav row beside the step tabs, where Submit Brief & Template is drawn */
+  navSlot?: HTMLElement | null
+  /** The brief has been submitted: the nav button becomes Start new brief */
+  submitted?: boolean
+  onStartNew?: () => void
 }
 
 // Briefs built in the library builder need that theme's catalogue before the
@@ -59,7 +65,7 @@ export function StepHtmlReview(props: StepHtmlReviewProps) {
   return <StepHtmlReviewInner {...props} catalogue={cat.status === 'ready' ? cat.catalogue : undefined} />
 }
 
-function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, catalogue }: StepHtmlReviewProps & { catalogue?: ThemeCatalogue }) {
+function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, navSlot = null, submitted = false, onStartNew, catalogue }: StepHtmlReviewProps & { catalogue?: ThemeCatalogue }) {
   const { getValues, setValue } = useFormContext<BriefFormData>()
   const { settings } = useSettings()
   const show = (key: Parameters<typeof isShown>[1]) => isShown(settings.formDefaults, key)
@@ -674,26 +680,35 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           </div>
         )}
 
-        {/* Submit Brief & Template */}
-        <div>
-          <button
-            type="button"
-            onClick={handleSubmitBriefAndTemplate}
-            disabled={blocked || submitStatus === 'sending'}
-            className="w-full bg-brand-secondary text-white py-3 px-4 rounded-md text-sm font-semibold hover:bg-brand-secondary-hover transition-colors disabled:opacity-50"
-          >
-            {submitStatus === 'sending'
-              ? 'Submitting…'
-              : submitStatus === 'sent'
-                ? '✓ Brief submitted'
-                : submitStatus === 'error'
-                  ? 'Error — try again'
-                  : 'Submit Brief & Template'}
-          </button>
-          {submitStatus === 'idle' && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
-              Drafts an email to {DRAFT_RECIPIENT} with the email HTML, brief summary and attachments, and adds the brief to the Campaign Board.
-            </p>
+        {/* Submit Brief & Template: the button is in the nav row; this is where what went wrong is said. */}
+        <div className="min-h-[3rem]">
+          {navSlot && createPortal(
+            submitted || submitStatus === 'sent' ? (
+              <button
+                type="button"
+                onClick={onStartNew}
+                className="min-h-[40px] flex items-center gap-2 bg-brand-primary text-white px-5 py-2 text-xs font-ni-heading tracking-[0.15em] uppercase whitespace-nowrap hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Start new brief
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmitBriefAndTemplate}
+                disabled={blocked || submitStatus === 'sending'}
+                className="min-h-[40px] flex items-center gap-2 bg-brand-primary text-white px-5 py-2 text-xs font-ni-heading tracking-[0.15em] uppercase whitespace-nowrap hover:bg-brand-primary-hover transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+              >
+                {submitStatus === 'sending'
+                  ? 'Submitting…'
+                  : submitStatus === 'error'
+                    ? 'Error — try again'
+                    : 'Submit brief & template'}
+              </button>
+            ),
+            navSlot,
           )}
           {submitError && (
             <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">{submitError}</p>

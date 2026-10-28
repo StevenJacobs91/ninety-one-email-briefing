@@ -960,7 +960,7 @@ export function FormShell() {
           />
           {/* On Brief & Build the draft state, Brand Review score and Continue live here, drawn in by the page below. */}
           <div className="flex items-center gap-4 shrink-0">
-            {currentBriefStepId === 'build' && !showTemplatePicker && <div ref={setNavSlot} className="shrink-0" />}
+            {((currentBriefStepId === 'build' && !showTemplatePicker) || isReviewTab) && <div ref={setNavSlot} className="shrink-0" />}
           </div>
         </div>
       </div>}
@@ -1028,6 +1028,9 @@ export function FormShell() {
                         exportStatus={submitStatus}
                         blocked={brandReview.blocked}
                         blockReason={brandReview.reason}
+                        navSlot={navSlot}
+                        submitted={briefSubmitted}
+                        onStartNew={handleStartNewBrief}
                         onComplete={() => {
                           saveDraft(form.getValues(), form.getValues().campaign.campaignName)
                           clearDraft()
@@ -1120,7 +1123,16 @@ export function FormShell() {
                   Start new brief
                 </button>
               ) : (
-                <div />
+                <button
+                  type="button"
+                  onClick={() => setConfirmingNewBrief(true)}
+                  className="min-h-[44px] flex items-center gap-2 bg-brand-primary text-white px-7 py-3 text-xs font-ni-heading tracking-[0.15em] uppercase hover:bg-brand-primary-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Start new brief
+                </button>
               )
             ) : currentStep === lastBriefStep - 1 ? (
               <button
