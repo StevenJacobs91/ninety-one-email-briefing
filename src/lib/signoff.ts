@@ -43,7 +43,7 @@ export function signoffColumns(s: SignoffEntry): SignoffColumns {
 const TEXT = 'font-family: Ninety One Visuelt Light, arial, helvetica, sans-serif; font-size: 16px; mso-line-height-rule: exactly; line-height: 22px; text-align: left;'
 
 function columnHtml(source: string, format: 'text' | 'code', accent: string, linkColour?: string): string {
-  return sanitizeRich(format === 'code' ? source : textToHtml(source, linkColour), accent)
+  return format === 'code' ? sanitizeRich(source, accent, { blocks: true }) : sanitizeRich(textToHtml(source, linkColour), accent)
 }
 
 /** The signature as email HTML: a block of text, or two cells side by side that stack on a phone. */
@@ -51,7 +51,11 @@ export function signoffHtml(s: SignoffEntry, opts: { accent?: string; textStyle?
   const { columns, format, left, right } = signoffColumns(s)
   const accent = opts.accent ?? DEFAULT_ACCENT
   const text = opts.textStyle ?? TEXT
-  if (columns === 1) return `<p style="margin: 0; ${text}">${columnHtml(left, format, accent, opts.linkColour)}</p>`
+  // Code can hold its own <p>s, which cannot sit inside a <p>, so it gets a <div> to carry the text style.
+  if (columns === 1) {
+    const tag = format === 'code' ? 'div' : 'p'
+    return `<${tag} style="margin: 0; ${text}">${columnHtml(left, format, accent, opts.linkColour)}</${tag}>`
+  }
   const cell = (source: string) =>
     `<td class="stack-column" valign="top" width="50%" style="${text} padding: 0 10px 0 0; vertical-align: top;">${columnHtml(source, format, accent, opts.linkColour)}</td>`
   return `<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr>${cell(left)}${cell(right)}</tr></table>`

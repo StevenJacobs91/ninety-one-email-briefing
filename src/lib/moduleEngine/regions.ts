@@ -255,13 +255,14 @@ const LEGAL_SIZE = { min: 8, max: 24 }
  * Cleans pasted or edited rich text. `legal` is for disclaimers: bold stays plain bold rather than the
  * brand's accent colour, text size is kept (within a readable range), and only text styling survives.
  */
-export function sanitizeRich(html: string, accent: string = DEFAULT_ACCENT, opts: { legal?: boolean } = {}): string {
+export function sanitizeRich(html: string, accent: string = DEFAULT_ACCENT, opts: { legal?: boolean; blocks?: boolean } = {}): string {
   const stripped = html
     .replace(/<(script|style|iframe|object|embed)\b[\s\S]*?<\/\1\s*>/gi, '')
     .replace(/<(script|style|iframe|object|embed)\b[^>]*>/gi, '')
   return stripped.replace(/<(\/?)([a-zA-Z][\w:-]*)([^>]*)>/g, (_m, slash: string, name: string, attrs: string) => {
     const tag = name.toLowerCase()
-    if (!ALLOWED_TAGS.has(tag)) return ''
+    // Signature code may lay itself out in paragraphs; everything else stays inline.
+    if (!ALLOWED_TAGS.has(tag) && !(opts.blocks && (tag === 'p' || tag === 'div'))) return ''
     if (tag === 'b' || tag === 'strong') return opts.legal ? (slash ? '</strong>' : '<strong>') : (slash ? '</span>' : boldSpan(accent))
     if (slash) return `</${tag}>`
     const kept: string[] = []

@@ -47,6 +47,19 @@ test('code mode takes HTML, keeps links and bold, and drops anything that could 
   assert.ok(!out.includes('onclick') && !out.includes('<script') && !out.includes('javascript:'))
 })
 
+test('code mode keeps <p> paragraphs and their margins, and never nests a <p> inside a <p>', () => {
+  const code = '<p style="margin: 0 0 15px;">Kind regards,</p><p style="margin: 0px; font-family: Ninety One Visuelt Medium, arial;">Ninety One</p><div onclick="evil()">x</div>'
+  const one = signoffHtml({ ...base, format: 'code', text: code })
+  assert.equal((one.match(/<p\b/g) ?? []).length, 2, 'both paragraphs survive')
+  assert.ok(one.includes('margin: 0 0 15px;') && one.includes('Ninety One Visuelt Medium'), 'their styles survive')
+  assert.ok(!/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*<p\b/.test(one), 'no <p> inside a <p>')
+  assert.ok(!one.includes('onclick'), 'event handlers are still dropped')
+  const two = signoffHtml({ ...base, format: 'code', columns: 2, text: code, textRight: '<p>b</p>' })
+  assert.equal((two.match(/<p\b/g) ?? []).length, 3, 'paragraphs survive in two columns too')
+  // Plain text mode is unchanged: still one <p> holding line breaks.
+  assert.equal((signoffHtml({ ...base, format: 'text', text: 'a\nb' }).match(/<p\b/g) ?? []).length, 1)
+})
+
 test('a signature saved before columns existed reads as one column of text', () => {
   assert.deepEqual(signoffColumns({ ...base, text: 'Hello' }), { columns: 1, format: 'text', left: 'Hello', right: '' })
   assert.equal(signoffColumns({ ...base, columns: 2, text: 'a', textRight: 'b' }).right, 'b')
