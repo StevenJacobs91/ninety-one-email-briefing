@@ -4,7 +4,7 @@ import type { HtmlModuleConfig, ModuleCategoryConfig } from '../../types/setting
 import { FALLBACK_CATEGORY, moduleCategories, newCategoryId, resolveCategory } from '../../lib/moduleCategories'
 import { ModuleCategoryManager } from './ModuleCategoryManager'
 import { Switch } from '../ui/Switch'
-import { applyThemeTokens, themeTokensFor, tokeniseModule, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
+import { modulePreviewDoc, themeTokensFor, tokeniseModule, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
 import { loadCatalogue } from '../../lib/moduleEngine/catalogue'
 import { DEFAULT_BRAND_THEMES, LIBRARY_MODULES } from '../../lib/settingsDefaults'
 import { THEME_ICONS } from '../../lib/themeIcons'
@@ -419,12 +419,13 @@ function ModuleEditRow({
           value={code}
           onChange={(v) => onChange({ ...draft, html: v })}
           invalid={!!codeError}
+          previewDoc={(c) => modulePreviewDoc(c, previewColours)}
           placeholder={isNew ? '<tr>\n  <td bgcolor="{{primary}}" style="padding: 30px 40px;">\n    <p pardot-region="paragraph" style="color: #ffffff;">Your text</p>\n  </td>\n</tr>' : 'Leave empty to keep the library\'s own code for this module'}
         />
         {codeError && <p role="alert" className="text-xs text-red-600 mt-1">{codeError}</p>}
         <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
           A table row (<code>&lt;tr&gt;…&lt;/tr&gt;</code>). Add <code>pardot-region</code> to text and buttons you want editable in the builder. Use
-          {' '}<code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code> and <code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for the theme&rsquo;s colours so one module suits every theme.
+          {' '}<code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code> and <code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for the theme&rsquo;s colours so one module suits every theme. Use <code>{'{{text}}'}</code> for text that must be light on a dark theme and dark on a light one.
           {libraryCode !== undefined && ' This is the library\'s own code for the module, with variables in place of a theme\'s colours and images. Edit it and save to change the module in every theme.'}
         </p>
         <details className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
@@ -441,7 +442,7 @@ function ModuleEditRow({
             title="Module preview"
             sandbox=""
             className="mt-2 w-full h-56 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-white"
-            srcDoc={code.trim() ? `<!doctype html><body style="margin:0;background:#f4f2ea"><table width="640" align="center" cellpadding="0" cellspacing="0" border="0" role="presentation"><tbody>${applyThemeTokens(code, previewColours)}</tbody></table></body>` : '<p style="font:12px sans-serif;color:#888;padding:12px">No code yet.</p>'}
+            srcDoc={modulePreviewDoc(code, previewColours)}
           />
         )}
       </div>

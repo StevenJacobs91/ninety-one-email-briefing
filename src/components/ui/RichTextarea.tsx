@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react'
 import type { FieldError } from 'react-hook-form'
 import { LazyCodeEditor } from './LazyCodeEditor'
+import { fragmentPreviewDoc } from '../../lib/customModules'
 
 interface RichTextareaProps {
   label: string
@@ -320,7 +321,7 @@ export function RichTextarea({
       {/* Editor */}
       {codeView ? (
         <div className="border border-gray-300 dark:border-gray-600 rounded-b-md p-2 bg-white dark:bg-gray-800">
-          <LazyCodeEditor label={`${label} code`} value={value} onChange={onChange} placeholder={placeholder} />
+          <LazyCodeEditor label={`${label} code`} value={value} onChange={onChange} placeholder={placeholder} previewDoc={fragmentPreviewDoc} />
         </div>
       ) : (
       <div

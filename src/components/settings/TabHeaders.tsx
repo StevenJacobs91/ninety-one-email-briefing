@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { HeaderTypeConfig, HeaderTypeAssets, BrandThemeConfig } from '../../types/settings.types'
-import { validateModuleHtml } from '../../lib/customModules'
+import { modulePreviewDoc, themeColoursOf, validateModuleHtml } from '../../lib/customModules'
 import { LazyCodeEditor } from '../ui/LazyCodeEditor'
 
 // ─── Header diagram previews ─────────────────────────────────
@@ -357,6 +357,14 @@ function HeaderTypeCard({
               value={headerType.htmlSnippet}
               onChange={(v) => onChange({ ...headerType, htmlSnippet: v })}
               invalid={!!headerType.htmlSnippet.trim() && !!validateModuleHtml(headerType.htmlSnippet)}
+              previewDoc={(c) => modulePreviewDoc(c, {
+                ...themeColoursOf(appSettings.brandThemes?.[0]),
+                // The header type's own images stand in for the theme's where it sets them.
+                ...(headerType.assets.logoUrl ? { logo: headerType.assets.logoUrl } : {}),
+                ...(headerType.assets.stripeUrl ? { stripe: headerType.assets.stripeUrl } : {}),
+                ...(headerType.assets.slimStripeUrl ? { slimStripe: headerType.assets.slimStripeUrl } : {}),
+                ...(headerType.assets.thirtyFiveYearGraphicUrl ? { anniversary: headerType.assets.thirtyFiveYearGraphicUrl } : {}),
+              })}
               placeholder={'<!-- Paste the HTML snippet for this header type here -->\n<table>\n  ...\n</table>'}
             />
             {headerType.htmlSnippet.trim() && (() => {

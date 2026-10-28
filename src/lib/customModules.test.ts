@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { applyThemeTokens, categoryGroup, customLayoutIcons, disabledModuleNames, HERO_PLACEHOLDER, mergeCustomModules, themeTokensFor, tokeniseModule, usesHeroImage, validateModuleHtml } from './customModules.ts'
+import { applyThemeTokens, categoryGroup, customLayoutIcons, disabledModuleNames, fragmentPreviewDoc, HERO_PLACEHOLDER, mergeCustomModules, modulePreviewDoc, themeColoursOf, themeTokensFor, tokeniseModule, usesHeroImage, validateModuleHtml } from './customModules.ts'
 
 const THEME = { primary: '#134848', accent: '#fbaa96', tint01: '#1d4f4f', tint02: '#114141', tint03: '#0d3232' }
 const mod = (over: Record<string, unknown> = {}) => ({ id: 'promo', label: 'Promo Banner', description: '', category: 'Content', enabled: true, html: '<tr><td bgcolor="{{primary}}">Hello</td></tr>', ...over }) as never
@@ -10,6 +10,29 @@ const cat = { themeId: 'agulhas-gold', shell: { head: '', tail: '' }, order: ['B
 
 test('theme tokens become that theme\'s colours, so one module works in every theme', () => {
   assert.equal(applyThemeTokens('<td bgcolor="{{primary}}" style="color:{{accent}}">{{tint01}}{{tint02}}{{tint03}}</td>', THEME), '<td bgcolor="#134848" style="color:#fbaa96">#1d4f4f#114141#0d3232</td>')
+})
+
+test('{{text}} is the theme\'s text colour, so one module reads on a dark theme and a light one', () => {
+  const html = '<td style="color:{{text}}">Body</td>'
+  const dark = { ...cat, themeId: 'agulhas-gold' }
+  const light = { ...cat, themeId: 'springbok-red' }
+  const chosen = { brandThemes: [{ id: 'agulhas-gold', primary: '#221b3b', accent: '#cf6f13', defaultTextColour: '#424242' }] as never }
+  assert.equal(applyThemeTokens(html, themeTokensFor(dark, chosen)), '<td style="color:#424242">Body</td>', 'Brand Themes\' choice wins')
+  assert.equal(themeTokensFor(dark, { brandThemes: [] }).text, '#e8e5ce', 'a dark primary with no choice gets cream')
+  assert.equal(themeTokensFor(light, { brandThemes: [] }).text, '#424242', 'a light primary with no choice gets charcoal')
+  assert.equal(tokeniseModule('<td style="color:#e8e5ce">', { primary: '#221b3b', accent: '#cf6f13', text: '#e8e5ce' }), '<td style="color:#e8e5ce">', 'existing code is never rewritten to use it')
+})
+
+test('a preview document shows module code as an email would, in a theme\'s colours', () => {
+  const colours = themeColoursOf({ id: 't', label: 'T', primary: '#221b3b', accent: '#cf6f13', tint01: '#292047', logoUrl: 'https://x/logo.png' })
+  assert.equal(colours.text, '#e8e5ce')
+  assert.equal(colours.logo, 'https://x/logo.png')
+  const doc = modulePreviewDoc('<tr><td bgcolor="{{primary}}"><img src="{{logo}}">{{Unsubscribe}}</td></tr>', colours)
+  assert.ok(doc.includes('<table width="640"') && doc.includes('bgcolor="#221b3b"') && doc.includes('src="https://x/logo.png"'))
+  assert.ok(doc.includes('{{Unsubscribe}}'), 'merge tags are left as they are')
+  assert.ok(modulePreviewDoc('  ', colours).includes('No code yet.'))
+  assert.equal(themeColoursOf(undefined).primary, '#134848', 'no theme still gives colours to preview in')
+  assert.ok(fragmentPreviewDoc('<p>Hi</p>').includes('<p>Hi</p>') && fragmentPreviewDoc('').includes('Nothing to preview yet.'))
 })
 
 test('merge tags for Pardot and recipients are left alone', () => {

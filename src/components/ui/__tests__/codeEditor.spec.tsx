@@ -83,6 +83,29 @@ describe('CodeEditor', () => {
     expect(screen.getByRole('button', { name: 'Full screen' })).toBeTruthy()
   })
 
+  it('shows a live, sandboxed preview beside the code in full screen only, and it can be hidden', () => {
+    const doc = (c: string) => `<body>${c}</body>`
+    const { rerender } = render(<CodeEditor label="Module code" value="<p>one</p>" onChange={vi.fn()} previewDoc={doc} />)
+    expect(screen.queryByTitle('Code preview')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    const frame = screen.getByTitle('Code preview') as HTMLIFrameElement
+    expect(frame.getAttribute('srcdoc')).toBe('<body><p>one</p></body>')
+    expect(frame.getAttribute('sandbox')).toBe('')
+    rerender(<CodeEditor label="Module code" value="<p>two</p>" onChange={vi.fn()} previewDoc={doc} />)
+    expect((screen.getByTitle('Code preview') as HTMLIFrameElement).getAttribute('srcdoc')).toBe('<body><p>two</p></body>')
+    fireEvent.click(screen.getByRole('button', { name: 'Hide preview' }))
+    expect(screen.queryByTitle('Code preview')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Show preview' }))
+    expect(screen.getByTitle('Code preview')).toBeTruthy()
+  })
+
+  it('has no preview controls when the caller gives no preview', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }))
+    expect(screen.queryByTitle('Code preview')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Hide preview' })).toBeNull()
+  })
+
   it('marks the editor invalid when the code has a problem', () => {
     setup({ invalid: true })
     expect((document.querySelector('.cm-content') as HTMLElement).getAttribute('aria-invalid')).toBe('true')

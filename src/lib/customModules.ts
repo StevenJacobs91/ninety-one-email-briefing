@@ -1,4 +1,4 @@
-import type { AppSettings, HtmlModuleConfig, ModuleCategory } from '../types/settings.types'
+import type { AppSettings, BrandThemeConfig, HtmlModuleConfig, ModuleCategory } from '../types/settings.types'
 import { getThemeColours } from './themeColours'
 import { rgbToHex } from './hexColours'
 import { ANNIVERSARY_FIND, libraryImage, THEME_ICONS, type ThemeIconToken } from './themeIcons'
@@ -12,6 +12,8 @@ export interface ThemeColours extends Partial<Record<ThemeIconToken, string>> {
   tint01?: string
   tint02?: string
   tint03?: string
+  /** The theme's text colour on its primary background: cream on a dark primary, charcoal on a light one */
+  text?: string
   /** The theme's header logo, standard stripe, slim stripe and footer logo */
   logo?: string
   stripe?: string
@@ -24,7 +26,7 @@ export interface ThemeColours extends Partial<Record<ThemeIconToken, string>> {
 }
 
 export const THEME_TOKENS: readonly (keyof ThemeColours)[] = [
-  'primary', 'accent', 'tint01', 'tint02', 'tint03', 'logo', 'stripe', 'slimStripe', 'footerLogo', 'anniversary', 'heroImage',
+  'primary', 'accent', 'tint01', 'tint02', 'tint03', 'text', 'logo', 'stripe', 'slimStripe', 'footerLogo', 'anniversary', 'heroImage',
   ...THEME_ICONS.map((i) => i.token),
 ]
 
@@ -48,6 +50,36 @@ export function applyThemeTokens(html: string, theme: ThemeColours): string {
   }, html)
 }
 
+/** A theme's colours and images as the tokens, for previews that have no module library to look in. */
+export function themeColoursOf(theme: BrandThemeConfig | undefined): ThemeColours {
+  const primary = theme?.primary ?? '#134848'
+  return {
+    primary,
+    accent: theme?.accent ?? '#fbaa96',
+    tint01: theme?.tint01,
+    tint02: theme?.tint02,
+    tint03: theme?.tint03,
+    text: theme?.defaultTextColour ?? textOn(primary),
+    logo: theme?.logoUrl || undefined,
+    stripe: theme?.stripeUrl || undefined,
+    slimStripe: theme?.slimStripeUrl || undefined,
+    footerLogo: theme?.footerLogoUrl || undefined,
+    anniversary: theme?.anniversaryLogoUrl || undefined,
+  }
+}
+
+/** Module or header code (table rows) as a page, at the email's 640px, in the theme's colours. For a preview frame with scripts off. */
+export function modulePreviewDoc(code: string, theme: ThemeColours): string {
+  if (!code.trim()) return '<p style="font:12px sans-serif;color:#888;padding:12px">No code yet.</p>'
+  return `<!doctype html><body style="margin:0;background:#f4f2ea"><table width="640" align="center" cellpadding="0" cellspacing="0" border="0" role="presentation"><tbody>${applyThemeTokens(code, theme)}</tbody></table></body>`
+}
+
+/** Text-level HTML, such as a signature or a disclaimer, as a page. */
+export function fragmentPreviewDoc(html: string): string {
+  if (!html.trim()) return '<p style="font:12px sans-serif;color:#888;padding:12px">Nothing to preview yet.</p>'
+  return `<!doctype html><body style="margin:0;padding:20px;background:#fff;color:#424242;font:16px/22px arial,helvetica,sans-serif">${html}</body>`
+}
+
 /**
  * The reverse of applyThemeTokens: one theme's own colours and images in `html` written as the variables that stand for
  * them, so code taken from that theme's library reads, and can be edited, as a module that suits every theme.
@@ -57,7 +89,8 @@ export function tokeniseModule(html: string, theme: ThemeColours): string {
   const pairs: [value: string, token: string][] = []
   for (const token of THEME_TOKENS) {
     const value = theme[token]
-    if (!value || token === 'heroImage' || seen.has(value.toLowerCase())) continue
+    // Cream and charcoal also appear as decoration, so existing code is never rewritten to use {{text}}.
+    if (!value || token === 'heroImage' || token === 'text' || seen.has(value.toLowerCase())) continue
     seen.add(value.toLowerCase())
     pairs.push([value, token])
   }
@@ -115,6 +148,13 @@ const IN_LIBRARY = {
   slimStripe: /https?:\/\/[^"'\s)<>]*banner_stripe_[^"'\s)<>]*/i,
 } as const
 
+/** Cream on a dark background, charcoal on a light one: the two text colours Brand Themes offers. */
+function textOn(background: string): string {
+  const n = parseInt(background.replace('#', ''), 16)
+  const luminance = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return luminance > 0.6 ? '#424242' : '#e8e5ce'
+}
+
 /** The theme's colours and images for the tokens, from Settings → Brand Themes, else from the theme's own library modules. */
 export function themeTokensFor(
   catalogue: ThemeCatalogue,
@@ -132,6 +172,7 @@ export function themeTokensFor(
     tint01: theme?.tint01,
     tint02: theme?.tint02,
     tint03: theme?.tint03,
+    text: theme?.defaultTextColour ?? textOn(theme?.primary ?? fallback.primary),
     logo: theme?.logoUrl || own.logo || found('logo'),
     stripe: theme?.stripeUrl || own.stripe || found('stripe'),
     slimStripe: theme?.slimStripeUrl || own.slimStripe || found('slimStripe'),

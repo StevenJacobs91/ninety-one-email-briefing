@@ -18,6 +18,8 @@ interface Props {
   id?: string
   placeholder?: string
   invalid?: boolean
+  /** Turns the code into a full HTML document for the live preview beside the code in full screen. Without it there is no preview. */
+  previewDoc?: (code: string) => string
 }
 
 // Changes made from outside (a new value from the parent) are not reported back as edits.
@@ -37,7 +39,7 @@ const TOOL = 'px-2 py-1 text-[11px] font-medium rounded border border-gray-300 d
  * An HTML editor for module and header code: highlighting, line numbers, indentation guides, folding, tag
  * auto-closing, find and replace, and a Format button that re-indents the markup.
  */
-export default function CodeEditor({ value, onChange, label, id, placeholder, invalid }: Props) {
+export default function CodeEditor({ value, onChange, label, id, placeholder, invalid, previewDoc }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const latest = useRef(onChange)
@@ -45,6 +47,7 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
   const compartments = useRef({ wrap: new Compartment(), theme: new Compartment(), attrs: new Compartment() })
   const [wrap, setWrap] = useState(true)
   const [expanded, setExpanded] = useState(false)
+  const [showPreview, setShowPreview] = useState(true)
   const [position, setPosition] = useState({ line: 1, col: 1 })
 
   const attributes = (): Record<string, string> => ({ 'aria-label': label, 'aria-multiline': 'true', ...(id ? { id } : {}), ...(invalid ? { 'aria-invalid': 'true' } : {}) })
@@ -145,12 +148,29 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
           <button type="button" onClick={find} className={TOOL} title="Find and replace (Ctrl or Cmd + F)">Find &amp; replace</button>
           <button type="button" onClick={() => setWrap((w) => !w)} aria-pressed={wrap} className={TOOL} title="Wrap long lines">Wrap lines</button>
           <button type="button" onClick={() => setExpanded((x) => !x)} aria-pressed={expanded} className={TOOL} title={expanded ? 'Back to the form (Esc)' : 'Make the editor bigger'}>{expanded ? 'Close full screen' : 'Full screen'}</button>
+          {expanded && previewDoc && (
+            <button type="button" onClick={() => setShowPreview((x) => !x)} aria-pressed={showPreview} className={TOOL} title="Show the code as it will look, beside the editor">{showPreview ? 'Hide preview' : 'Show preview'}</button>
+          )}
           <span className="ml-auto text-[11px] tabular-nums text-gray-400 dark:text-gray-500" aria-live="off">Ln {position.line}, Col {position.col}</span>
         </div>
-        <div
-          ref={host}
-          className={`${expanded ? 'flex-1 min-h-0' : 'h-72'} overflow-hidden rounded-md border bg-white dark:bg-[#282c34] ${invalid ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
-        />
+        {/* The code box keeps its place in the tree whether or not the preview is beside it, so the editor is never rebuilt. */}
+        <div className={expanded ? 'flex flex-1 min-h-0 gap-3' : ''}>
+          <div
+            ref={host}
+            className={`${expanded ? 'flex-1 min-w-0' : 'h-72'} overflow-hidden rounded-md border bg-white dark:bg-[#282c34] ${invalid ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
+          />
+          {expanded && previewDoc && showPreview && (
+            <div className="w-[45%] shrink-0 flex flex-col min-h-0">
+              <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Preview</p>
+              <iframe
+                title="Code preview"
+                sandbox=""
+                srcDoc={previewDoc(value)}
+                className="flex-1 min-h-0 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
