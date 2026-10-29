@@ -6,7 +6,7 @@ import type { KanbanCard } from '../../../types/kanban.types'
 
 vi.mock('../../../lib/attachmentStorage', () => ({ openStoredAttachment: vi.fn() }))
 vi.mock('../../../contexts/KanbanContext', () => ({
-  useKanban: () => ({ moveCard: vi.fn(), updateCardNotes: vi.fn(), updateCardMeta: vi.fn(), addComment: vi.fn(), removeCard: vi.fn() }),
+  useKanban: () => ({ moveCard: vi.fn(), updateCardNotes: vi.fn(), updateCardMeta: vi.fn(), loadActivity: vi.fn(), addComment: vi.fn(), removeCard: vi.fn() }),
 }))
 vi.mock('../../../contexts/AuthContext', () => ({ useAuth: () => ({ profile: { displayName: 'Sam' }, user: { id: 'u1', email: 's@x.test' } }) }))
 vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: { approvals: { enabled: false } } }) }))
@@ -50,7 +50,7 @@ describe('card drawer email preview', () => {
     render(<CardDetailDrawer card={card} onClose={() => {}} />)
     const side = screen.getByRole('complementary', { name: 'Email preview' })
     expect(within(side).getByTestId('preview').getAttribute('data-title')).toBe('Advisor Impact')
-    expect(email.useCardEmail).toHaveBeenCalledWith('b1')
+    expect(email.useCardEmail).toHaveBeenCalledWith('b1', 0)
     expect(screen.getAllByTestId('preview')).toHaveLength(1)
   })
 

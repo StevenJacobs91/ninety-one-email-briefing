@@ -1,4 +1,4 @@
-import { SendStatusBadge, STATUS_COLOURS } from './SendStatusBadge'
+import { SendStatusBadge } from './SendStatusBadge'
 import { useState, useEffect, useRef } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
@@ -14,7 +14,10 @@ import { CopyHtml } from './CopyHtml'
 import { safeFileName } from '../../lib/attachmentRules'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
-import { getThemeColours } from '../../lib/themeColours'
+import { CardEditFields } from './CardEditFields'
+import { HistoryTimeline } from './HistoryTimeline'
+import { useProducers } from './useProducers'
+import { firstInProgressDate, type CardEdits } from '../../lib/cardEdits'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
 import { CardApprovalSection } from '../approvals/CardApprovalSection'
 import { briefApprovalState } from '../../lib/approvalRouting'
@@ -26,15 +29,6 @@ const COLUMN_LABELS: Record<KanbanColumn, string> = {
 }
 
 const COLUMN_ORDER: KanbanColumn[] = ['briefed', 'in-progress', 'distributed']
-
-function formatDate(iso: string): string {
-  if (!iso) return '—'
-  try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch {
-    return iso
-  }
-}
 
 function formatDateTime(iso: string): string {
   if (!iso) return '—'
@@ -60,7 +54,7 @@ interface CardDetailDrawerProps {
 }
 
 export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
-  const { moveCard, updateCardNotes, updateCardMeta, addComment, removeCard } = useKanban()
+  const { moveCard, updateCardNotes, updateCardMeta, updateCardDetails, loadActivity, addComment, removeCard } = useKanban()
   const { profile, user } = useAuth()
   const { settings } = useSettings()
   const { approvals } = useApprovals()
@@ -69,14 +63,18 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
   // Wide enough for the details and the email side by side; otherwise the email sits inside the details.
   const wide = useMediaQuery('(min-width: 1180px)')
   // Built once for whichever of the two places the email is shown, and for the open-in-editor button.
-  const email = useCardEmail(card.briefId)
+  // Bumped after an edit is saved, so the email is built again from the brief as it now is.
+  const [emailVersion, setEmailVersion] = useState(0)
+  const email = useCardEmail(card.briefId, emailVersion)
   const [assignee, setAssignee] = useState(card.assignee ?? '')
   const [startDate, setStartDate] = useState(card.startDate ?? '')
   const [progress, setProgress] = useState(card.progress ?? 0)
   const [commentText, setCommentText] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
-  const colours = getThemeColours(card.theme)
+  // Only producers and admins can change a card, as the database enforces; others read it.
+  const canEdit = profile?.role === 'admin' || profile?.role === 'producer'
+  const producers = useProducers(canEdit)
 
   // Keep the editable fields in step with the card (it can change while the drawer is open)
   useEffect(() => {
@@ -85,6 +83,9 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
     setStartDate(card.startDate ?? '')
     setProgress(card.progress ?? 0)
   }, [card])
+
+  // The card's recorded changes are read when its detail opens; each change after that is added as it is made.
+  useEffect(() => { void loadActivity(card.id) }, [card.id, loadActivity])
 
   // Close on Escape
   useEffect(() => {
@@ -109,7 +110,13 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
   }
 
   function handleMetaBlur() {
-    updateCardMeta(card.id, { assignee: assignee || undefined, startDate: startDate || undefined, progress })
+    updateCardMeta(card.id, { assignee, startDate: startDate || undefined, progress })
+  }
+
+  async function saveDetails(edits: CardEdits) {
+    const result = await updateCardDetails(card.id, edits)
+    if (result.ok) setEmailVersion((v) => v + 1)
+    return result
   }
 
   function handleAddComment() {
@@ -250,76 +257,16 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
               </>
             )}
 
-            {/* Campaign info */}
-            <section>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Campaign</p>
-              <div className="space-y-2.5">
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Subject Line</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{card.subjectLine || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Brand Theme</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.primary }} />
-                    <span className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: colours.accent }} />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{card.theme}</span>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {/* The brief's fields: editable by producers and admins, each change saved to the brief too */}
+            <CardEditFields
+              card={card}
+              canEdit={canEdit}
+              onSave={saveDetails}
+              approvalNote={!!settings.approvals?.enabled && !!approval.latest}
+              overdue={isOverdue}
+            />
 
-            <div className="h-px bg-gray-100 dark:bg-gray-800" />
-
-            {/* Audience */}
-            <section>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Audience</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Regions</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{card.region.join(', ') || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Channels</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{card.channel.join(', ') || '—'}</p>
-                </div>
-                {card.clientGroup.length > 0 && (
-                  <div className="col-span-2">
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Client Groups</p>
-                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{card.clientGroup.join(', ')}</p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <div className="h-px bg-gray-100 dark:bg-gray-800" />
-
-            {/* Deadlines */}
-            <section>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Deadlines</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Content Approval</p>
-                  <p className="text-sm text-gray-800 dark:text-gray-200 mt-0.5">{formatDate(card.contentApprovalDate)}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Send Date</p>
-                  <p className="text-sm mt-0.5 font-medium text-gray-800 dark:text-gray-200" style={isOverdue ? { color: STATUS_COLOURS.overdue } : undefined}>
-                    {formatDate(card.sendDate)}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {card.tags && (
-              <>
-                <div className="h-px bg-gray-100 dark:bg-gray-800" />
-                <section>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Tags</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{card.tags}</p>
-                </section>
-              </>
-            )}
+            {/* Where the saved files are */}
 
             {/* Cards created by Submit Brief & Template carry links to the saved brief's files */}
             {card.notes.includes('view=html') && (
@@ -343,12 +290,27 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
               <div className="space-y-3">
                 <div>
                   <label htmlFor="card-assignee" className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Assignee</label>
-                  <input id="card-assignee" type="text" value={assignee} onChange={(e) => setAssignee(e.target.value)} onBlur={handleMetaBlur} placeholder="Person responsible"
-                    className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent" />
+                  <select
+                    id="card-assignee"
+                    value={assignee}
+                    disabled={!canEdit}
+                    onChange={(e) => {
+                      setAssignee(e.target.value)
+                      updateCardMeta(card.id, { assignee: e.target.value, startDate: startDate || undefined, progress })
+                    }}
+                    className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent disabled:opacity-60"
+                  >
+                    <option value="">Unassigned</option>
+                    {/* The producers, and whoever is on the card now even if they are no longer one */}
+                    {[...producers, ...(assignee && !producers.includes(assignee) ? [assignee] : [])].map((name) => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="card-start" className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">Production start</label>
-                  <input id="card-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} onBlur={handleMetaBlur}
+                  {/* Filled in when the card moves to In Progress; a card that got there earlier shows the day it did */}
+                  <input id="card-start" type="date" value={startDate || firstInProgressDate(card)} onChange={(e) => setStartDate(e.target.value)} onBlur={handleMetaBlur}
                     className="w-full text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent" />
                 </div>
                 <div>
@@ -446,26 +408,8 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />
 
-            {/* Column history timeline */}
-            <section>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">History</p>
-              <ol className="space-y-3">
-                {card.columnHistory.map((entry, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="flex flex-col items-center shrink-0">
-                      <span className="w-2.5 h-2.5 rounded-full bg-brand-primary dark:bg-brand-accent mt-0.5" />
-                      {i < card.columnHistory.length - 1 && (
-                        <span className="w-px flex-1 bg-gray-200 dark:bg-gray-700 mt-1 mb-0" style={{ minHeight: '16px' }} />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{COLUMN_LABELS[entry.column]}</p>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{formatDateTime(entry.at)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            {/* Everything that has happened on the card: its moves and every change made to it */}
+            <HistoryTimeline card={card} />
 
             <div className="h-px bg-gray-100 dark:bg-gray-800" />
 

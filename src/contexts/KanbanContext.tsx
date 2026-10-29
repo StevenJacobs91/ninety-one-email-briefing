@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { KanbanCard, KanbanColumn, CampaignComment, ManualCardInput } from '../types/kanban.types'
+import type { KanbanCard, KanbanColumn, CampaignComment, CardActivity, ManualCardInput } from '../types/kanban.types'
 import type { BriefFormData } from '../lib/schema'
 import { useAuth } from './AuthContext'
 import { useSettings } from './SettingsContext'
@@ -15,7 +15,13 @@ import {
   insertKanbanCard,
   updateKanbanCard,
   deleteKanbanCard,
+  fetchBriefById,
+  saveBrief,
+  insertCardActivity,
+  fetchCardActivity,
 } from '../lib/supabaseQueries'
+import { commentEntry, detailEntries, metaEntries, textEntry } from '../lib/cardActivity'
+import { briefWithEdits, cardWithEdits, checkCardEdits, productionStart, type CardEdits } from '../lib/cardEdits'
 
 interface KanbanContextValue {
   cards: KanbanCard[]
@@ -25,6 +31,10 @@ interface KanbanContextValue {
   moveCard: (id: string, column: KanbanColumn) => void
   updateCardNotes: (id: string, notes: string) => void
   updateCardMeta: (id: string, updates: { assignee?: string; startDate?: string; progress?: number }) => void
+  /** Edits the card's brief fields. They are saved to the brief as well, so the email, the files and the approvals read the same values. */
+  updateCardDetails: (id: string, edits: CardEdits) => Promise<{ ok: true } | { ok: false; error: string }>
+  /** Reads the card's recorded changes, for its History. After that, each change made is added to it as it happens. */
+  loadActivity: (id: string) => Promise<void>
   addComment: (cardId: string, comment: Omit<CampaignComment, 'id'>) => void
   removeCard: (id: string) => void
   getColumnCards: (column: KanbanColumn) => KanbanCard[]
@@ -136,15 +146,36 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
     }
   }, [auditCtx, settings.audit, settings.notifications, profile])
 
+  const actor = profile?.displayName || user?.email || 'Unknown'
+  const themeName = useCallback((themeId: string) => (settings.brandThemes ?? []).find((t) => t.id === themeId)?.label ?? themeId, [settings.brandThemes])
+
+  /** Writes changes to the card's record, and adds them to its History if that has been read. A failure is logged and never undoes the change. */
+  const record = useCallback((cardId: string, entries: CardActivity[]) => {
+    if (entries.length === 0 || !teamId || !user) return
+    setCards((prev) => prev.map((c) => (c.id === cardId && c.activity ? { ...c, activity: [...c.activity, ...entries] } : c)))
+    insertCardActivity(teamId, user.id, cardId, entries).catch((err) => console.error('Failed to record card activity:', err))
+  }, [teamId, user])
+
+  const loadActivity = useCallback(async (id: string) => {
+    try {
+      const entries = await fetchCardActivity(id)
+      setCards((prev) => prev.map((c) => (c.id === id ? { ...c, activity: entries } : c)))
+    } catch (err) {
+      console.error('Failed to load card activity:', err)
+    }
+  }, [])
+
   const moveCard = useCallback((id: string, column: KanbanColumn) => {
     const card = cardsRef.current.find((c) => c.id === id)
     if (!card) return
-    const updated: KanbanCard = { ...card, column, columnHistory: [...card.columnHistory, { column, at: new Date().toISOString() }] }
+    // Production starts the day the card moves to In Progress (a date already there is kept).
+    const start = productionStart(card, column)
+    const updated: KanbanCard = { ...card, column, columnHistory: [...card.columnHistory, { column, at: new Date().toISOString(), by: actor }], ...(start ? { startDate: start } : {}) }
 
     // Shown straight away, then put back if the database refuses (a card needing approval cannot be distributed without it).
     setCards((prev) => prev.map((c) => (c.id === id ? updated : c)))
 
-    updateKanbanCard(id, { column: updated.column, columnHistory: updated.columnHistory })
+    updateKanbanCard(id, { column: updated.column, columnHistory: updated.columnHistory, ...(start ? { startDate: start } : {}) })
       .then(() => { if (column === 'distributed') announceMove(card, column) })
       .catch((err: unknown) => {
         const code = parseDistributionBlock(err instanceof Error ? err.message : String(err))
@@ -157,7 +188,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       })
 
     if (column !== 'distributed') announceMove(card, column)
-  }, [announceMove])
+  }, [announceMove, actor])
 
   /** An admin distributes a blocked card anyway. The database records the reason; the card and the team are updated here. */
   const overrideBlocked = useCallback(async (reason: string) => {
@@ -229,30 +260,68 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   }, [teamId])
 
   const updateCardNotes = useCallback((id: string, notes: string) => {
+    const card = cardsRef.current.find((c) => c.id === id)
+    const entry = card ? textEntry('notes', 'Notes', card.notes, notes, actor) : null
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, notes } : c)))
-    updateKanbanCard(id, { notes }).catch((err) =>
-      console.error('Failed to update kanban notes:', err)
-    )
-  }, [])
+    updateKanbanCard(id, { notes })
+      .then(() => { if (entry) record(id, [entry]) })
+      .catch((err) => console.error('Failed to update kanban notes:', err))
+  }, [actor, record])
 
   const updateCardMeta = useCallback((id: string, updates: { assignee?: string; startDate?: string; progress?: number }) => {
+    const card = cardsRef.current.find((c) => c.id === id)
+    // Only what really changed is recorded; the drawer saves all three together.
+    const entries = card ? metaEntries(card, updates, actor) : []
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)))
-    updateKanbanCard(id, updates).catch((err) =>
-      console.error('Failed to update kanban card meta:', err)
-    )
-  }, [])
+    updateKanbanCard(id, updates)
+      .then(() => record(id, entries))
+      .catch((err) => console.error('Failed to update kanban card meta:', err))
+  }, [actor, record])
+
+  const updateCardDetails = useCallback(async (id: string, edits: CardEdits): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const card = cardsRef.current.find((c) => c.id === id)
+    if (!card) return { ok: false, error: 'This card is no longer on the board.' }
+    const problem = checkCardEdits(card, edits)
+    if (problem) return { ok: false, error: problem }
+    const entries = detailEntries(card, edits, actor, { themeName })
+
+    // Shown straight away, then put back if it cannot be saved.
+    setCards((prev) => prev.map((c) => (c.id === id ? cardWithEdits(c, edits) : c)))
+    try {
+      // The brief first: it is what the email, the files and the approvals read. A card with no saved brief has nothing to update.
+      if (teamId && user) {
+        const brief = await fetchBriefById(card.briefId)
+        if (brief) await saveBrief(teamId, user.id, briefWithEdits(brief, edits))
+      }
+      await updateKanbanCard(id, edits)
+      record(id, entries)
+      if (auditCtx) {
+        writeAuditLog(auditCtx, settings.audit, {
+          action: 'Edited card details',
+          category: 'kanban',
+          entityType: 'kanban_card',
+          entityId: id,
+          details: { emailName: card.emailName, fields: Object.keys(edits) },
+        })
+      }
+      return { ok: true }
+    } catch (err) {
+      const before = Object.fromEntries(Object.keys(edits).map((k) => [k, card[k as keyof KanbanCard]]))
+      setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...before } : c)))
+      return { ok: false, error: err instanceof Error ? err.message : 'The change could not be saved.' }
+    }
+  }, [teamId, user, auditCtx, settings.audit, actor, themeName, record])
 
   const addComment = useCallback((cardId: string, comment: Omit<CampaignComment, 'id'>) => {
+    const card = cardsRef.current.find((c) => c.id === cardId)
+    if (!card) return
     const newComment: CampaignComment = { ...comment, id: uuidv4() }
-    setCards((prev) => prev.map((c) => {
-      if (c.id !== cardId) return c
-      const updated = { ...c, comments: [...(c.comments ?? []), newComment] }
-      updateKanbanCard(cardId, { comments: updated.comments }).catch((err) =>
-        console.error('Failed to persist comment:', err)
-      )
-      return updated
-    }))
-  }, [])
+    const comments = [...(card.comments ?? []), newComment]
+    setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, comments: [...(c.comments ?? []), newComment] } : c)))
+    updateKanbanCard(cardId, { comments })
+      .then(() => record(cardId, [commentEntry(newComment.text, newComment.authorName)]))
+      .catch((err) => console.error('Failed to persist comment:', err))
+  }, [record])
 
   const removeCard = useCallback((id: string) => {
     const card = cards.find((c) => c.id === id)
@@ -286,7 +355,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <KanbanContext.Provider value={{ cards, loading, addCard, addManualCard, moveCard, updateCardNotes, updateCardMeta, addComment, removeCard, getColumnCards }}>
+    <KanbanContext.Provider value={{ cards, loading, addCard, addManualCard, moveCard, updateCardNotes, updateCardMeta, updateCardDetails, loadActivity, addComment, removeCard, getColumnCards }}>
       {children}
       {blocked && (() => {
         const card = cards.find((c) => c.id === blocked.cardId)

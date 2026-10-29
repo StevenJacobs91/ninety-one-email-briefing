@@ -23,7 +23,7 @@ type Library = { status: 'idle' } | { status: 'loading' } | { status: 'ready'; c
  * only for the card whose drawer is open. An email built from the module library also loads that theme's library;
  * an older brief that was not, never does.
  */
-export function useCardEmail(briefId: string): CardEmail {
+export function useCardEmail(briefId: string, version = 0): CardEmail {
   const { settings } = useSettings()
   const [brief, setBrief] = useState<BriefPayload | null | undefined>(undefined)
   const [loadError, setLoadError] = useState('')
@@ -39,7 +39,8 @@ export function useCardEmail(briefId: string): CardEmail {
       .then((b) => { if (!cancelled) setBrief(b) })
       .catch((e: unknown) => { if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Could not load the email') })
     return () => { cancelled = true }
-  }, [briefId])
+    // `version` changes when the brief was edited, so it is read again.
+  }, [briefId, version])
 
   const needsLibrary = !!brief?.content.build
   const theme = brief?.campaign.theme

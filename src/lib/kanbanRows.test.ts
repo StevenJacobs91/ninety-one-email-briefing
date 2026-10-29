@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cardToRow, rowToCard, type KanbanCardRow } from './kanbanRows.ts'
+import { activityToRow, cardToRow, rowToActivity, rowToCard, type KanbanCardRow } from './kanbanRows.ts'
 import type { KanbanCard } from '../types/kanban.types'
 
 const row: KanbanCardRow = {
@@ -44,6 +44,16 @@ test('a row from before attachments were recorded has none', () => {
 test('the attachments are written back to the row', () => {
   const card = rowToCard({ ...row, attachments: files })
   assert.deepEqual(cardToRow(card, 't1').attachments, files)
+})
+
+test('a change on a card is written as one row, owned by the person who made it, and read back as it was', () => {
+  const entry = { id: 'a1', at: '2026-10-29T10:00:00.000Z', by: 'Sam', field: 'subjectLine', label: 'Subject line', from: 'Hello', to: 'New' }
+  const out = activityToRow(entry, 't1', 'c1', 'u1')
+  assert.deepEqual(out, { id: 'a1', team_id: 't1', card_id: 'c1', actor_id: 'u1', actor_name: 'Sam', field: 'subjectLine', label: 'Subject line', from_value: 'Hello', to_value: 'New', created_at: '2026-10-29T10:00:00.000Z' })
+  assert.deepEqual(rowToActivity({ ...out, id: 'a1' } as never), entry)
+  const comment = { id: 'a2', at: '2026-10-29T10:01:00.000Z', by: 'Sam', field: 'comment', label: 'Comment', to: 'Hi' }
+  assert.equal(activityToRow(comment, 't1', 'c1', 'u1').from_value, null)
+  assert.ok(!('from' in rowToActivity(activityToRow(comment, 't1', 'c1', 'u1') as never)), 'an empty before is left out, not set to null')
 })
 
 test('a card with no files does not send the attachments column at all (the database defaults it to an empty list)', () => {

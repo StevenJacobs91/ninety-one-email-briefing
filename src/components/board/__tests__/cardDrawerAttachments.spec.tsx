@@ -8,7 +8,7 @@ const storage = vi.hoisted(() => ({ openStoredAttachment: vi.fn() }))
 
 vi.mock('../../../lib/attachmentStorage', () => storage)
 vi.mock('../../../contexts/KanbanContext', () => ({
-  useKanban: () => ({ moveCard: vi.fn(), updateCardNotes: vi.fn(), updateCardMeta: vi.fn(), addComment: vi.fn(), removeCard: vi.fn() }),
+  useKanban: () => ({ moveCard: vi.fn(), updateCardNotes: vi.fn(), updateCardMeta: vi.fn(), loadActivity: vi.fn(), addComment: vi.fn(), removeCard: vi.fn() }),
 }))
 vi.mock('../../../contexts/AuthContext', () => ({ useAuth: () => ({ profile: { displayName: 'Sam' }, user: { id: 'u1', email: 's@x.test' } }) }))
 vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: { approvals: { enabled: false } } }) }))

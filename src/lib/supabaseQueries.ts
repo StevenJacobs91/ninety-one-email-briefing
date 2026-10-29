@@ -2,8 +2,8 @@ import { supabase } from './supabase'
 import { functionErrorDetails, functionErrorMessage, isFunctionMissing } from './functionError'
 import type { AppSettings } from '../types/settings.types'
 import type { BriefPayload } from '../types/brief.types'
-import type { KanbanCard } from '../types/kanban.types'
-import { cardToRow, rowToCard, type KanbanCardRow } from './kanbanRows'
+import type { CardActivity, KanbanCard } from '../types/kanban.types'
+import { activityToRow, cardToRow, cardUpdatesToRow, rowToActivity, rowToCard, type CardActivityRow, type KanbanCardRow } from './kanbanRows'
 
 // ─── Settings ───────────────────────────────────────────────
 
@@ -126,19 +126,24 @@ export async function insertKanbanCard(teamId: string, card: KanbanCard): Promis
 
 export async function updateKanbanCard(
   cardId: string,
-  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes' | 'assignee' | 'startDate' | 'progress' | 'comments'>>
+  updates: Parameters<typeof cardUpdatesToRow>[0]
 ): Promise<void> {
-  const row: Record<string, unknown> = {}
-  if (updates.column !== undefined) row.column = updates.column
-  if (updates.columnHistory !== undefined) row.column_history = updates.columnHistory
-  if (updates.notes !== undefined) row.notes = updates.notes
-  if (updates.assignee !== undefined) row.assignee = updates.assignee
-  if (updates.startDate !== undefined) row.start_date = updates.startDate
-  if (updates.progress !== undefined) row.progress = updates.progress
-  if (updates.comments !== undefined) row.comments = updates.comments
-
-  const { error } = await supabase.from('kanban_cards').update(row).eq('id', cardId)
+  const { error } = await supabase.from('kanban_cards').update(cardUpdatesToRow(updates)).eq('id', cardId)
   if (error) throw new Error(`Failed to update kanban card: ${error.message}`)
+}
+
+/** Records changes made on a card, one row each. The rows are never changed afterwards. */
+export async function insertCardActivity(teamId: string, userId: string, cardId: string, entries: CardActivity[]): Promise<void> {
+  if (entries.length === 0) return
+  const { error } = await supabase.from('card_activity').insert(entries.map((e) => activityToRow(e, teamId, cardId, userId)))
+  if (error) throw new Error(`Failed to record card activity: ${error.message}`)
+}
+
+/** Every change made on a card, oldest first. */
+export async function fetchCardActivity(cardId: string): Promise<CardActivity[]> {
+  const { data, error } = await supabase.from('card_activity').select('*').eq('card_id', cardId).order('created_at', { ascending: true })
+  if (error) throw new Error(`Failed to load card activity: ${error.message}`)
+  return (data ?? []).map((row) => rowToActivity(row as CardActivityRow))
 }
 
 export async function deleteKanbanCard(cardId: string): Promise<void> {

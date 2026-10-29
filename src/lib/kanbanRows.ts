@@ -1,4 +1,45 @@
-import type { KanbanCard } from '../types/kanban.types'
+import type { CardActivity, KanbanCard } from '../types/kanban.types'
+
+export interface CardActivityRow {
+  id: string
+  team_id: string
+  card_id: string
+  actor_id: string
+  actor_name: string
+  field: string
+  label: string
+  from_value: string | null
+  to_value: string | null
+  created_at: string
+}
+
+/** A change on a card as the row that records it. The person who made it owns the row. */
+export function activityToRow(a: CardActivity, teamId: string, cardId: string, actorId: string): CardActivityRow {
+  return {
+    id: a.id,
+    team_id: teamId,
+    card_id: cardId,
+    actor_id: actorId,
+    actor_name: a.by,
+    field: a.field,
+    label: a.label,
+    from_value: a.from ?? null,
+    to_value: a.to ?? null,
+    created_at: a.at,
+  }
+}
+
+export function rowToActivity(row: CardActivityRow): CardActivity {
+  return {
+    id: row.id,
+    at: row.created_at,
+    by: row.actor_name,
+    field: row.field,
+    label: row.label,
+    ...(row.from_value !== null ? { from: row.from_value } : {}),
+    ...(row.to_value !== null ? { to: row.to_value } : {}),
+  }
+}
 
 export interface KanbanCardRow {
   id: string
@@ -57,6 +98,29 @@ export function rowToCard(row: KanbanCardRow): KanbanCard {
     submittedByName: row.submitted_by_name ?? undefined,
     submittedByEmail: row.submitted_by_email ?? undefined,
   }
+}
+
+/** The columns to write for a change to a card. A field that was not changed is left out, so it is never overwritten. */
+export function cardUpdatesToRow(
+  updates: Partial<Pick<KanbanCard, 'column' | 'columnHistory' | 'notes' | 'assignee' | 'startDate' | 'progress' | 'comments' | 'subjectLine' | 'theme' | 'region' | 'channel' | 'clientGroup' | 'contentApprovalDate' | 'sendDate' | 'tags'>>,
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {}
+  if (updates.column !== undefined) row.column = updates.column
+  if (updates.columnHistory !== undefined) row.column_history = updates.columnHistory
+  if (updates.notes !== undefined) row.notes = updates.notes
+  if (updates.assignee !== undefined) row.assignee = updates.assignee
+  if (updates.startDate !== undefined) row.start_date = updates.startDate
+  if (updates.progress !== undefined) row.progress = updates.progress
+  if (updates.comments !== undefined) row.comments = updates.comments
+  if (updates.subjectLine !== undefined) row.subject_line = updates.subjectLine
+  if (updates.theme !== undefined) row.theme = updates.theme
+  if (updates.region !== undefined) row.region = updates.region
+  if (updates.channel !== undefined) row.channel = updates.channel
+  if (updates.clientGroup !== undefined) row.client_group = updates.clientGroup
+  if (updates.contentApprovalDate !== undefined) row.content_approval_date = updates.contentApprovalDate || null
+  if (updates.sendDate !== undefined) row.send_date = updates.sendDate || null
+  if (updates.tags !== undefined) row.tags = updates.tags
+  return row
 }
 
 export function cardToRow(card: KanbanCard, teamId: string): Record<string, unknown> {
