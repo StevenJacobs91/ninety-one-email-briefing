@@ -82,6 +82,17 @@ test('surfaces the status and body when the flow rejects the request', async () 
   assert.match((res as { error: string }).error, /gateway/)
 })
 
+test('a long flow error is shown whole, so the field it names is not cut off, and a huge one is capped', async () => {
+  const schemaError = JSON.stringify({ error: { code: 'TriggerInputSchemaMismatch', message: `The input body for trigger 'manual' of type 'Request' did not match its schema definition. Error details: 'Invalid type. Expected String but got Array. Path 'region', line 1, position ${'9'.repeat(300)}'.` } })
+  assert.ok(schemaError.length > 400)
+  stubFetch(400, schemaError)
+  const res = await triggerTestEmail(config(), ARGS)
+  assert.ok((res as { error: string }).error.includes("Path 'region'"), 'the field named at the end of the message is kept')
+  stubFetch(400, 'x'.repeat(5000))
+  const huge = (await triggerTestEmail(config(), ARGS)) as { error: string }
+  assert.ok(huge.error.length < 2200, 'an enormous body is still capped')
+})
+
 test('sends the shared secret as a header and never in the body', async () => {
   await triggerTestEmail(
     config({ secretHeaderName: 'x-api-key', secretHeaderValue: 'topsecret' }), ARGS)

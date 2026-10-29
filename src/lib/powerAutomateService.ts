@@ -22,6 +22,8 @@ export type PATriggerResult =
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
+const MAX_ERROR_CHARS = 2000
+
 function buildHeaders(config: PowerAutomateConfig): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (config.secretHeaderName?.trim() && config.secretHeaderValue?.trim()) {
@@ -52,7 +54,8 @@ async function postToFlow(
 
     if (!res.ok) {
       const text = await res.text().catch(() => `HTTP ${res.status}`)
-      return { ok: false, error: `Flow returned ${res.status}: ${text.slice(0, 200)}` }
+      // Long enough to carry a schema error to the field it names; capped so a flow that returns a page of HTML cannot flood the screen.
+      return { ok: false, error: `Flow returned ${res.status}: ${text.slice(0, MAX_ERROR_CHARS)}` }
     }
     return { ok: true, status: res.status }
   } catch (err) {

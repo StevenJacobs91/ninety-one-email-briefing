@@ -716,7 +716,7 @@ function StepHtmlReviewInner({ onComplete, blocked = false, blockReason = null, 
           {submitNotes.length > 0 && (
             <ul className="mt-2 space-y-1" aria-live="polite">
               {submitNotes.map((n, i) => (
-                <li key={i} className={`text-xs ${n.ok ? 'text-green-600 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                <li key={i} className={`text-xs break-words ${n.ok ? 'text-green-600 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
                   {n.ok ? '✓ ' : '! '}{n.text}
                 </li>
               ))}
