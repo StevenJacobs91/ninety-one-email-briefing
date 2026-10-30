@@ -29,7 +29,7 @@ export interface FooterSections {
 }
 
 // The line that opens a signature. Footers differ in what they say but all open with one of these.
-const SIGN_OFF_WORDS = /^(kind regards|best regards|warm regards|regards|best|sincerely|yours sincerely|many thanks|with thanks)[,.!]?$/i
+export const SIGN_OFF_WORDS =/^(kind regards|best regards|warm regards|regards|best|sincerely|yours sincerely|many thanks|with thanks)[,.!]?$/i
 
 const clean = (el: Element) => (el.textContent ?? '').replace(/[\s ]+/g, ' ').trim()
 

@@ -535,6 +535,19 @@ export interface AppSettings {
   emailEditor?: { app: 'dreamweaver' | 'vscode' | 'other'; appName: string }
   /** Words and phrases the Subject Line Tester flags. Unset means the starting list shipped with the app. */
   spamWordList?: SpamWordEntry[]
+  /** The pre-send checklist on the Review page: who sees its buttons and who it is emailed to. Unset means the defaults (see lib/preSendChecklist.ts). */
+  preSendChecklist?: Partial<PreSendChecklistSettings>
+}
+
+export interface PreSendChecklistSettings {
+  /** When off, nobody sees the checklist buttons */
+  enabled: boolean
+  /** Who sees them: base roles ('admin', 'producer', 'requester') and the ids of custom roles */
+  visibleTo: string[]
+  /** The addresses Send Checklist emails it to */
+  recipients: string[]
+  /** The subject of that email; {{emailName}} is replaced by the email's name */
+  subjectTemplate: string
 }
 
 // ─── Power Automate ──────────────────────────────────────────
@@ -568,6 +581,8 @@ export interface PowerAutomateConfig {
   campaignInsightsFlow: PowerAutomateFlowEndpoint
   /** Triggered to send a test email to a single recipient */
   testEmailFlow: PowerAutomateFlowEndpoint
+  /** Triggered to email the pre-send checklist, with the email's HTML attached */
+  checklistFlow: PowerAutomateFlowEndpoint
 
   // ── Security ────────────────────────────────────────────────
   /** Optional custom header name to pass a shared secret (e.g. "x-api-key") */
@@ -672,5 +687,6 @@ export type SettingsTab =
   | 'greetings'
   | 'notifications'
   | 'power-automate'
+  | 'checklist'
   | 'design-briefing'
   | 'campaign-planner'

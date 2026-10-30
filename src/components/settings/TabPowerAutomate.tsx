@@ -502,6 +502,7 @@ export function TabPowerAutomate() {
     listAnalysisFlow:     { webhookUrl: '', enabled: false },
     campaignInsightsFlow: { webhookUrl: '', enabled: false },
     testEmailFlow:        { webhookUrl: '', enabled: false },
+    checklistFlow:        { webhookUrl: '', enabled: false },
     secretHeaderName:  'x-api-key',
     secretHeaderValue: '',
     includeFullBrief:      true,
@@ -519,7 +520,7 @@ export function TabPowerAutomate() {
   }
 
   function updateFlow(
-    key: 'briefSubmissionFlow' | 'listAnalysisFlow' | 'campaignInsightsFlow' | 'testEmailFlow',
+    key: 'briefSubmissionFlow' | 'listAnalysisFlow' | 'campaignInsightsFlow' | 'testEmailFlow' | 'checklistFlow',
     patch: Partial<PowerAutomateFlowEndpoint>,
   ) {
     update({ [key]: { ...cfg[key], ...patch } })
@@ -547,6 +548,7 @@ export function TabPowerAutomate() {
     cfg.listAnalysisFlow,
     cfg.campaignInsightsFlow,
     cfg.testEmailFlow,
+    cfg.checklistFlow,
   ].filter((f) => f.enabled && f.webhookUrl.trim()).length
 
   const statusBadge = cfg.enabled
@@ -679,6 +681,19 @@ export function TabPowerAutomate() {
             endpoint={cfg.testEmailFlow}
             paConfig={cfg}
             onChange={(patch) => updateFlow('testEmailFlow', patch)}
+          />
+
+          <FlowCard
+            label="Pre-send Checklist"
+            description="Emails the filled-in pre-send checklist, with the email's HTML attached, to the recipients chosen in the Checklist tab."
+            icon={
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            }
+            endpoint={cfg.checklistFlow}
+            paConfig={cfg}
+            onChange={(patch) => updateFlow('checklistFlow', patch)}
           />
         </Section>
 

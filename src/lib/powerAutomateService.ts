@@ -232,6 +232,43 @@ export async function triggerTestEmail(
   })
 }
 
+export function isChecklistFlowReady(config: PowerAutomateConfig): boolean {
+  return isFlowReady(config, config.checklistFlow)
+}
+
+/**
+ * Fires the Pre-send Checklist flow.
+ * The flow emails `bodyHtml` to the recipients with the attachments (the email's HTML) on it. `recipientsText` is the
+ * addresses joined by semicolons, which is what an Outlook "To" field takes.
+ */
+export async function triggerChecklistSend(
+  config: PowerAutomateConfig,
+  args: {
+    briefId: string
+    emailName: string
+    recipients: string[]
+    subject: string
+    bodyHtml: string
+    attachments: { name: string; type: string; base64: string }[]
+    requesterName?: string
+    requesterEmail?: string
+  },
+): Promise<PATriggerResult> {
+  if (!config.enabled) return { ok: false, error: 'Power Automate integration is disabled.' }
+  const { checklistFlow } = config
+  if (!checklistFlow.enabled) return { ok: false, error: 'Pre-send Checklist flow is disabled.' }
+  if (!checklistFlow.webhookUrl) return { ok: false, error: 'Pre-send Checklist flow has no webhook URL.' }
+  if (args.recipients.length === 0) return { ok: false, error: 'There are no recipients for the checklist. Add them in Settings → Checklist.' }
+
+  return postWithRetry(config, checklistFlow.webhookUrl, {
+    triggeredAt:    new Date().toISOString(),
+    source:         'Ninety One Email Briefing',
+    kind:           'pre_send_checklist',
+    recipientsText: args.recipients.join(';'),
+    ...args,
+  })
+}
+
 /**
  * Sends a test ping to any webhook URL.
  * Used by the Settings panel "Test" buttons.

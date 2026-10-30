@@ -511,6 +511,7 @@ export const DEFAULT_POWER_AUTOMATE_CONFIG = {
   listAnalysisFlow:     { webhookUrl: '', enabled: false },
   campaignInsightsFlow: { webhookUrl: '', enabled: false },
   testEmailFlow:        { webhookUrl: '', enabled: false },
+  checklistFlow:        { webhookUrl: '', enabled: false },
   secretHeaderName:  'x-api-key',
   secretHeaderValue: '',
   includeFullBrief:      true,
@@ -537,6 +538,7 @@ export function mergePowerAutomate(remote?: Partial<PowerAutomateConfig>): Power
     listAnalysisFlow:     { ...d.listAnalysisFlow,     ...remote?.listAnalysisFlow },
     campaignInsightsFlow: { ...d.campaignInsightsFlow, ...remote?.campaignInsightsFlow },
     testEmailFlow:        { ...d.testEmailFlow,        ...remote?.testEmailFlow },
+    checklistFlow:        { ...d.checklistFlow,        ...remote?.checklistFlow },
   }
 }
 

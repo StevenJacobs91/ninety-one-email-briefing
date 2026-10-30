@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   triggerTestEmail, isTestEmailFlowReady,
   triggerBriefSubmission, isBriefSubmissionFlowReady,
+  triggerChecklistSend, isChecklistFlowReady,
 } from './powerAutomateService.ts'
 import { DEFAULT_POWER_AUTOMATE_CONFIG } from './settingsDefaults.ts'
 import type { PowerAutomateConfig } from '../types/settings.types'
@@ -91,6 +92,50 @@ test('a long flow error is shown whole, so the field it names is not cut off, an
   stubFetch(400, 'x'.repeat(5000))
   const huge = (await triggerTestEmail(config(), ARGS)) as { error: string }
   assert.ok(huge.error.length < 2200, 'an enormous body is still capped')
+})
+
+const CHECKLIST_ARGS = {
+  briefId: 'b1',
+  emailName: '1026 SA Advisor Impact',
+  recipients: ['a@ninetyone.com', 'b@ninetyone.com'],
+  subject: 'Pre-send checklist: 1026 SA Advisor Impact',
+  bodyHtml: '<table><tr><td>Checklist</td></tr></table>',
+  attachments: [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+' }],
+  requesterName: 'Sam',
+  requesterEmail: 's@ninetyone.com',
+}
+const checklistConfig = (over: Partial<PowerAutomateConfig> = {}) => config({ checklistFlow: { webhookUrl: URL, enabled: true }, ...over })
+
+test('the pre-send checklist goes to its own flow with the recipients, the body and the email attached', async () => {
+  const res = await triggerChecklistSend(checklistConfig(), CHECKLIST_ARGS)
+  assert.equal(res.ok, true)
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, URL)
+  const body = JSON.parse(String(calls[0].init.body))
+  assert.equal(body.kind, 'pre_send_checklist')
+  assert.deepEqual(body.recipients, ['a@ninetyone.com', 'b@ninetyone.com'])
+  assert.equal(body.recipientsText, 'a@ninetyone.com;b@ninetyone.com', 'one string for the flow\'s To field')
+  assert.equal(body.subject, CHECKLIST_ARGS.subject)
+  assert.equal(body.bodyHtml, CHECKLIST_ARGS.bodyHtml)
+  assert.deepEqual(body.attachments, CHECKLIST_ARGS.attachments)
+  assert.equal(body.briefId, 'b1')
+  assert.equal(body.requesterEmail, 's@ninetyone.com')
+})
+
+test('the checklist is refused, and nothing is sent, when it is switched off, has no address, or has nobody to go to', async () => {
+  assert.equal((await triggerChecklistSend(checklistConfig({ enabled: false }), CHECKLIST_ARGS) as { ok: boolean }).ok, false)
+  assert.equal((await triggerChecklistSend(config({ checklistFlow: { webhookUrl: URL, enabled: false } }), CHECKLIST_ARGS) as { ok: boolean }).ok, false)
+  assert.equal((await triggerChecklistSend(config({ checklistFlow: { webhookUrl: '', enabled: true } }), CHECKLIST_ARGS) as { ok: boolean }).ok, false)
+  const none = await triggerChecklistSend(checklistConfig(), { ...CHECKLIST_ARGS, recipients: [] }) as { ok: false; error: string }
+  assert.match(none.error, /recipient/i)
+  assert.equal(calls.length, 0)
+})
+
+test('the checklist flow is ready only when the master toggle, the flow and its url are all set', () => {
+  assert.equal(isChecklistFlowReady(checklistConfig()), true)
+  assert.equal(isChecklistFlowReady(checklistConfig({ enabled: false })), false)
+  assert.equal(isChecklistFlowReady(config({ checklistFlow: { webhookUrl: '  ', enabled: true } })), false)
+  assert.equal(isChecklistFlowReady(config({ checklistFlow: { webhookUrl: URL, enabled: false } })), false)
 })
 
 test('sends the shared secret as a header and never in the body', async () => {

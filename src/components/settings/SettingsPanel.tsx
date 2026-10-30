@@ -27,6 +27,7 @@ import { TabHeaders } from './TabHeaders'
 import { TabPowerAutomate } from './TabPowerAutomate'
 import { TabDesign } from './TabDesign'
 import { TabCampaignPlanner } from './TabCampaignPlanner'
+import { TabChecklist } from './TabChecklist'
 
 interface TabConfig {
   id: SettingsTab
@@ -83,6 +84,7 @@ const NAV_GROUPS_DEFAULT: NavGroup[] = [
       { id: 'notifications',  label: 'Notifications',  description: 'Configure Power Automate webhook triggers for email notifications' },
       { id: 'pardot',          label: 'Pardot API',        description: 'Configure Salesforce Account Engagement integration' },
       { id: 'power-automate',  label: 'Power Automate',    description: 'Send brief data to Pardot and other services via Power Automate flows' },
+      { id: 'checklist',       label: 'Pre-send Checklist', description: 'Choose who sees the pre-send checklist buttons and who the checklist is emailed to' },
     ],
   },
   {
@@ -442,6 +444,7 @@ export function SettingsPanel() {
               {activeTab === 'send-time'       && <TabSendTimeOptimisation />}
               {activeTab === 'benchmarks'      && <TabBenchmarks />}
               {activeTab === 'power-automate' && <TabPowerAutomate />}
+              {activeTab === 'checklist'       && <TabChecklist />}
               {activeTab === 'audience-health' && <TabAudienceHealth />}
               {activeTab === 'design-briefing'  && <TabDesign />}
               {activeTab === 'campaign-planner' && <TabCampaignPlanner />}
