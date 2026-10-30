@@ -22,7 +22,8 @@ export function campaignUtm(campaign: { name: string; utmCampaign?: string }): s
 export function appendUtm(url: string, campaignName: string): string {
   if (!url) return url
   try {
-    const u = new URL(url)
+    // A URL read out of HTML, or pasted from it, can carry "&amp;" for "&"; left alone it parses as a parameter named "amp;utm_medium".
+    const u = new URL(url.replace(/&amp;/gi, '&'))
     u.searchParams.set('utm_medium', 'email')
     u.searchParams.set('utm_source', 'pardot')
     const campaign = slugifyUtm(campaignName)

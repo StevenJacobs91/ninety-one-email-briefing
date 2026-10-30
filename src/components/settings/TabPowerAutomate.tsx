@@ -460,7 +460,8 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
       { name: 'brief-summary-taking-stock-2026-04-30.html', type: 'text/html', base64: 'PGh0bWw+…' },
     ],
     attachmentLinks:     [{ name: 'campaign-brief.pdf', type: 'application/pdf', size: 245760, url: 'https://…/sign/brief-attachments/…?token=…' }],
-    ...(config.includeFullBrief ? { brief: '{ ...full BriefPayload object... }' } : {}),
+    // An object, as it is sent: a text placeholder here would make the generated trigger schema type `brief` as a string and the flow would refuse the real thing.
+    ...(config.includeFullBrief ? { brief: { meta: { briefId: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' }, campaign: {}, audience: {}, content: {}, deadlines: {} } } : {}),
   }
 
   function copy() {

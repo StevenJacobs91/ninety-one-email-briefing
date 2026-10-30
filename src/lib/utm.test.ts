@@ -46,6 +46,30 @@ test('every link in an email is tagged the same way', () => {
   assert.ok(out.includes('href="mailto:a@b.com"'))
 })
 
+const PARAMS = (url: string) => [...new URL(url.replace(/&amp;/g, '&')).searchParams.keys()]
+
+test('a link whose ampersands are already HTML-escaped is tagged once, with no garbled parameters', () => {
+  const html = '<a href="https://x.com/p?utm_content=cta&amp;utm_medium=email&amp;utm_campaign=old">A</a>'
+  const out = applyUtmToHtml(html, 'Advisor Impact')
+  const href = /href="([^"]+)"/.exec(out)?.[1] ?? ''
+  assert.ok(!href.includes('%3B') && !href.includes('amp;utm'), href)
+  assert.deepEqual(PARAMS(href).sort(), ['utm_campaign', 'utm_content', 'utm_medium', 'utm_source'])
+  assert.match(href, /utm_campaign=advisor-impact/)
+  assert.match(href, /utm_content=cta/)
+})
+
+test('a pasted link that carries &amp; is read as & and tagged once', () => {
+  const url = appendUtm('https://x.com/p?a=1&amp;utm_medium=email&amp;b=2', 'Advisor Impact')
+  assert.deepEqual([...new URL(url).searchParams.keys()].sort(), ['a', 'b', 'utm_campaign', 'utm_medium', 'utm_source'])
+  assert.ok(!url.includes('%3B'), url)
+})
+
+test('tagging the same email twice changes nothing the second time', () => {
+  const html = '<a href="https://x.com/p?a=1&amp;b=2">A</a><a href="https://y.com/q">B</a>'
+  const once = applyUtmToHtml(html, 'Advisor Impact')
+  assert.equal(applyUtmToHtml(once, 'Advisor Impact'), once)
+})
+
 test('a campaign prefills its UTM from its name, as a slug', () => {
   assert.equal(campaignUtm({ name: 'Women and Investing Newsletter' }), 'women-and-investing-newsletter')
 })
