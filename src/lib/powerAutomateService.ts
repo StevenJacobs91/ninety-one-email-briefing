@@ -249,6 +249,8 @@ export async function triggerChecklistSend(
     recipients: string[]
     subject: string
     bodyHtml: string
+    /** The email itself, as rendered, so the flow can also send it as a proof in the inbox */
+    html: string
     attachments: { name: string; type: string; base64: string }[]
     requesterName?: string
     requesterEmail?: string

@@ -100,6 +100,7 @@ const CHECKLIST_ARGS = {
   recipients: ['a@ninetyone.com', 'b@ninetyone.com'],
   subject: 'Pre-send checklist: 1026 SA Advisor Impact',
   bodyHtml: '<table><tr><td>Checklist</td></tr></table>',
+  html: '<html><body>the email</body></html>',
   attachments: [{ name: 'email.html', type: 'text/html', base64: 'PGh0bWw+' }],
   requesterName: 'Sam',
   requesterEmail: 's@ninetyone.com',
@@ -117,6 +118,7 @@ test('the pre-send checklist goes to its own flow with the recipients, the body 
   assert.equal(body.recipientsText, 'a@ninetyone.com;b@ninetyone.com', 'one string for the flow\'s To field')
   assert.equal(body.subject, CHECKLIST_ARGS.subject)
   assert.equal(body.bodyHtml, CHECKLIST_ARGS.bodyHtml)
+  assert.equal(body.html, CHECKLIST_ARGS.html, 'the email itself, for a proof email in the inbox')
   assert.deepEqual(body.attachments, CHECKLIST_ARGS.attachments)
   assert.equal(body.briefId, 'b1')
   assert.equal(body.requesterEmail, 's@ninetyone.com')

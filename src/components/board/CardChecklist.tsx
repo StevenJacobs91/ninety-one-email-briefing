@@ -69,6 +69,7 @@ export function CardChecklist({ briefId, email }: { briefId: string; email: Card
         recipients,
         subject: checklistSubject(checklistSettings(settings), emailName),
         bodyHtml: checklistHtml(model),
+        html: emailHtml,
         attachments: [{ name: names.email, type: 'text/html', base64: textToBase64(emailHtml) }],
         requesterName: profile?.displayName,
         requesterEmail: user?.email ?? undefined,

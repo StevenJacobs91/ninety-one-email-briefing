@@ -95,7 +95,8 @@ describe('the pre-send checklist buttons in a card\'s drawer', () => {
     show()
     fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
     await waitFor(() => expect(state.trigger).toHaveBeenCalledTimes(1))
-    const args = state.trigger.mock.calls[0][1] as { recipients: string[]; subject: string; bodyHtml: string; attachments: { name: string; type: string; base64: string }[]; briefId: string; requesterEmail: string }
+    const args = state.trigger.mock.calls[0][1] as { recipients: string[]; subject: string; bodyHtml: string; html: string; attachments: { name: string; type: string; base64: string }[]; briefId: string; requesterEmail: string }
+    expect(args.html).toContain('Global ETFs added to your toolkit')
     expect(args.recipients).toEqual(['a@ninetyone.com', 'b@ninetyone.com'])
     expect(args.subject).toMatch(/^Pre-send checklist: \d{4} SA Advisor Advisor Impact - October edition$/)
     expect(args.bodyHtml).toContain('EMAIL PRE-SEND APPROVAL CHECKLIST')

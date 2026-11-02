@@ -418,9 +418,58 @@ function SetupGuide() {
 
 // ─── Sample payload viewer ────────────────────────────────────────────────────
 
-function SamplePayload({ config }: { config: PowerAutomateConfig }) {
+function PayloadViewer({ title, sample }: { title: string; sample: unknown }) {
   const [copied, setCopied] = useState(false)
 
+  function copy() {
+    navigator.clipboard.writeText(JSON.stringify(sample, null, 2)).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          {title}
+        </p>
+        <button
+          type="button"
+          onClick={copy}
+          className="text-[10px] font-medium text-brand-primary dark:text-brand-accent hover:underline"
+        >
+          {copied ? '✓ Copied' : 'Copy JSON'}
+        </button>
+      </div>
+      <pre className="text-[10px] font-mono text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-lg p-3 overflow-x-auto max-h-64 leading-relaxed">
+        {JSON.stringify(sample, null, 2)}
+      </pre>
+    </div>
+  )
+}
+
+/** What Send Checklist posts: paste it into "Use sample payload to generate schema" on the checklist flow's trigger. */
+function ChecklistSamplePayload() {
+  const sample = {
+    triggeredAt:    new Date().toISOString(),
+    source:         'Ninety One Email Briefing',
+    kind:           'pre_send_checklist',
+    recipientsText: 'steven.jacobs@ninetyone.com;lorenzo.lakay@ninetyone.com',
+    briefId:        'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    emailName:      '1026 south africa advisor impact - october edition',
+    recipients:     ['steven.jacobs@ninetyone.com', 'lorenzo.lakay@ninetyone.com'],
+    subject:        'Pre-send checklist: 1026 south africa advisor impact - october edition',
+    bodyHtml:       '<div>…the filled-in checklist as HTML: use it as the body of the email…</div>',
+    html:           '<html>…the email HTML, as it renders: use it as the body of a proof email…</html>',
+    attachments:    [{ name: 'email-advisor-impact-2026-10-30.html', type: 'text/html', base64: 'PGh0bWw+…' }],
+    requesterName:  'Demo User',
+    requesterEmail: 'demo.user@ninetyone.com',
+  }
+  return <PayloadViewer title="Sample Pre-send Checklist payload" sample={sample} />
+}
+
+function SamplePayload({ config }: { config: PowerAutomateConfig }) {
   const sample = {
     triggeredAt:         new Date().toISOString(),
     source:              'Ninety One Email Briefing',
@@ -464,32 +513,7 @@ function SamplePayload({ config }: { config: PowerAutomateConfig }) {
     ...(config.includeFullBrief ? { brief: { meta: { briefId: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' }, campaign: {}, audience: {}, content: {}, deadlines: {} } } : {}),
   }
 
-  function copy() {
-    navigator.clipboard.writeText(JSON.stringify(sample, null, 2)).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          Sample Brief Submission payload
-        </p>
-        <button
-          type="button"
-          onClick={copy}
-          className="text-[10px] font-medium text-brand-primary dark:text-brand-accent hover:underline"
-        >
-          {copied ? '✓ Copied' : 'Copy JSON'}
-        </button>
-      </div>
-      <pre className="text-[10px] font-mono text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-lg p-3 overflow-x-auto max-h-64 leading-relaxed">
-        {JSON.stringify(sample, null, 2)}
-      </pre>
-    </div>
-  )
+  return <PayloadViewer title="Sample Brief Submission payload" sample={sample} />
 }
 
 // ─── Main Tab ─────────────────────────────────────────────────────────────────
@@ -879,6 +903,7 @@ export function TabPowerAutomate() {
         {/* ── Sample Payload ───────────────────────────────────── */}
         <Section title="Sample Payload" description="Preview what Power Automate will receive on brief submission" defaultOpen={false}>
           <SamplePayload config={cfg} />
+          <ChecklistSamplePayload />
         </Section>
 
         {/* ── Setup Guide ──────────────────────────────────────── */}
