@@ -1,9 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { HeaderTypeConfig, HeaderTypeAssets, BrandThemeConfig } from '../../types/settings.types'
-import { modulePreviewDoc, themeColoursOf, validateModuleHtml } from '../../lib/customModules'
+import { modulePreviewDoc, themeColoursOf, themeTokensFor, tokeniseModule, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
+import { loadCatalogue } from '../../lib/moduleEngine/catalogue'
+import { libraryHeaderName } from '../../lib/moduleEngine/seed'
+import { DEFAULT_BRAND_THEMES } from '../../lib/settingsDefaults'
 import { LazyCodeEditor } from '../ui/LazyCodeEditor'
+
+// The theme whose library supplies a built-in header's code: it has every module.
+const LIBRARY_THEME = 'agulhas-gold'
 
 // ─── Header diagram previews ─────────────────────────────────
 
@@ -117,6 +123,7 @@ function HeaderTypeCard({
   onDelete,
   onSetDefault,
   brandThemes,
+  libraryCode,
 }: {
   headerType: HeaderTypeConfig
   isExpanded: boolean
@@ -125,6 +132,8 @@ function HeaderTypeCard({
   onDelete: () => void
   onSetDefault: () => void
   brandThemes: BrandThemeConfig[]
+  /** The library's own code for this header type, with variables for a theme's colours and images, when it is one of the library's */
+  libraryCode?: string
 }) {
   const [showDelete, setShowDelete] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -158,9 +167,13 @@ function HeaderTypeCard({
     }))
     .filter((m) => m.themes.length > 0)
 
+  // A library header shows its own code until it is changed; saving it unchanged keeps it the library's.
+  const code = headerType.htmlSnippet || libraryCode || ''
+  const changed = libraryCode !== undefined && headerType.htmlSnippet.trim() !== '' && headerType.htmlSnippet.trim() !== libraryCode
+
   function copySnippet() {
-    if (!headerType.htmlSnippet) return
-    navigator.clipboard.writeText(headerType.htmlSnippet).then(() => {
+    if (!code) return
+    navigator.clipboard.writeText(code).then(() => {
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 2000)
     })
@@ -322,7 +335,13 @@ function HeaderTypeCard({
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                 HTML Snippet
               </p>
-              {headerType.htmlSnippet && (
+              {code && (
+                <span className="flex items-center gap-3">
+                {changed && (
+                  <button type="button" onClick={() => onChange({ ...headerType, htmlSnippet: '' })} className="text-xs text-brand-primary dark:text-brand-accent hover:underline">
+                    Reset to the library&rsquo;s code
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={copySnippet}
@@ -344,19 +363,20 @@ function HeaderTypeCard({
                     </>
                   )}
                 </button>
+                </span>
               )}
             </div>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">
               The HTML (a table row) for this header type. When it is filled in, the builder uses it for this header type in every theme. Use
               {' '}<code>{'{{logo}}'}</code>, <code>{'{{stripe}}'}</code> and <code>{'{{slimStripe}}'}</code> for the theme&rsquo;s images (set in Brand Themes),
               {' '}<code>{'{{footerLogo}}'}</code>, <code>{'{{anniversary}}'}</code> for the badge above, <code>{'{{heroImage}}'}</code> where the email&rsquo;s own background image goes (it adds the image picker to Layout &amp; Content), and <code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code>,
-              {' '}<code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for its colours. Leave it empty to keep the library&rsquo;s header.
+              {' '}<code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for its colours. {libraryCode !== undefined ? 'This is the library\u2019s own code for the header, with variables in place of a theme\u2019s colours and images. Edit it and save to change the header in every theme.' : 'Leave it empty to keep the library\u2019s header.'}
             </p>
             <LazyCodeEditor
               label="Header code"
-              value={headerType.htmlSnippet}
-              onChange={(v) => onChange({ ...headerType, htmlSnippet: v })}
-              invalid={!!headerType.htmlSnippet.trim() && !!validateModuleHtml(headerType.htmlSnippet)}
+              value={code}
+              onChange={(v) => onChange({ ...headerType, htmlSnippet: libraryCode !== undefined && v.trim() === libraryCode ? '' : v })}
+              invalid={!!code.trim() && !!validateModuleHtml(code)}
               previewDoc={(c) => modulePreviewDoc(c, {
                 ...themeColoursOf(appSettings.brandThemes?.[0]),
                 // The header type's own images stand in for the theme's where it sets them.
@@ -614,6 +634,26 @@ export function TabHeaders() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showNewForm, setShowNewForm] = useState(false)
 
+  // A built-in header's own code is shown to be edited. It comes from one theme's library, with that theme's colours and
+  // images written as the variables for them, so what is shown and saved suits every theme.
+  const [library, setLibrary] = useState<{ modules: Record<string, string>; tokens: ThemeColours } | null>(null)
+  useEffect(() => {
+    let live = true
+    loadCatalogue(LIBRARY_THEME)
+      .then((c) => {
+        const own = DEFAULT_BRAND_THEMES.find((t) => t.id === LIBRARY_THEME)
+        const tokens = { ...themeTokensFor(c, { brandThemes: [] }), primary: own?.primary ?? '#221b3b', accent: own?.accent ?? '#cf6f13', tint01: own?.tint01, tint02: own?.tint02, tint03: own?.tint03 }
+        if (live) setLibrary({ modules: c.modules, tokens })
+      })
+      .catch(() => {})
+    return () => { live = false }
+  }, [])
+  const libraryCodeFor = (headerTypeId: string): string | undefined => {
+    const name = libraryHeaderName(headerTypeId)
+    const html = name ? library?.modules[name] : undefined
+    return html === undefined ? undefined : tokeniseModule(html, library!.tokens).trim()
+  }
+
   function handleChange(updated: HeaderTypeConfig) {
     updateSettings({ headers: headers.map((h) => h.id === updated.id ? updated : h) })
   }
@@ -685,6 +725,7 @@ export function TabHeaders() {
             onDelete={() => handleDelete(h.id)}
             onSetDefault={() => handleSetDefault(h.id)}
             brandThemes={brandThemes}
+            libraryCode={libraryCodeFor(h.id)}
           />
         ))}
       </div>

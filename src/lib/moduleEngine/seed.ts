@@ -19,6 +19,11 @@ const HEADER_MODULE: Record<string, string | null> = {
   'slim-35yr': null, // pending: the library has no module for it yet (§8.1)
 }
 
+/** The library module a built-in header type is made from, or null for a type the library has no module for. */
+export function libraryHeaderName(headerTypeId: string): string | null {
+  return HEADER_MODULE[headerTypeId] ?? null
+}
+
 /** A header type's own code, if it has some the builder can use. */
 function usableSnippet(h: HeaderTypeConfig | undefined): string | null {
   const code = (h?.htmlSnippet ?? '').trim()
