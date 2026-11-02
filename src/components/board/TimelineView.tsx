@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { getThemeColours } from '../../lib/themeColours'
 import { CardDetailDrawer } from './CardDetailDrawer'
+import { BoardToolbar, GroupByMenu } from './BoardToolbar'
+import { applyFilters, type BoardFilters } from '../../lib/boardFilters'
+import { GROUP_OPTIONS, groupCards, type GroupField } from '../../lib/boardGrouping'
 
 const COLUMN_COLORS: Record<KanbanColumn, { bar: string; text: string }> = {
   briefed: { bar: 'bg-brand-primary', text: 'text-[#e8e5ce]' },
@@ -56,11 +59,24 @@ function calcBar(card: KanbanCard, rangeStart: Date, rangeEnd: Date): { left: nu
 
 interface TimelineViewProps {
   cards: KanbanCard[]
-  search: string
+  filters: BoardFilters
+  onFilters: (next: BoardFilters) => void
 }
 
-export function TimelineView({ cards, search }: TimelineViewProps) {
+const GROUP_KEY = 'ni-board-timeline-group'
+
+function loadGroupField(): GroupField {
+  try {
+    const raw = localStorage.getItem(GROUP_KEY)
+    return GROUP_OPTIONS.some((o) => o.id === raw) ? (raw as GroupField) : 'none'
+  } catch {
+    return 'none'
+  }
+}
+
+export function TimelineView({ cards, filters, onFilters }: TimelineViewProps) {
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
+  const [groupField, setGroupField] = useState<GroupField>(() => loadGroupField())
   const [rangeWeeks, setRangeWeeks] = useState(12)
 
   // Calculate range
@@ -91,25 +107,29 @@ export function TimelineView({ cards, search }: TimelineViewProps) {
     return ((today.getTime() - rangeStart.getTime()) / totalMs) * 100
   }, [today, rangeStart, rangeEnd])
 
-  // Filter cards
-  const filteredCards = useMemo(() => {
-    let result = cards
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((c) =>
-        c.emailName.toLowerCase().includes(q) ||
-        c.emailType.toLowerCase().includes(q) ||
-        (c.assignee ?? '').toLowerCase().includes(q)
-      )
-    }
-    // Sort by send date
-    return [...result].sort((a, b) => (a.sendDate || '9999').localeCompare(b.sendDate || '9999'))
-  }, [cards, search])
+  // Filter cards, soonest send date first
+  const filteredCards = useMemo(
+    () => [...applyFilters(cards, filters)].sort((a, b) => (a.sendDate || '9999').localeCompare(b.sendDate || '9999')),
+    [cards, filters],
+  )
+  const groups = useMemo(() => groupCards(filteredCards, groupField), [filteredCards, groupField])
+
+  function chooseGroup(next: GroupField) {
+    setGroupField(next)
+    try {
+      if (next === 'none') localStorage.removeItem(GROUP_KEY)
+      else localStorage.setItem(GROUP_KEY, next)
+    } catch { /* the choice just is not remembered */ }
+  }
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 px-6 pt-4 pb-3 shrink-0 border-b border-gray-200 dark:border-gray-700">
+      <BoardToolbar filters={filters} onFilters={onFilters} cards={cards} shown={filteredCards.length}>
+        <GroupByMenu value={groupField} onChange={chooseGroup} />
+      </BoardToolbar>
+
+      {/* Range */}
+      <div className="flex items-center gap-3 px-6 pt-1 pb-3 shrink-0 border-b border-gray-200 dark:border-gray-700">
         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Range</p>
         <div className="flex items-center rounded-lg border border-brand-border-warm dark:border-gray-700 overflow-hidden">
           {[8, 12, 16, 24].map((w) => (
@@ -126,7 +146,6 @@ export function TimelineView({ cards, search }: TimelineViewProps) {
         <p className="text-xs text-gray-400 dark:text-gray-500">
           {formatDayLabel(rangeStart)} — {formatDayLabel(rangeEnd)}
         </p>
-        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{filteredCards.length} campaigns</span>
       </div>
 
       {/* Timeline grid */}
@@ -170,7 +189,15 @@ export function TimelineView({ cards, search }: TimelineViewProps) {
             </div>
 
             {/* Rows */}
-            {filteredCards.map((card) => {
+            {groups.map((group) => (
+              <div key={group.key}>
+                {groupField !== 'none' && (
+                  <div className="sticky left-0 flex items-center gap-2.5 px-4 py-2 bg-brand-primary text-white dark:text-[#e8e5ce] text-sm font-semibold border-b border-gray-200 dark:border-gray-700">
+                    {group.label}
+                    <span className="bg-brand-accent text-brand-primary text-[11px] font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full inline-flex items-center justify-center">{group.cards.length}</span>
+                  </div>
+                )}
+            {group.cards.map((card) => {
               const bar = calcBar(card, rangeStart, rangeEnd)
               const colours = getThemeColours(card.theme)
               const colColors = COLUMN_COLORS[card.column]
@@ -262,6 +289,8 @@ export function TimelineView({ cards, search }: TimelineViewProps) {
                 </div>
               )
             })}
+              </div>
+            ))}
           </div>
         )}
       </div>

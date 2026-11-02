@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import type { KanbanCard } from '../../types/kanban.types'
 import { CardDetailDrawer } from './CardDetailDrawer'
+import { BoardToolbar } from './BoardToolbar'
+import { applyFilters, type BoardFilters } from '../../lib/boardFilters'
 
 function isoToLocalDate(iso: string): Date | null {
   if (!iso) return null
@@ -16,10 +18,11 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 
 interface CalendarViewProps {
   cards: KanbanCard[]
-  search: string
+  filters: BoardFilters
+  onFilters: (next: BoardFilters) => void
 }
 
-export function CalendarView({ cards, search }: CalendarViewProps) {
+export function CalendarView({ cards, filters, onFilters }: CalendarViewProps) {
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -47,15 +50,7 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
   }, [viewYear, viewMonth])
 
   // Filter cards
-  const filteredCards = useMemo(() => {
-    if (!search.trim()) return cards
-    const q = search.toLowerCase()
-    return cards.filter((c) =>
-      c.emailName.toLowerCase().includes(q) ||
-      c.emailType.toLowerCase().includes(q) ||
-      (c.assignee ?? '').toLowerCase().includes(q)
-    )
-  }, [cards, search])
+  const filteredCards = useMemo(() => applyFilters(cards, filters), [cards, filters])
 
   // Cards by send date
   const cardsByDate = useMemo(() => {
@@ -102,6 +97,8 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
 
   return (
     <>
+      <BoardToolbar filters={filters} onFilters={onFilters} cards={cards} shown={filteredCards.length} />
+
       {/* Calendar header */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <button
@@ -148,9 +145,9 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
       </div>
 
       {/* Calendar body */}
-      <div className="flex-1 overflow-auto px-6 py-4">
+      <div className="flex-1 overflow-auto px-6 py-4 flex flex-col">
         {/* Day name row */}
-        <div className="grid grid-cols-7 mb-2">
+        <div className="grid grid-cols-7 mb-2 shrink-0">
           {DAY_NAMES.map((d) => (
             <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider py-1">
               {d}
@@ -159,10 +156,10 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
         </div>
 
         {/* Day cells */}
-        <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-7 auto-rows-fr flex-1 gap-px bg-gray-200 dark:bg-gray-700 rounded-lg overflow-clip border border-gray-200 dark:border-gray-700">
           {calendarDays.map((day, i) => {
             if (!day) {
-              return <div key={`pad-${i}`} className="bg-gray-50 dark:bg-gray-900/50 min-h-[80px]" />
+              return <div key={`pad-${i}`} className="bg-gray-50 dark:bg-gray-900/50 min-h-[110px]" />
             }
 
             const isToday = sameDay(day, today)
@@ -175,7 +172,7 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
             return (
               <div
                 key={dateKey}
-                className={`bg-white dark:bg-gray-900 min-h-[80px] p-1.5 flex flex-col ${isPast ? 'opacity-70' : ''} ${isWeekend ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
+                className={`bg-white dark:bg-gray-900 min-h-[110px] p-1.5 flex flex-col ${isPast ? 'opacity-70' : ''} ${isWeekend ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
               >
                 {/* Day number */}
                 <div className="flex items-center justify-between mb-1">
@@ -191,7 +188,7 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
                 {/* Approval date indicators */}
                 {approvalCards.length > 0 && (
                   <div className="space-y-0.5 mb-0.5">
-                    {approvalCards.slice(0, 2).map((card) => (
+                    {approvalCards.slice(0, 3).map((card) => (
                       <button
                         key={`appr-${card.id}`}
                         type="button"
@@ -204,8 +201,8 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
                         </div>
                       </button>
                     ))}
-                    {approvalCards.length > 2 && (
-                      <p className="text-[9px] text-gray-400 dark:text-gray-500 pl-1">+{approvalCards.length - 2} more</p>
+                    {approvalCards.length > 3 && (
+                      <p className="text-[9px] text-gray-400 dark:text-gray-500 pl-1">+{approvalCards.length - 3} more</p>
                     )}
                   </div>
                 )}
@@ -213,7 +210,7 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
                 {/* Send date indicators */}
                 {sendCards.length > 0 && (
                   <div className="space-y-0.5">
-                    {sendCards.slice(0, 2).map((card) => (
+                    {sendCards.slice(0, 3).map((card) => (
                       <button
                         key={`send-${card.id}`}
                         type="button"
@@ -232,8 +229,8 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
                         </div>
                       </button>
                     ))}
-                    {sendCards.length > 2 && (
-                      <p className="text-[9px] text-gray-400 dark:text-gray-500 pl-1">+{sendCards.length - 2} more</p>
+                    {sendCards.length > 3 && (
+                      <p className="text-[9px] text-gray-400 dark:text-gray-500 pl-1">+{sendCards.length - 3} more</p>
                     )}
                   </div>
                 )}
@@ -251,7 +248,7 @@ export function CalendarView({ cards, search }: CalendarViewProps) {
           const urgentCount = monthCards.filter((c) => c.urgency === 'urgent').length
           if (monthCards.length === 0) return null
           return (
-            <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+            <div className="mt-4 shrink-0 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
               <span className="font-medium text-gray-700 dark:text-gray-300">{monthCards.length}</span> campaign{monthCards.length !== 1 ? 's' : ''} sending this month
               {urgentCount > 0 && <span className="text-red-600 dark:text-red-400">{urgentCount} urgent</span>}
             </div>

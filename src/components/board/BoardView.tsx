@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
-import type { BoardSettings } from '../../lib/boardConfig'
+import { CARD_FIELDS, fieldsForSurface, resolveListColumns, toggleListColumn, type BoardSettings } from '../../lib/boardConfig'
+import { applyFilters, type BoardFilters } from '../../lib/boardFilters'
+import { GROUP_OPTIONS, groupCards, type GroupField } from '../../lib/boardGrouping'
 import { BoardCard, COLUMN_LABEL } from './BoardCard'
 import { CardDetailDrawer } from './CardDetailDrawer'
+import { BoardToolbar, ColumnsMenu, GroupByMenu } from './BoardToolbar'
 
 type SortOption = 'send-asc' | 'send-desc' | 'submitted-asc' | 'submitted-desc' | 'urgency-first' | 'progress-desc'
 
@@ -26,16 +29,26 @@ function sortCards(cards: KanbanCard[], sort: SortOption): KanbanCard[] {
   }
 }
 
-function matches(c: KanbanCard, q: string): boolean {
-  return (
-    c.emailName.toLowerCase().includes(q) ||
-    c.subjectLine.toLowerCase().includes(q) ||
-    c.emailType.toLowerCase().includes(q) ||
-    c.region.some((r) => r.toLowerCase().includes(q)) ||
-    c.tags.toLowerCase().includes(q) ||
-    (c.assignee ?? '').toLowerCase().includes(q) ||
-    (c.submittedByName ?? '').toLowerCase().includes(q)
-  )
+const GROUP_KEY = 'ni-board-kanban-group'
+const FIELDS_KEY = 'ni-board-kanban-fields'
+
+function loadGroupField(): GroupField {
+  try {
+    const raw = localStorage.getItem(GROUP_KEY)
+    return GROUP_OPTIONS.some((o) => o.id === raw) ? (raw as GroupField) : 'none'
+  } catch {
+    return 'none'
+  }
+}
+
+function loadFields(): string[] | undefined {
+  try {
+    const raw = localStorage.getItem(FIELDS_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : undefined
+    return Array.isArray(parsed) && parsed.every((x) => typeof x === 'string') ? parsed : undefined
+  } catch {
+    return undefined
+  }
 }
 
 interface ColumnPanelProps {
@@ -78,19 +91,64 @@ function ColumnPanel({ column, cards, board, onViewCard, onDragStart, onDrop }: 
 interface Props {
   cards: KanbanCard[]
   board: BoardSettings
-  search: string
+  filters: BoardFilters
+  onFilters: (next: BoardFilters) => void
 }
 
 /** The Kanban view: one column per stage, showing the card fields the board settings ask for. */
-export function BoardView({ cards, board, search }: Props) {
+export function BoardView({ cards, board, filters, onFilters }: Props) {
   const { moveCard } = useKanban()
   const [sort, setSort] = useState<SortOption>('send-asc')
   const [selected, setSelected] = useState<KanbanCard | null>(null)
-  const q = search.trim().toLowerCase()
+  const [groupField, setGroupField] = useState<GroupField>(() => loadGroupField())
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // Each person can also choose which details the cards show; it is remembered in this browser.
+  const [savedFields, setSavedFields] = useState<string[] | undefined>(() => loadFields())
 
-  function columnCards(column: KanbanColumn): KanbanCard[] {
-    const inColumn = cards.filter((c) => c.column === column && (!q || matches(c, q)))
-    return sortCards(inColumn, sort)
+  const visible = useMemo(() => applyFilters(cards, filters), [cards, filters])
+  const groups = useMemo(() => groupCards(visible, groupField), [visible, groupField])
+
+  const available = CARD_FIELDS.map((f) => f.id)
+  const configured = fieldsForSurface(board, 'card')
+  const shownFields = resolveListColumns(available, configured, savedFields, configured)
+  const customised = savedFields !== undefined
+  const cardBoard: BoardSettings = useMemo(
+    () => ({
+      ...board,
+      separateListFields: false,
+      cardFields: { order: [...shownFields, ...available.filter((id) => !shownFields.includes(id))], hidden: available.filter((id) => !shownFields.includes(id)) },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [board, shownFields.join(',')],
+  )
+
+  function saveFields(next: string[] | undefined) {
+    setSavedFields(next)
+    try {
+      if (next) localStorage.setItem(FIELDS_KEY, JSON.stringify(next))
+      else localStorage.removeItem(FIELDS_KEY)
+    } catch { /* the choice just is not remembered */ }
+  }
+
+  function chooseGroup(next: GroupField) {
+    setGroupField(next)
+    setCollapsed(new Set())
+    try {
+      if (next === 'none') localStorage.removeItem(GROUP_KEY)
+      else localStorage.setItem(GROUP_KEY, next)
+    } catch { /* the choice just is not remembered */ }
+  }
+
+  function toggleLane(key: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+  }
+
+  function columnCards(inGroup: KanbanCard[], column: KanbanColumn): KanbanCard[] {
+    return sortCards(inGroup.filter((c) => c.column === column), sort)
   }
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>, cardId: string) {
@@ -104,9 +162,36 @@ export function BoardView({ cards, board, search }: Props) {
     if (cardId) moveCard(cardId, column)
   }
 
+  const stageRow = (inGroup: KanbanCard[]) => (
+    <div className="flex gap-4 items-start pb-4">
+      {board.visibleColumns.map((column) => (
+        <ColumnPanel key={column} column={column} cards={columnCards(inGroup, column)} board={cardBoard} onViewCard={setSelected} onDragStart={handleDragStart} onDrop={handleDrop} />
+      ))}
+    </div>
+  )
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 py-3 flex items-center gap-2 shrink-0">
+      <BoardToolbar
+        filters={filters}
+        onFilters={onFilters}
+        cards={cards}
+        shown={visible.length}
+        trailing={customised ? (
+          <button type="button" onClick={() => saveFields(undefined)} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset fields</button>
+        ) : null}
+      >
+        <ColumnsMenu
+          label="Fields"
+          menuTitle="Show on cards"
+          items={CARD_FIELDS.map((f) => ({ id: f.id, label: f.label }))}
+          shown={shownFields}
+          onToggle={(id) => saveFields(toggleListColumn(shownFields, id, available))}
+          onReset={customised ? () => saveFields(undefined) : undefined}
+        />
+        <GroupByMenu value={groupField} onChange={chooseGroup} />
+      </BoardToolbar>
+      <div className="px-6 pb-3 flex items-center gap-2 shrink-0">
         <label htmlFor="board-sort" className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Sort</label>
         <select
           id="board-sort"
@@ -123,11 +208,30 @@ export function BoardView({ cards, board, search }: Props) {
         </select>
       </div>
       <div className="flex-1 overflow-auto px-6 pb-8">
-        <div className="flex gap-4 items-start pb-4">
-          {board.visibleColumns.map((column) => (
-            <ColumnPanel key={column} column={column} cards={columnCards(column)} board={board} onViewCard={setSelected} onDragStart={handleDragStart} onDrop={handleDrop} />
-          ))}
-        </div>
+        {groupField === 'none' ? (
+          stageRow(visible)
+        ) : (
+          <div className="space-y-6">
+            {groups.map((group) => {
+              const folded = collapsed.has(group.key)
+              return (
+                <section key={group.key} aria-label={`${group.label} group`}>
+                  <button
+                    type="button"
+                    aria-expanded={!folded}
+                    onClick={() => toggleLane(group.key)}
+                    className="mb-3 inline-flex items-center gap-2.5 pl-4 pr-3 py-2 text-sm font-semibold rounded-xl bg-brand-primary text-white dark:text-[#e8e5ce] hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
+                  >
+                    <svg className={`transition-transform ${folded ? '-rotate-90' : ''}`} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                    {group.label}
+                    <span className="bg-brand-accent text-brand-primary text-[11px] font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full inline-flex items-center justify-center">{group.cards.length}</span>
+                  </button>
+                  {!folded && stageRow(group.cards)}
+                </section>
+              )
+            })}
+          </div>
+        )}
       </div>
       {selected && <CardDetailDrawer card={selected} onClose={() => setSelected(null)} />}
     </div>

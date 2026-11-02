@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useKanban } from '../../contexts/KanbanContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { BoardView } from './BoardView'
@@ -6,6 +6,7 @@ import { BoardListView } from './BoardListView'
 import { TimelineView } from './TimelineView'
 import { CalendarView } from './CalendarView'
 import { AddCampaignModal } from './AddCampaignModal'
+import { DEFAULT_FILTERS, type BoardFilters } from '../../lib/boardFilters'
 import { BOARD_VIEW_LABEL, resolveBoardSettings, type BoardView as BoardViewId } from '../../lib/boardConfig'
 
 type PlannerView = BoardViewId
@@ -79,7 +80,8 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
   const { settings } = useSettings()
   const board = resolveBoardSettings(settings.campaignPlanner)
   const [view, setView] = useState<PlannerView>(() => getSavedView(board.enabledViews, board.defaultView))
-  const [search, setSearch] = useState('')
+  // One search and set of filters for every view, kept while you switch between them
+  const [filters, setFilters] = useState<BoardFilters>(DEFAULT_FILTERS)
   const [showAddModal, setShowAddModal] = useState(false)
 
   // Persist view preference
@@ -90,7 +92,7 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
   // Escape key
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showAddModal) onClose()
+      if (e.key === 'Escape' && !showAddModal && !e.defaultPrevented) onClose()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -113,11 +115,6 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
     return diff >= 0 && diff <= 7
   }).length
 
-  const handleViewChange = useCallback((v: PlannerView) => {
-    setView(v)
-    setSearch('') // reset search on view change
-  }, [])
-
   return (
     <div className="fixed inset-0 z-50 bg-brand-bg-warm dark:bg-[#1a1714] overflow-hidden flex flex-col">
 
@@ -137,7 +134,7 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => handleViewChange(v.id)}
+                  onClick={() => setView(v.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 text-xs font-ni-heading tracking-[0.1em] uppercase transition-colors ${
                     i > 0 ? 'border-l border-white/20' : ''
                   } ${
@@ -206,24 +203,6 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
             )}
           </div>
 
-          {/* Search (the list has its own filters) */}
-          {view !== 'list' && <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search campaigns, assignees, tags..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-brand-border-warm dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent focus:border-transparent"
-            />
-          </div>}
-
           {/* Current view label */}
           <div className="ml-auto hidden md:flex items-center gap-2">
             <span className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">View:</span>
@@ -235,16 +214,16 @@ export function CampaignBoardShell({ onClose }: CampaignPlannerShellProps) {
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden max-w-[1600px] w-full mx-auto">
         {view === 'kanban' && (
-          <BoardView cards={cards} board={board} search={search} />
+          <BoardView cards={cards} board={board} filters={filters} onFilters={setFilters} />
         )}
         {view === 'list' && (
-          <BoardListView />
+          <BoardListView filters={filters} onFilters={setFilters} />
         )}
         {view === 'timeline' && (
-          <TimelineView cards={cards} search={search} />
+          <TimelineView cards={cards} filters={filters} onFilters={setFilters} />
         )}
         {view === 'calendar' && (
-          <CalendarView cards={cards} search={search} />
+          <CalendarView cards={cards} filters={filters} onFilters={setFilters} />
         )}
       </div>
 

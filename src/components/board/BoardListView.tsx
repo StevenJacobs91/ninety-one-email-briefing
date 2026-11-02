@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import type { KanbanCard, KanbanColumn } from '../../types/kanban.types'
 import { useKanban } from '../../contexts/KanbanContext'
 import { getThemeColours } from '../../lib/themeColours'
@@ -10,6 +10,8 @@ import { ProgressBar } from './ProgressBar'
 import { SendStatusBadge, STATUS_COLOURS } from './SendStatusBadge'
 import { useAuth } from '../../contexts/AuthContext'
 import { GROUP_OPTIONS, groupCards, type GroupField } from '../../lib/boardGrouping'
+import { applyFilters, DEFAULT_FILTERS, activeFilterCount, type BoardFilters } from '../../lib/boardFilters'
+import { BoardToolbar, ColumnsMenu, GroupByMenu } from './BoardToolbar'
 import { sendStatus as getSendStatusFor, ageInColumn, formatBoardDate } from '../../lib/boardFormat'
 import { CARD_FIELDS, fieldsForSurface, moveColumn, resolveBoardSettings, resolveListColumns, toggleListColumn } from '../../lib/boardConfig'
 
@@ -38,20 +40,6 @@ type SortField =
 
 type SortDir = 'asc' | 'desc'
 
-interface Filters {
-  search: string
-  emailType: string
-  theme: string
-  region: string
-  channel: string
-  column: string
-  urgency: string
-  sendStatus: string   // 'overdue' | 'due-soon' | 'ok' | ''
-  tags: string
-  sendDateFrom: string
-  sendDateTo: string
-}
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLUMN_CONFIG: Record<KanbanColumn, { label: string; colour: string }> = {
@@ -60,34 +48,7 @@ const COLUMN_CONFIG: Record<KanbanColumn, { label: string; colour: string }> = {
   distributed:   { label: 'Distributed',  colour: 'bg-[#0a3323] text-[#e8e5ce]' },
 }
 
-const DEFAULT_FILTERS: Filters = {
-  search: '',
-  emailType: '',
-  theme: '',
-  region: '',
-  channel: '',
-  column: '',
-  urgency: '',
-  sendStatus: '',
-  tags: '',
-  sendDateFrom: '',
-  sendDateTo: '',
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getSendStatus(sendDate: string): 'overdue' | 'due-soon' | 'ok' {
-  if (!sendDate) return 'ok'
-  const today = new Date()
-  const diff = Math.ceil((new Date(sendDate).getTime() - today.getTime()) / 86400000)
-  if (diff < 0) return 'overdue'
-  if (diff <= 7) return 'due-soon'
-  return 'ok'
-}
-
-function unique(arr: string[]): string[] {
-  return Array.from(new Set(arr.filter(Boolean))).sort()
-}
 
 function getCardValue(card: KanbanCard, field: SortField): string {
   switch (field) {
@@ -177,7 +138,13 @@ function loadColumnOrder(key: string = COLUMN_ORDER_KEY): string[] | undefined {
   }
 }
 
-export function BoardListView() {
+interface BoardListViewProps {
+  /** The search and filters; the board shell keeps them while you switch views. Without them the list keeps its own. */
+  filters?: BoardFilters
+  onFilters?: (next: BoardFilters) => void
+}
+
+export function BoardListView({ filters: sharedFilters, onFilters }: BoardListViewProps = {}) {
   const { cards, moveCard, updateCardMeta } = useKanban()
   const { profile } = useAuth()
   // Only producers and admins can change a card, as the database enforces; others see the bar but cannot click it.
@@ -189,19 +156,16 @@ export function BoardListView() {
   const [savedOrder, setSavedOrder] = useState<string[] | undefined>(() => loadColumnOrder())
   // ...and which columns to show, on top of what Settings configures.
   const [savedVisible, setSavedVisible] = useState<string[] | undefined>(() => loadColumnOrder(COLUMN_VISIBLE_KEY))
-  const [columnsOpen, setColumnsOpen] = useState(false)
-  const columnsMenu = useRef<HTMLDivElement>(null)
   const dragging = useRef<string | null>(null)
   const [dropOver, setDropOver] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('sendDate')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [ownFilters, setOwnFilters] = useState<BoardFilters>(DEFAULT_FILTERS)
+  const filters = sharedFilters ?? ownFilters
+  const setFilters = onFilters ?? setOwnFilters
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
   const [groupField, setGroupField] = useState<GroupField>(() => loadGroupField())
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
-  const [groupOpen, setGroupOpen] = useState(false)
-  const groupMenu = useRef<HTMLDivElement>(null)
 
   function chooseGroup(next: GroupField) {
     setGroupField(next)
@@ -220,59 +184,15 @@ export function BoardListView() {
     })
   }
 
-  // Collect all unique values for dropdown filters
-  const allEmailTypes = useMemo(() => unique(cards.map((c) => c.emailType)), [cards])
-  const allThemes     = useMemo(() => unique(cards.map((c) => c.theme)), [cards])
-  const allRegions    = useMemo(() => unique(cards.flatMap((c) => c.region)), [cards])
-  const allChannels   = useMemo(() => unique(cards.flatMap((c) => c.channel)), [cards])
-
-  function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }
-
   function clearFilters() {
     setFilters(DEFAULT_FILTERS)
   }
 
-  const activeFilterCount = Object.entries(filters).filter(([, v]) => v !== '').length
+  const activeCount = activeFilterCount(filters)
 
   // Filter + sort
   const visibleCards = useMemo(() => {
-    let result = [...cards]
-
-    // Text search
-    if (filters.search.trim()) {
-      const q = filters.search.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.emailName.toLowerCase().includes(q) ||
-          c.subjectLine.toLowerCase().includes(q) ||
-          c.emailType.toLowerCase().includes(q) ||
-          c.region.some((r) => r.toLowerCase().includes(q)) ||
-          c.channel.some((ch) => ch.toLowerCase().includes(q)) ||
-          c.clientGroup.some((g) => g.toLowerCase().includes(q)) ||
-          c.tags.toLowerCase().includes(q) ||
-          c.theme.toLowerCase().includes(q) ||
-          (c.submittedByName ?? '').toLowerCase().includes(q) ||
-          (c.submittedByEmail ?? '').toLowerCase().includes(q)
-      )
-    }
-
-    // Dropdown filters
-    if (filters.emailType) result = result.filter((c) => c.emailType === filters.emailType)
-    if (filters.theme)     result = result.filter((c) => c.theme === filters.theme)
-    if (filters.region)    result = result.filter((c) => c.region.includes(filters.region))
-    if (filters.channel)   result = result.filter((c) => c.channel.includes(filters.channel))
-    if (filters.column)    result = result.filter((c) => c.column === filters.column)
-    if (filters.urgency)   result = result.filter((c) => c.urgency === filters.urgency)
-    if (filters.tags)      result = result.filter((c) => c.tags.toLowerCase().includes(filters.tags.toLowerCase()))
-
-    // Send status filter
-    if (filters.sendStatus) result = result.filter((c) => getSendStatus(c.sendDate) === filters.sendStatus)
-
-    // Date range
-    if (filters.sendDateFrom) result = result.filter((c) => c.sendDate >= filters.sendDateFrom)
-    if (filters.sendDateTo)   result = result.filter((c) => c.sendDate <= filters.sendDateTo)
+    const result = applyFilters(cards, filters)
 
     // Sort
     result.sort((a, b) => {
@@ -364,26 +284,6 @@ export function BoardListView() {
     saveVisible(undefined)
     saveOrder(undefined)
   }
-
-  // The column picker closes on Escape or a click elsewhere.
-  useEffect(() => {
-    if (!columnsOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setColumnsOpen(false) }
-    const onClick = (e: MouseEvent) => { if (!columnsMenu.current?.contains(e.target as Node)) setColumnsOpen(false) }
-    document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onClick)
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick) }
-  }, [columnsOpen])
-
-  // The group menu closes the same ways.
-  useEffect(() => {
-    if (!groupOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setGroupOpen(false) }
-    const onClick = (e: MouseEvent) => { if (!groupMenu.current?.contains(e.target as Node)) setGroupOpen(false) }
-    document.addEventListener('keydown', onKey)
-    document.addEventListener('mousedown', onClick)
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick) }
-  }, [groupOpen])
 
   function saveOrder(next: string[] | undefined) {
     setSavedOrder(next)
@@ -530,240 +430,23 @@ export function BoardListView() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Toolbar */}
-      {/* Above the table, so the Columns and Group by menus and the filter panel are never covered by its sticky headings */}
-      <div className="relative z-40 px-6 py-4 w-full">
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="search"
-              value={filters.search}
-              onChange={(e) => setFilter('search', e.target.value)}
-              placeholder="Search all fields..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary dark:focus:ring-brand-accent"
-            />
-          </div>
-
-          {/* Filter toggle */}
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((o) => !o)}
-            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
-              filtersOpen || activeFilterCount > 0
-                ? 'bg-brand-primary text-white border-brand-primary'
-                : 'bg-white dark:bg-gray-900 border-brand-border-warm dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400'
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-            </svg>
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="bg-brand-accent text-brand-primary text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-
-          {/* Columns picker */}
-          <div className="relative" ref={columnsMenu}>
-            <button
-              type="button"
-              aria-expanded={columnsOpen}
-              aria-haspopup="true"
-              onClick={() => setColumnsOpen((o) => !o)}
-              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
-                columnsOpen ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-900 border-brand-border-warm dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400'
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <rect x="3" y="4" width="5" height="16" rx="1" /><rect x="10" y="4" width="5" height="16" rx="1" /><rect x="17" y="4" width="4" height="16" rx="1" />
-              </svg>
-              Columns
-            </button>
-            {columnsOpen && (
-              <div role="group" aria-label="Show columns" className="absolute left-0 top-full mt-2 z-50 w-64 max-h-80 overflow-y-auto rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
-                <p className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Show columns</p>
-                {available.map((id) => (
-                  <label key={id} className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
-                    <input type="checkbox" className="w-4 h-4 accent-brand-primary" checked={shownColumns.includes(id)} onChange={() => toggleColumn(id)} />
-                    {COLUMN_DEFS[id].header}
-                  </label>
-                ))}
-                {customised && (
-                  <button type="button" onClick={resetColumns} className="mt-1 w-full text-left px-2 py-1.5 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset to configured columns</button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Group by */}
-          <div className="relative" ref={groupMenu}>
-            <button
-              type="button"
-              aria-expanded={groupOpen}
-              aria-haspopup="true"
-              onClick={() => setGroupOpen((o) => !o)}
-              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
-                groupOpen || groupField !== 'none' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white dark:bg-gray-900 border-brand-border-warm dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-400'
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="5" rx="1" /><rect x="3" y="15" width="18" height="5" rx="1" />
-              </svg>
-              Group by
-              {groupField !== 'none' && (
-                <span className="bg-brand-accent text-brand-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {GROUP_OPTIONS.find((o) => o.id === groupField)?.label}
-                </span>
-              )}
-            </button>
-            {groupOpen && (
-              <div role="radiogroup" aria-label="Group by" className="absolute left-0 top-full mt-2 z-50 w-56 rounded-lg border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg p-2">
-                <p className="px-2 pt-1 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Group by</p>
-                {GROUP_OPTIONS.map((o) => (
-                  <label key={o.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
-                    <input
-                      type="radio"
-                      name="group-by"
-                      className="w-4 h-4 accent-brand-primary"
-                      checked={groupField === o.id}
-                      onChange={() => { chooseGroup(o.id); setGroupOpen(false) }}
-                    />
-                    {o.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Clear */}
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-            >
-              Clear all
-            </button>
-          )}
-
-          {/* Result count */}
-          <p className="ml-auto text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-            {customised && (
-              <button type="button" onClick={resetColumns} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset columns</button>
-            )}
-            {visibleCards.length} of {cards.length} brief{cards.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-
-        {/* Filter panel */}
-        {filtersOpen && (
-          <div className="mt-3 bg-white dark:bg-gray-900 border border-brand-border-warm dark:border-gray-700 rounded-xl p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-
-            {/* Status */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Stage</label>
-              <select value={filters.column} onChange={(e) => setFilter('column', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All stages</option>
-                {(['briefed', 'in-progress', 'distributed'] as KanbanColumn[]).map((c) => (
-                  <option key={c} value={c}>{COLUMN_CONFIG[c].label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Email type */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Email Type</label>
-              <select value={filters.emailType} onChange={(e) => setFilter('emailType', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All types</option>
-                {allEmailTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            {/* Theme */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Theme</label>
-              <select value={filters.theme} onChange={(e) => setFilter('theme', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All themes</option>
-                {allThemes.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            {/* Region */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Region</label>
-              <select value={filters.region} onChange={(e) => setFilter('region', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All regions</option>
-                {allRegions.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-
-            {/* Channel */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Channel</label>
-              <select value={filters.channel} onChange={(e) => setFilter('channel', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All channels</option>
-                {allChannels.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
-              </select>
-            </div>
-
-            {/* Urgency */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Urgency</label>
-              <select value={filters.urgency} onChange={(e) => setFilter('urgency', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All</option>
-                <option value="standard">Standard</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-
-            {/* Send status */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Send Status</label>
-              <select value={filters.sendStatus} onChange={(e) => setFilter('sendStatus', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30">
-                <option value="">All</option>
-                <option value="overdue">Overdue</option>
-                <option value="due-soon">Due soon</option>
-                <option value="ok">On track</option>
-              </select>
-            </div>
-
-            {/* Send date from */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Send Date From</label>
-              <input type="date" value={filters.sendDateFrom} onChange={(e) => setFilter('sendDateFrom', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
-            </div>
-
-            {/* Send date to */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Send Date To</label>
-              <input type="date" value={filters.sendDateTo} onChange={(e) => setFilter('sendDateTo', e.target.value)}
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Tags</label>
-              <input type="text" value={filters.tags} onChange={(e) => setFilter('tags', e.target.value)}
-                placeholder="Filter by tag..."
-                className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary/30" />
-            </div>
-          </div>
-        )}
-      </div>
+      <BoardToolbar
+        filters={filters}
+        onFilters={setFilters}
+        cards={cards}
+        shown={visibleCards.length}
+        trailing={customised ? (
+          <button type="button" onClick={resetColumns} className="mr-3 text-xs text-brand-primary dark:text-brand-accent hover:underline">Reset columns</button>
+        ) : null}
+      >
+        <ColumnsMenu
+          items={available.map((id) => ({ id, label: COLUMN_DEFS[id].header }))}
+          shown={shownColumns}
+          onToggle={toggleColumn}
+          onReset={customised ? resetColumns : undefined}
+        />
+        <GroupByMenu value={groupField} onChange={chooseGroup} />
+      </BoardToolbar>
 
       {/* Table */}
       <div className="px-6 pb-6 w-full flex-1 min-h-0">
@@ -773,7 +456,7 @@ export function BoardListView() {
               <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
             <p className="text-sm font-medium text-gray-400 dark:text-gray-500">No briefs match your filters.</p>
-            {activeFilterCount > 0 && (
+            {activeCount > 0 && (
               <button type="button" onClick={clearFilters} className="mt-2 text-xs text-brand-primary dark:text-brand-accent hover:underline">
                 Clear all filters
               </button>
