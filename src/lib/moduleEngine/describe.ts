@@ -1,4 +1,5 @@
 import { footerSections, isFooterModule } from './footer'
+import { buttonRows } from './buttonWidths'
 import { isAutoEditable, parseModuleDom, parseRegions, regionElements, type ParseDoc, type RegionField } from './regions'
 import { findRepeats, resizeRepeat, type RepeatGroup } from './repeats'
 import { listImageSlots } from './render'
@@ -27,6 +28,8 @@ export interface ModuleInfo {
   images: string[]
   /** For a footer: which of its parts the module has */
   footer?: { hasSignoff: boolean; hasSignature: boolean; hasSocial: boolean }
+  /** How many buttons are in each row of buttons, top to bottom; empty for a module with none. Always set by describeModule. */
+  buttonRows?: number[]
   /** What each entry of `images` is: a placeholder image, or a person's photo from the profile library */
   imageKinds: ('placeholder' | 'profile' | 'graphic')[]
 }
@@ -101,5 +104,6 @@ export function describeModule(
 
   const slots = listImageSlots(html)
   return { fields: fieldInfos, boxes, repeats: groups, images: slots.map((x) => x.url), imageKinds: slots.map((x) => x.kind),
+    buttonRows: buttonRows(dom.root).map((r) => r.buttons.length),
     ...(footer ? { footer: { hasSignoff: footer.signoff.length > 0, hasSignature: footer.signature.length > 0, hasSocial: footer.social !== null } } : {}) }
 }

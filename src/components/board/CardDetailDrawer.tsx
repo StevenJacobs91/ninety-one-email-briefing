@@ -16,6 +16,7 @@ import { useSettings } from '../../contexts/SettingsContext'
 import { useApprovals } from '../../contexts/ApprovalsContext'
 import { CardEditFields } from './CardEditFields'
 import { HistoryTimeline } from './HistoryTimeline'
+import { CardChecklist } from './CardChecklist'
 import { useProducers } from './useProducers'
 import { firstInProgressDate, type CardEdits } from '../../lib/cardEdits'
 import { ApprovalStatusBadge } from '../approvals/ApprovalStatusBadge'
@@ -461,6 +462,7 @@ export function CardDetailDrawer({ card, onClose }: CardDetailDrawerProps) {
 
         {/* Footer: move actions */}
         <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-6 py-4">
+          <CardChecklist briefId={card.briefId} email={email} />
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Move to column</p>
           <div className="flex gap-2">
             {prevCol && (

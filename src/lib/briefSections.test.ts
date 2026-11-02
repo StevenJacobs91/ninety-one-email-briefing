@@ -64,7 +64,7 @@ test('filling a section in completes its badge, and the problems follow the fiel
   const p = sectionProgress(filled)
   assert.deepEqual([p.envelope.done, p.envelope.total], [2, 2])
   assert.equal(p.envelope.problems.length, 0)
-  filled.content.cta.label = 'x'.repeat(31)
+  filled.content.cta.url = 'not a link'
   const q = sectionProgress(filled)
-  assert.ok(q.email.problems.some((x) => x.path === 'content.cta.label'), 'a problem in the email is counted under the email')
+  assert.ok(q.email.problems.some((x) => x.path === 'content.cta.url'), 'a problem in the email is counted under the email')
 })

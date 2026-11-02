@@ -2,6 +2,7 @@ import type { ThemeCatalogue } from './catalogue'
 import type { EmailBuild } from './build'
 import { isAutoEditable, parseModuleDom, parseRegions, applyRegions, moduleHtml, type ParseDoc } from './regions'
 import { applyBoxStyles } from './boxModel'
+import { applyButtonWidths } from './buttonWidths'
 import { findRepeats, resizeRepeat } from './repeats'
 import { applyDisclaimer } from '../disclaimer'
 import { applyFooter } from './footer'
@@ -120,9 +121,10 @@ export function renderBuild(
     const hasStyles = Object.keys(m.styles ?? {}).length > 0
     const hasDisclaimer = m.disclaimerHtml !== undefined
     const hasFooter = m.footer !== undefined
+    const hasButtonWidths = Object.keys(m.buttonWidths ?? {}).length > 0
     let html = original
 
-    if (hasRepeats || hasRegions || hasStyles || hasDisclaimer || hasFooter) {
+    if (hasRepeats || hasRegions || hasStyles || hasDisclaimer || hasFooter || hasButtonWidths) {
       const dom = parseModuleDom(original, opts.parse, { auto: isAutoEditable(m.moduleName) })
       for (const [group, count] of Object.entries(m.repeats)) resizeRepeat(dom, group, count)
       const { unitOf } = findRepeats(dom)
@@ -132,6 +134,7 @@ export function renderBuild(
       }
       const regionEls = applyRegions(dom, m.regions, unitOf, { accent: opts.accent })
       if (m.styles) applyBoxStyles(dom, m.styles, regionEls, tokens)
+      applyButtonWidths(dom.root, m.buttonWidths)
       if (m.disclaimerHtml !== undefined) applyDisclaimer(dom.root, m.disclaimerHtml)
       if (m.footer) applyFooter(dom, m.footer, { parse: opts.parse, footerV1Html: cat.modules['Footer v1'] })
       html = moduleHtml(dom)

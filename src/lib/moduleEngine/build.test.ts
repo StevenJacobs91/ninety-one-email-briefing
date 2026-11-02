@@ -46,10 +46,20 @@ test('an edited region appears in the rendered email', () => {
   assert.ok(out.html.includes('Hello <i>world</i>'))
 })
 
-test('header, footer and disclaimer slot modules cannot be moved, and footer and disclaimer cannot be removed', () => {
+test('header and disclaimer slot modules cannot be moved, and footer and disclaimer cannot be removed', () => {
   const b = base()
-  for (const i of [0, 2, 3]) assert.deepEqual(moveModule(b, b.modules[i].instanceId, 1), b)
+  for (const i of [0, 3]) assert.deepEqual(moveModule(b, b.modules[i].instanceId, 1), b)
   for (const i of [2, 3]) assert.deepEqual(removeModule(b, b.modules[i].instanceId), b)
+})
+
+test('the footer can move up past other modules (e.g. an ABL disclaimer) but never above the header or below the disclaimer', () => {
+  let b = addModule(base(), 'ABL Disclaimer', 99)
+  assert.deepEqual(ids(b), ['Header with Image', 'Body Content', 'ABL Disclaimer', 'Footer v1', 'Disclaimer'])
+  const footer = b.modules.find((m) => m.slot === 'footer')!
+  b = moveModule(b, footer.instanceId, 2)
+  assert.deepEqual(ids(b), ['Header with Image', 'Body Content', 'Footer v1', 'ABL Disclaimer', 'Disclaimer'])
+  assert.deepEqual(ids(moveModule(b, footer.instanceId, 0)), ['Header with Image', 'Footer v1', 'Body Content', 'ABL Disclaimer', 'Disclaimer'])
+  assert.deepEqual(ids(moveModule(b, footer.instanceId, 99)), ['Header with Image', 'Body Content', 'ABL Disclaimer', 'Footer v1', 'Disclaimer'])
 })
 
 test('an email can go without its header, and the header can be put back at the top', () => {

@@ -10,7 +10,8 @@ const contentSectionSchema = z.object({
 })
 
 const ctaSchema = z.object({
-  label: z.string().max(30, 'Max 30 characters'),
+  // No hard limit: a long label is a Brand Review suggestion, and the button can be made wider to hold it.
+  label: z.string(),
   url: z.string().url('Must be a valid URL').or(z.literal('')),
   openInNewTab: z.boolean(),
 })
@@ -78,6 +79,7 @@ const buildModuleSchema = z.object({
   images: z.record(z.object({ src: z.string().optional(), alt: z.string().optional() })),
   boundFields: z.record(z.string()),
   disclaimerHtml: z.string().optional(),
+  buttonWidths: z.record(z.array(z.number())).optional(),
   footer: z.object({
     removeSignoff: z.boolean().optional(),
     signature: z.union([z.literal('none'), z.object({ entry: z.object({ id: z.string(), name: z.string(), text: z.string(), isDefault: z.boolean(), columns: z.union([z.literal(1), z.literal(2)]).optional(), textRight: z.string().optional(), format: z.enum(['text', 'code']).optional() }) })]).optional(),

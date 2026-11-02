@@ -28,7 +28,7 @@ const NUMBER_FIELDS: NumberField[] = [
   { key: 'bodyIntroMaxLength', label: 'Body Intro Max Length', description: 'Body intros exceeding this length receive a readability warning.', min: 50, max: 500, unit: 'chars' },
   { key: 'headlineWarnLength', label: 'Headline Warn Length', description: 'Headlines longer than this may wrap on mobile.', min: 30, max: 120, unit: 'chars' },
   { key: 'sectionBodyWarnLength', label: 'Section Body Warn Length', description: 'Content sections exceeding this character count receive a warning.', min: 100, max: 800, unit: 'chars' },
-  { key: 'ctaLabelMaxLength', label: 'CTA Label Max Length', description: 'Maximum character count for call-to-action button labels.', min: 10, max: 50, unit: 'chars' },
+  { key: 'ctaLabelMaxLength', label: 'Button Label Suggested Length', description: 'Button text longer than this gets a Brand Review suggestion. It never blocks the email, and a button can be made wider to hold longer text.', min: 10, max: 50, unit: 'chars' },
   { key: 'maxExclamationMarks', label: 'Max Exclamation Marks', description: 'Content exceeding this count of exclamation marks triggers a brand voice warning.', min: 0, max: 10 },
   { key: 'minDaysBetweenApprovalAndSend', label: 'Min Days: Approval to Send', description: 'Minimum business days between content approval and send date.', min: 0, max: 14, unit: 'days' },
 ]

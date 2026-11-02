@@ -257,7 +257,7 @@ All rules live in `src/lib/schema.ts`. Key constraints:
 - `sections` — min 1, max 4 entries
 - `sections[n].body` — max 500 characters
 - `cta.url` — must pass `z.string().url()`
-- `cta.label` — max 30 characters
+- `cta.label` — no hard limit; a label over `ctaLabelMaxLength` (Settings → Brand Guardian) is a Brand Review suggestion, and every button in the email is checked. Buttons can be widened (one button) or split (two buttons) in the module's Style tab
 - `estimatedListSize` — optional positive integer
 
 ---

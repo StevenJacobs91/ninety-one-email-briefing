@@ -166,6 +166,23 @@ export function TabGeneral() {
 
       <hr className="border-gray-100 dark:border-gray-800" />
 
+      {/* Sign-in page */}
+      <section>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Sign-in page</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">What people see before they sign in.</p>
+        <div className="flex items-center justify-between py-2">
+          <div className="pr-4">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Show the sign-up link</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              "Don't have an account? Sign up" under the sign-in form. This hides the link only; it does not turn sign-ups off.
+            </p>
+          </div>
+          <Switch checked={settings.showSignUpLink ?? true} label="Show the sign-up link on the sign-in page" onChange={(on) => updateSettings({ showSignUpLink: on })} />
+        </div>
+      </section>
+
+      <hr className="border-gray-100 dark:border-gray-800" />
+
       {/* Show / hide controls */}
       <section>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Show or hide</h3>

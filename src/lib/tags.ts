@@ -8,7 +8,10 @@ export function buildTags(data: BriefFormData, themes: Pick<BrandThemeConfig, 'i
   const regionPart = (data.audience.region ?? []).length > 0 ? (data.audience.region ?? []).join(' ') : 'tbd'
   const audiencePart = (data.audience.channel ?? []).length > 0 ? (data.audience.channel ?? []).join(' ') : 'tbd'
   const namePart = data.campaign.campaignName || 'untitled'
-  const emailName = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`.toLowerCase()
+  // The parent is the whole email name: YYMM REGION AUDIENCE CAMPAIGN - EMAIL DESCRIPTION.
+  const description = data.campaign.emailDescription?.trim()
+  const base = `${mm}${yy} ${regionPart} ${audiencePart} ${namePart}`
+  const emailName = (description ? `${base} - ${description}` : base).toLowerCase()
 
   const themeLabel = themes.find((t) => t.id === data.campaign.theme)?.label ?? data.campaign.theme ?? ''
 

@@ -5,6 +5,14 @@ export function abbreviateRegion(region: string): string {
   return SHORT_REGIONS[region.trim().toLowerCase()] ?? region
 }
 
+/** The name a board card carries: "Campaign - Email Description", or the campaign alone when there is no description. */
+export function campaignWithDescription(campaignName: string, emailDescription?: string): string {
+  const campaign = campaignName.trim()
+  const description = emailDescription?.trim()
+  if (!description || campaign.endsWith(` - ${description}`)) return campaign
+  return `${campaign} - ${description}`
+}
+
 /**
  * Builds the standardised email name:
  * MMYY REGION AUDIENCE CAMPAIGN - EMAIL DESCRIPTION

@@ -477,6 +477,8 @@ export interface UserGroup {
 // ─── Full AppSettings ────────────────────────────────────────
 
 export interface AppSettings {
+  /** Whether the sign-in page offers "Don't have an account? Sign up"; shown when not set. Read before sign-in by the `show_signup_link` function. */
+  showSignUpLink?: boolean
   brandThemes: BrandThemeConfig[]
   htmlTemplates: HtmlTemplateConfig[]
   htmlModules: HtmlModuleConfig[]

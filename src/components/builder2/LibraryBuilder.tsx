@@ -8,7 +8,7 @@ import { getThemeColours } from '../../lib/themeColours'
 import { useAuth } from '../../contexts/AuthContext'
 import { canSaveCampaignBuild, templateFromBuild } from '../../lib/campaignTemplate'
 import {
-  addHeader, addModule, duplicateModule, isLocked, isRemovable, moveModule, removeModule, setDisclaimer, setFooter, setImage, setRegion, setRepeat, setStyle, clearStyle, setTheme, swapModule,
+  addHeader, addModule, duplicateModule, isLocked, isMovable, isRemovable, moveModule, removeModule, setDisclaimer, setFooter, setImage, setRegion, setRepeat, setStyle, clearStyle, setButtonWidths, setTheme, swapModule,
   type BuildModule, type EmailBuild,
 } from '../../lib/moduleEngine/build'
 import { describeModule } from '../../lib/moduleEngine/describe'
@@ -385,8 +385,8 @@ export const LibraryBuilder = memo(function LibraryBuilder() {
                       {p && p.dropped > 0 && <span className="ml-2 text-amber-600">{p.dropped} saved value{p.dropped > 1 ? 's' : ''} not in this theme</span>}
                     </span>
                     <span className="flex items-center gap-1 shrink-0">
-                      <button type="button" aria-label={`Move ${m.moduleName} up`} disabled={isLocked(m)} onClick={() => edit(moveModule(build, m.instanceId, i - 1))} className="px-1.5 disabled:opacity-30">↑</button>
-                      <button type="button" aria-label={`Move ${m.moduleName} down`} disabled={isLocked(m)} onClick={() => edit(moveModule(build, m.instanceId, i + 1))} className="px-1.5 disabled:opacity-30">↓</button>
+                      <button type="button" aria-label={`Move ${m.moduleName} up`} disabled={!isMovable(m)} onClick={() => edit(moveModule(build, m.instanceId, i - 1))} className="px-1.5 disabled:opacity-30">↑</button>
+                      <button type="button" aria-label={`Move ${m.moduleName} down`} disabled={!isMovable(m)} onClick={() => edit(moveModule(build, m.instanceId, i + 1))} className="px-1.5 disabled:opacity-30">↓</button>
                       <button type="button" aria-label={`Duplicate ${m.moduleName}`} disabled={isLocked(m)} onClick={() => edit(duplicateModule(build, m.instanceId))} className="px-1.5 disabled:opacity-30">⧉</button>
                       <button type="button" aria-label={`Remove ${m.moduleName}`} disabled={!isRemovable(m)} onClick={() => removeOne(m)} className="px-1.5 text-red-600 disabled:opacity-30">✕</button>
                     </span>
@@ -424,6 +424,7 @@ export const LibraryBuilder = memo(function LibraryBuilder() {
             onImage={(key, patch) => edit(setImage(build, selected.instanceId, key, patch), `image:${selected.instanceId}:${key}`)}
             onStyle={(key, patch) => edit(setStyle(build, selected.instanceId, key, patch), `style:${selected.instanceId}:${key}`)}
             onClearStyle={(key) => edit(clearStyle(build, selected.instanceId, key))}
+            onButtonWidths={(row, widths) => edit(setButtonWidths(build, selected.instanceId, row, widths))}
             onHeaderType={(id) => setValue('assets.headerType', id, { shouldDirty: true })}
             greeting={{
               options: greetings.map((g) => ({ id: g.id, label: g.label, value: g.value })),

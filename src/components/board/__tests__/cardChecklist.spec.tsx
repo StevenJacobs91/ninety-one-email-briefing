@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { FormProvider, useForm } from 'react-hook-form'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const EMAIL = `<table><tbody>
@@ -8,27 +7,6 @@ const EMAIL = `<table><tbody>
 <tr><td><p>Kind regards,</p><p>David Stronach</p></td></tr>
 <tr><td><p class="disclaimer-copy">All information and opinions provided are of a general nature.</p></td></tr>
 </tbody></table>`
-
-const state = vi.hoisted(() => ({
-  role: 'producer', customRoleId: null as string | null, settings: {} as Record<string, unknown>,
-  trigger: vi.fn(), download: vi.fn(), audit: vi.fn(),
-}))
-
-vi.mock('../../../contexts/AuthContext', () => ({
-  useAuth: () => ({ profile: { displayName: 'Sam', role: state.role, customRoleId: state.customRoleId }, user: { id: 'u1', email: 's@ninetyone.com' } }),
-}))
-vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: state.settings }) }))
-vi.mock('../../../hooks/useAuditLog', () => ({ useAuditLog: () => ({ log: state.audit }) }))
-vi.mock('../../builder2/useCatalogue', () => ({ useCatalogue: () => ({ status: 'ready', catalogue: {} }) }))
-vi.mock('../../../lib/emailGenerator', () => ({ generateEmailHtml: () => EMAIL }))
-vi.mock('../../../lib/downloadHtml', () => ({ downloadHtml: state.download }))
-vi.mock('../../../lib/powerAutomateService', async () => ({
-  ...(await vi.importActual<typeof import('../../../lib/powerAutomateService')>('../../../lib/powerAutomateService')),
-  triggerChecklistSend: state.trigger,
-}))
-
-import { mergePowerAutomate } from '../../../lib/settingsDefaults'
-import { ChecklistActions } from '../ChecklistActions'
 
 const brief = {
   meta: { briefId: 'b1' },
@@ -38,12 +16,31 @@ const brief = {
   deadlines: { sendDate: '2026-10-28' },
 }
 
-function Host() {
-  const form = useForm({ defaultValues: brief as never })
-  return <FormProvider {...form}><ChecklistActions /></FormProvider>
-}
+const state = vi.hoisted(() => ({
+  role: 'producer', customRoleId: null as string | null, settings: {} as Record<string, unknown>,
+  trigger: vi.fn(), download: vi.fn(), audit: vi.fn(), fetchBrief: vi.fn(),
+}))
 
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({ profile: { displayName: 'Sam', role: state.role, customRoleId: state.customRoleId }, user: { id: 'u1', email: 's@ninetyone.com' } }),
+}))
+vi.mock('../../../contexts/SettingsContext', () => ({ useSettings: () => ({ settings: state.settings }) }))
+vi.mock('../../../hooks/useAuditLog', () => ({ useAuditLog: () => ({ log: state.audit }) }))
+vi.mock('../../../lib/supabaseQueries', () => ({ fetchBriefById: state.fetchBrief }))
+vi.mock('../../../lib/downloadHtml', () => ({ downloadHtml: state.download }))
+vi.mock('../../../lib/powerAutomateService', async () => ({
+  ...(await vi.importActual<typeof import('../../../lib/powerAutomateService')>('../../../lib/powerAutomateService')),
+  triggerChecklistSend: state.trigger,
+}))
+
+import { mergePowerAutomate } from '../../../lib/settingsDefaults'
+import { CardChecklist } from '../CardChecklist'
+import type { CardEmail } from '../useCardEmail'
+
+const ready: CardEmail = { status: 'ready', html: EMAIL }
 const flowOn = mergePowerAutomate({ enabled: true, checklistFlow: { webhookUrl: 'https://flow.test/x', enabled: true } })
+
+const show = (email: CardEmail = ready) => render(<CardChecklist briefId="b1" email={email} />)
 
 beforeEach(() => {
   state.role = 'producer'
@@ -52,12 +49,13 @@ beforeEach(() => {
   state.trigger.mockReset().mockResolvedValue({ ok: true, status: 200 })
   state.download.mockReset()
   state.audit.mockReset()
+  state.fetchBrief.mockReset().mockResolvedValue(brief)
 })
 afterEach(cleanup)
 
-describe('the pre-send checklist buttons', () => {
+describe('the pre-send checklist buttons in a card\'s drawer', () => {
   it('are two buttons, Send Checklist first as the main one and Download Checklist second', () => {
-    render(<Host />)
+    show()
     const buttons = screen.getAllByRole('button')
     expect(buttons.map((b) => b.textContent)).toEqual(['Send Checklist', 'Download Checklist'])
     expect(buttons[0].className).toContain('bg-brand-primary')
@@ -67,24 +65,25 @@ describe('the pre-send checklist buttons', () => {
 
   it('are shown only to the roles chosen in Settings', () => {
     state.role = 'requester'
-    const { unmount } = render(<Host />)
+    const { unmount } = show()
     expect(screen.queryByRole('button', { name: 'Send Checklist' })).toBeNull()
     unmount()
     state.settings = { ...state.settings, preSendChecklist: { recipients: ['a@ninetyone.com'], visibleTo: ['requester'] } }
-    render(<Host />)
+    show()
     expect(screen.getByRole('button', { name: 'Send Checklist' })).toBeTruthy()
   })
 
   it('are hidden for everyone when the checklist is switched off', () => {
     state.settings = { ...state.settings, preSendChecklist: { enabled: false } }
-    render(<Host />)
+    show()
     expect(screen.queryByRole('button', { name: 'Download Checklist' })).toBeNull()
   })
 
-  it('Download Checklist saves the filled-in checklist as a file', () => {
-    render(<Host />)
+  it('Download Checklist saves the checklist filled in from the card\'s saved brief and email', async () => {
+    show()
     fireEvent.click(screen.getByRole('button', { name: 'Download Checklist' }))
-    expect(state.download).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(state.download).toHaveBeenCalledTimes(1))
+    expect(state.fetchBrief).toHaveBeenCalledWith('b1')
     const [html, fileName] = state.download.mock.calls[0] as [string, string]
     expect(html).toContain('EMAIL PRE-SEND APPROVAL CHECKLIST')
     expect(html).toContain('Subject here')
@@ -93,7 +92,7 @@ describe('the pre-send checklist buttons', () => {
   })
 
   it('Send Checklist sends it to the recipients with the email attached, and says who it went to', async () => {
-    render(<Host />)
+    show()
     fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
     await waitFor(() => expect(state.trigger).toHaveBeenCalledTimes(1))
     const args = state.trigger.mock.calls[0][1] as { recipients: string[]; subject: string; bodyHtml: string; attachments: { name: string; type: string; base64: string }[]; briefId: string; requesterEmail: string }
@@ -112,12 +111,12 @@ describe('the pre-send checklist buttons', () => {
 
   it('Send Checklist says what is missing, and sends nothing, when there are no recipients or no flow', async () => {
     state.settings = { ...state.settings, preSendChecklist: { recipients: [] } }
-    const { unmount } = render(<Host />)
+    const { unmount } = show()
     fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/recipients/i)
     unmount()
     state.settings = { ...state.settings, preSendChecklist: { recipients: ['a@ninetyone.com'] }, powerAutomate: mergePowerAutomate({}) }
-    render(<Host />)
+    show()
     fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/flow/i)
     expect(state.trigger).not.toHaveBeenCalled()
@@ -125,8 +124,23 @@ describe('the pre-send checklist buttons', () => {
 
   it('Send Checklist shows the flow\'s error when it refuses', async () => {
     state.trigger.mockResolvedValue({ ok: false, error: 'Flow returned 400: schema mismatch' })
-    render(<Host />)
+    show()
     fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
     expect((await screen.findByRole('alert')).textContent).toContain('Flow returned 400: schema mismatch')
+  })
+
+  it('say so, and send nothing, while the card\'s email is still loading', async () => {
+    show({ status: 'loading' })
+    fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/still loading/i)
+    expect(state.trigger).not.toHaveBeenCalled()
+  })
+
+  it('say so, and send nothing, when the card\'s brief cannot be found', async () => {
+    state.fetchBrief.mockResolvedValue(null)
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Send Checklist' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/could not be found/i)
+    expect(state.trigger).not.toHaveBeenCalled()
   })
 })

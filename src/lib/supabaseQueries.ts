@@ -7,6 +7,16 @@ import { activityToRow, cardToRow, cardUpdatesToRow, rowToActivity, rowToCard, t
 
 // ─── Settings ───────────────────────────────────────────────
 
+/**
+ * Whether the sign-in page offers its sign-up link. The page is shown before anyone is signed in, when team settings
+ * cannot be read, so this asks a function that returns only that one switch. It is on unless a team switched it off.
+ */
+export async function fetchShowSignUp(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('show_signup_link')
+  if (error) throw new Error(`Failed to load the sign-in options: ${error.message}`)
+  return data !== false
+}
+
 export async function fetchSettings(teamId: string): Promise<AppSettings | null> {
   const { data, error } = await supabase
     .from('settings')

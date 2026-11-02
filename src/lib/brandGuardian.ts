@@ -8,6 +8,8 @@ export interface BrandGuardianOptions {
   config?: BrandGuardianConfig
   themes?: BrandThemeConfig[]
   modules?: HtmlModuleConfig[]
+  /** The label of every button the email has, so each is checked for length; the brief itself carries only the first */
+  buttonLabels?: string[]
 }
 
 export interface BrandFeedbackItem {
@@ -378,13 +380,14 @@ export function runBrandGuardianReview(brief: BriefPayload, opts?: BrandGuardian
     })
   }
 
-  // 19. CTA label length
-  if (brief.content.cta.label.length > 25) {
+  // 19. Button label length: a suggestion, never a block. Every button in the email is checked, not just the first.
+  const buttonLabels = [...new Set([brief.content.cta?.label ?? '', ...(opts?.buttonLabels ?? [])].map((l) => l.trim()).filter(Boolean))]
+  for (const label of buttonLabels.filter((l) => l.length > cfg.ctaLabelMaxLength)) {
     items.push({
       field: 'content.cta.label',
       category: 'Content Structure',
       severity: 'warning',
-      message: `CTA label is ${brief.content.cta.label.length} chars. Keep button text under 25 chars for optimal rendering across email clients, especially mobile.`,
+      message: `Button "${label}" is ${label.length} characters, over the suggested ${cfg.ctaLabelMaxLength}. Long text can wrap on mobile: shorten it, or make the button wider in the module's settings.`,
     })
   }
 

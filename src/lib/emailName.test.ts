@@ -1,6 +1,21 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildEmailName, abbreviateRegion } from './emailName.ts'
+import { buildEmailName, abbreviateRegion, campaignWithDescription } from './emailName.ts'
+
+test('a board card is named Campaign - Email Description', () => {
+  assert.equal(campaignWithDescription('Important information', 'Notification of fee changes to Allan Gray funds'), 'Important information - Notification of fee changes to Allan Gray funds')
+})
+
+test('a card with no description is named by its campaign alone', () => {
+  assert.equal(campaignWithDescription('Important information', ''), 'Important information')
+  assert.equal(campaignWithDescription('Important information', '   '), 'Important information')
+  assert.equal(campaignWithDescription('Important information'), 'Important information')
+})
+
+test('the description is trimmed, and a campaign that already ends with it is not doubled', () => {
+  assert.equal(campaignWithDescription(' Q3 ', '  October Edition '), 'Q3 - October Edition')
+  assert.equal(campaignWithDescription('Q3 - October Edition', 'October Edition'), 'Q3 - October Edition')
+})
 
 test('South Africa is shortened to SA in the email name', () => {
   assert.match(buildEmailName('Women and Investing Newsletter', ['South Africa'], ['Individual Investor'], 'October Edition'),

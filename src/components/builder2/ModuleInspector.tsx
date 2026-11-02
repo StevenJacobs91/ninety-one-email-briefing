@@ -6,6 +6,7 @@ import { headerModuleFor } from '../../lib/moduleEngine/seed'
 import type { HeaderTypeConfig } from '../../types/settings.types'
 import { RegionEditor } from './RegionEditor'
 import { BoxModelEditor } from './BoxModelEditor'
+import { ButtonWidthEditor } from './ButtonWidthEditor'
 import type { BackgroundColours, BoxStyle } from '../../lib/moduleEngine/boxModel'
 import type { AssetCategory } from '../../types/settings.types'
 import { HeroImagePicker } from './HeroImagePicker'
@@ -26,6 +27,8 @@ interface Props {
   onImage: (key: string, patch: { src?: string; alt?: string }) => void
   onStyle: (key: string, patch: BoxStyle) => void
   onClearStyle: (key: string) => void
+  /** Sets how wide a row of buttons is; `undefined` goes back to the library design. Without it the width control is not shown. */
+  onButtonWidths?: (row: number, widths: number[] | undefined) => void
   onHeaderType: (id: string) => void
   /** Background image for header types that require one (replaces the plain placeholder-image field). */
   hero?: React.ComponentProps<typeof HeroImagePicker>
@@ -46,10 +49,13 @@ interface Props {
 }
 
 export function ModuleInspector({
-  module: m, info, headerTypes, headerTypeId, accentColour, backgrounds, imageCategory, onRegion, onRepeat, onImage, onStyle, onClearStyle, onHeaderType, hero, greeting, disclaimer, footer, onClose,
+  module: m, info, headerTypes, headerTypeId, accentColour, backgrounds, imageCategory, onRegion, onRepeat, onImage, onStyle, onClearStyle, onButtonWidths, onHeaderType, hero, greeting, disclaimer, footer, onClose,
 }: Props) {
   const editable = info.fields.filter((f) => !f.locked)
   const lockedCount = info.fields.length - editable.length
+  // Only a row of one or two buttons can be widened; the control is left out when there is none.
+  const buttonRows = info.buttonRows ?? []
+  const showButtonWidths = !!onButtonWidths && buttonRows.some((n) => n === 1 || n === 2)
   const showHero = !!hero && m.slot === 'header'
   const showGreeting = !!greeting && m.moduleName === 'Greeting'
   const showDisclaimer = !!disclaimer && /^Disclaimer/i.test(m.moduleName)
@@ -202,8 +208,11 @@ export function ModuleInspector({
 
             </>
           ) },
-          { id: 'style', label: 'Style', show: info.boxes.length > 0, panel: (
-            <BoxModelEditor key={m.instanceId} boxes={info.boxes} styles={m.styles ?? {}} backgrounds={backgrounds} onStyle={onStyle} onClear={onClearStyle} />
+          { id: 'style', label: 'Style', show: info.boxes.length > 0 || showButtonWidths, panel: (
+            <>
+              {showButtonWidths && <ButtonWidthEditor rows={buttonRows} widths={m.buttonWidths} onChange={onButtonWidths!} />}
+              {info.boxes.length > 0 && <BoxModelEditor key={m.instanceId} boxes={info.boxes} styles={m.styles ?? {}} backgrounds={backgrounds} onStyle={onStyle} onClear={onClearStyle} />}
+            </>
           ) },
         ]}
       />

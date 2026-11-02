@@ -1,8 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { fetchShowSignUp } from '../../lib/supabaseQueries'
 
 export function LoginPage() {
   const { signIn, signUp } = useAuth()
+  // Settings cannot be read before sign-in, so the team's switch comes from its own function. Unknown until it answers,
+  // so the link is never shown and then taken away; if it cannot be read, the link shows, as it always has.
+  const [showSignUp, setShowSignUp] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetchShowSignUp()
+      .then((on) => { if (!cancelled) setShowSignUp(on) })
+      .catch(() => { if (!cancelled) setShowSignUp(true) })
+    return () => { cancelled = true }
+  }, [])
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -128,15 +139,17 @@ export function LoginPage() {
 
               <div className="mt-6 text-center">
                 {mode === 'login' ? (
-                  <p className="text-sm text-gray-600">
-                    Don't have an account?{' '}
-                    <button
-                      onClick={() => { setMode('signup'); setError('') }}
-                      className="text-[#134848] hover:underline font-medium"
-                    >
-                      Sign up
-                    </button>
-                  </p>
+                  showSignUp === true && (
+                    <p className="text-sm text-gray-600">
+                      Don't have an account?{' '}
+                      <button
+                        onClick={() => { setMode('signup'); setError('') }}
+                        className="text-[#134848] hover:underline font-medium"
+                      >
+                        Sign up
+                      </button>
+                    </p>
+                  )
                 ) : (
                   <p className="text-sm text-gray-600">
                     Already have an account?{' '}

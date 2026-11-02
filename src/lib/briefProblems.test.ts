@@ -40,15 +40,32 @@ test('a brief that fails only in a field the builder owns still lists it, with a
     b.audience.channel = ['INTERMEDIARY'] as never
     b.deadlines.contentApprovalDate = '2026-10-20'
     b.deadlines.sendDate = '2026-10-30'
-    b.content.cta.label = 'x'.repeat(31)
+    b.content.cta.url = 'not a link'
   })
   const problems = briefProblems(full)
-  const label = problems.find((p) => p.path === 'content.cta.label')
-  assert.ok(label, 'the button label is listed')
-  assert.equal(label?.field, 'Button label')
-  assert.match(label?.message ?? '', /30/)
+  const link = problems.find((p) => p.path === 'content.cta.url')
+  assert.ok(link, 'the button link is listed')
+  assert.equal(link?.field, 'Button link')
+  assert.match(link?.message ?? '', /valid URL/i)
   // None of the brief's own fields is among them, which is how Continue used to say nothing.
   assert.ok(!problems.some((p) => getStepFields('build').includes(p.path as never)))
+})
+
+test('a long button label is never a problem: it is a Brand Review suggestion, not a block', () => {
+  const long = withValues((b) => {
+    b.campaign.campaignName = 'Corporate Solutions'
+    b.campaign.subjectLine = 'Introducing our new online platform'
+    b.campaign.previewText = 'Passive investment products'
+    b.campaign.fromAddress = 'no-reply@ninetyone.com'
+    b.campaign.replyToEmail = 'team@ninetyone.com'
+    b.audience.clientGroup = ['Southern Africa'] as never
+    b.audience.region = ['ZA'] as never
+    b.audience.channel = ['INTERMEDIARY'] as never
+    b.deadlines.contentApprovalDate = '2026-10-20'
+    b.deadlines.sendDate = '2026-10-30'
+    b.content.cta.label = 'Read the full client notification letter and the fee schedule that comes with it'
+  })
+  assert.ok(!briefProblems(long).some((p) => p.path === 'content.cta.label'))
 })
 
 test('Brief & Build checks every field the Campaign step did, and nothing blocks the review tab itself', () => {

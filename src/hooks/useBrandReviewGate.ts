@@ -6,6 +6,11 @@ import { runBrandGuardianReview, type BrandReview } from '../lib/brandGuardian'
 import { evaluateGate, shouldAutoRunAI, type GateResult } from '../lib/brandReviewGate'
 import { useSettings } from '../contexts/SettingsContext'
 import { useAIBrandGuardian } from './useAIBrandGuardian'
+import { useCatalogue } from '../components/builder2/useCatalogue'
+import { deriveButtonLabels } from '../lib/moduleEngine/derive'
+import type { ParseDoc } from '../lib/moduleEngine/regions'
+
+const browserParse: ParseDoc = (html) => new DOMParser().parseFromString(html, 'text/html')
 
 export interface BrandReviewState extends GateResult {
   data: BriefPayload
@@ -22,9 +27,18 @@ export function useBrandReviewGate(control: Control<BriefFormData>, onReviewTab:
   const watched = useWatch({ control }) as unknown as BriefPayload
   const data = watched
 
+  // Every button in the email is checked for length, which needs the theme's module library to tell buttons from text.
+  const cat = useCatalogue(data?.campaign?.theme ?? '')
+  const catalogue = cat.status === 'ready' ? cat.catalogue : null
+  const build = data?.content?.build
+  const buttonLabels = useMemo(
+    () => (build && catalogue ? deriveButtonLabels(build, catalogue, browserParse) : undefined),
+    [build, catalogue],
+  )
+
   const review = useMemo(
-    () => runBrandGuardianReview(data, { config: cfg, themes: settings.brandThemes, modules: settings.htmlModules }),
-    [data, cfg, settings.brandThemes, settings.htmlModules],
+    () => runBrandGuardianReview(data, { config: cfg, themes: settings.brandThemes, modules: settings.htmlModules, buttonLabels }),
+    [data, cfg, settings.brandThemes, settings.htmlModules, buttonLabels],
   )
 
   const ai = useAIBrandGuardian(cfg)

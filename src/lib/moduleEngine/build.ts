@@ -18,6 +18,8 @@ export interface BuildModule {
   disclaimerHtml?: string
   /** How a Footer module's sign-off, signature and social icons are set up; unset keeps the library design. */
   footer?: FooterOptions
+  /** How wide the buttons are, by row of buttons in the module (the key is the row's position). One number is a single button's width as a percentage of the row; two are the shares of a pair. Unset keeps the library design. */
+  buttonWidths?: Record<string, number[]>
 }
 
 export interface EmailBuild {
@@ -78,10 +80,22 @@ export function removeModule(b: EmailBuild, instanceId: string): EmailBuild {
   return { ...b, modules: b.modules.filter((x) => x.instanceId !== instanceId) }
 }
 
+/** The footer can be moved (say, above an ABL disclaimer module), between the header and the disclaimer; header and disclaimer stay put. */
+export function isMovable(m: BuildModule): boolean {
+  return !isLocked(m) || m.slot === 'footer'
+}
+
 export function moveModule(b: EmailBuild, instanceId: string, to: number): EmailBuild {
   const m = b.modules.find((x) => x.instanceId === instanceId)
-  if (!m || isLocked(m)) return b
+  if (!m || !isMovable(m)) return b
   const rest = b.modules.filter((x) => x.instanceId !== instanceId)
+  if (m.slot === 'footer') {
+    // With the footer out of the way the free range ends at the disclaimer, not at the footer.
+    const header = rest.findIndex((x) => x.slot === 'header')
+    const disclaimer = rest.findIndex((x) => x.slot === 'disclaimer')
+    const index = Math.min(Math.max(to, header >= 0 ? header + 1 : 0), disclaimer >= 0 ? disclaimer : rest.length)
+    return { ...b, modules: [...rest.slice(0, index), m, ...rest.slice(index)] }
+  }
   return { ...b, modules: insertAt(rest, m, to) }
 }
 
@@ -165,6 +179,16 @@ export function setRepeat(b: EmailBuild, instanceId: string, group: string, coun
 }
 
 /** Merges footer options; a key set to undefined goes back to the library design. */
+/** Sets the widths of one row of buttons; `undefined` goes back to the library design and leaves nothing behind. */
+export function setButtonWidths(b: EmailBuild, instanceId: string, row: number, widths: number[] | undefined): EmailBuild {
+  return update(b, instanceId, (m) => {
+    const { [String(row)]: _old, ...others } = m.buttonWidths ?? {}
+    const next = widths ? { ...others, [String(row)]: widths } : others
+    const { buttonWidths: _was, ...rest } = m
+    return Object.keys(next).length === 0 ? rest : { ...rest, buttonWidths: next }
+  })
+}
+
 export function setFooter(b: EmailBuild, instanceId: string, patch: Partial<FooterOptions>): EmailBuild {
   return update(b, instanceId, (m) => {
     const merged = { ...m.footer, ...patch }

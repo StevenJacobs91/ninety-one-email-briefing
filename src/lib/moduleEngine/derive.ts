@@ -8,6 +8,23 @@ import type { ParseDoc } from './regions'
  * Brand Review. It now comes from the first button the user actually edited;
  * a button left at its library placeholder text is not a CTA.
  */
+/**
+ * The label of every button the user has edited, in the order they appear in the email. Brand Review checks each of
+ * them, where the brief's single CTA is only the first.
+ */
+export function deriveButtonLabels(build: EmailBuild, cat: ThemeCatalogue, parse: ParseDoc): string[] {
+  const labels: string[] = []
+  for (const m of build.modules) {
+    const html = cat.modules[m.moduleName]
+    if (html === undefined) continue
+    for (const f of describeModule(m.moduleName, html, parse, m.repeats).fields) {
+      const label = f.kind === 'button' ? m.regions[f.key]?.value?.trim() : ''
+      if (label) labels.push(label)
+    }
+  }
+  return labels
+}
+
 export function deriveCta(build: EmailBuild, cat: ThemeCatalogue, parse: ParseDoc): { label: string; url: string } | null {
   for (const m of build.modules) {
     const html = cat.modules[m.moduleName]

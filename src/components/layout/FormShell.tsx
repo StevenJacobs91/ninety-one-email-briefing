@@ -8,7 +8,6 @@ import { useDarkMode } from '../../hooks/useDarkMode'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useKanban } from '../../contexts/KanbanContext'
-import { ChecklistActions } from '../review/ChecklistActions'
 import { StepIndicator } from '../ui/StepIndicator'
 import { DarkModeToggle } from '../ui/DarkModeToggle'
 import { TemplatePicker } from '../ui/TemplatePicker'
@@ -320,9 +319,6 @@ function HelpPanel({ stepId, currentStepIndex, totalBriefSteps, briefSummary, br
           </dl>
         </div>
       )}
-
-      {/* Send or download the pre-send checklist — Review and Submission tab, for the roles chosen in Settings */}
-      {stepId === 'review' && <ChecklistActions />}
     </aside>
   )
 }

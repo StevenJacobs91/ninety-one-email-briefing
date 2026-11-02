@@ -22,6 +22,7 @@ import {
 } from '../lib/supabaseQueries'
 import { commentEntry, detailEntries, metaEntries, textEntry } from '../lib/cardActivity'
 import { briefWithEdits, cardWithEdits, checkCardEdits, productionStart, type CardEdits } from '../lib/cardEdits'
+import { campaignWithDescription } from '../lib/emailName'
 
 interface KanbanContextValue {
   cards: KanbanCard[]
@@ -93,7 +94,7 @@ export function KanbanProvider({ children }: { children: ReactNode }) {
       const newCard: KanbanCard = {
         id: uuidv4(),
         briefId,
-        emailName: brief.campaign.campaignName,
+        emailName: campaignWithDescription(brief.campaign.campaignName, brief.campaign.emailDescription),
         emailType: brief.campaign.emailType,
         theme: brief.campaign.theme,
         subjectLine: brief.campaign.subjectLine,
