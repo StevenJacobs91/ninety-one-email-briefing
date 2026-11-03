@@ -314,6 +314,26 @@ export async function removeMember(userId: string): Promise<{ loginRemoved: bool
   throw new Error(await functionErrorMessage(error, 'Failed to remove member'))
 }
 
+/**
+ * Sets a new password for a member of the signed-in admin's team, through the set-user-password function: only an
+ * admin may, and only for their own team. The password is sent once and not kept anywhere in the app.
+ */
+export async function setMemberPassword(userId: string, password: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Not authenticated')
+
+  const { data, error } = await supabase.functions.invoke('set-user-password', {
+    body: { userId, password },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (error) {
+    if (isFunctionMissing(error)) throw new Error('Setting passwords needs the set-user-password function, which is not deployed yet.')
+    throw new Error(await functionErrorMessage(error, 'Failed to set the password'))
+  }
+  if (data?.error) throw new Error(data.error)
+}
+
 /** Thrown when creating a user fails; `code` is set when the function says why (e.g. REMOVED_USER). */
 export class CreateUserError extends Error {
   code?: string

@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useAuditLog } from '../../hooks/useAuditLog'
 import { useSettings } from '../../contexts/SettingsContext'
 import { CustomRolesManager } from './CustomRolesManager'
+import { SetPasswordForm } from './SetPasswordForm'
 import { BASE_ROLE_LABEL, resolveCustomRole } from '../../lib/customRoles'
 import { CLIENT_GROUPS, CLIENT_GROUP_REGIONS } from '../../lib/constants'
 import type { ClientGroup } from '../../lib/constants'
@@ -21,6 +22,7 @@ import {
   updateMemberDisplayName,
   updateMemberPresets,
   removeMember,
+  setMemberPassword,
   createTeamMember,
   CreateUserError,
   type TeamMember,
@@ -146,6 +148,8 @@ function MemberRow({
   onNameChange,
   onPresetChange,
   onRemove,
+  canSetPassword,
+  onSetPassword,
 }: {
   member: TeamMember
   isCurrentUser: boolean
@@ -157,8 +161,12 @@ function MemberRow({
   onNameChange: (id: string, name: string) => void
   onPresetChange: (id: string, clientGroups: string[], regions: string[]) => void
   onRemove: (id: string) => void
+  /** Admins can set anyone's password, their own included */
+  canSetPassword: boolean
+  onSetPassword: (id: string, password: string) => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [editName, setEditName] = useState(member.displayName)
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
   const [roleMenuOpen, setRoleMenuOpen] = useState(false)
@@ -304,6 +312,26 @@ function MemberRow({
           )}
         </div>
 
+        {/* Set password */}
+        {canSetPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPasswordForm((v) => !v)}
+            title="Set password"
+            aria-label={`Set password for ${member.displayName}`}
+            aria-expanded={showPasswordForm}
+            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded transition-all focus-visible:opacity-100 ${
+              showPasswordForm
+                ? 'opacity-100 text-brand-primary dark:text-brand-accent bg-brand-primary/8 dark:bg-brand-primary/15'
+                : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-brand-primary hover:bg-brand-primary/8 dark:hover:bg-brand-primary/15'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+            </svg>
+          </button>
+        )}
+
         {/* Preset button */}
         <button
           onClick={() => setShowPresets(!showPresets)}
@@ -350,6 +378,15 @@ function MemberRow({
           )}
         </div>
       </div>
+
+      {showPasswordForm && (
+        <SetPasswordForm
+          name={member.displayName}
+          email={member.email}
+          onSubmit={(password) => onSetPassword(member.id, password)}
+          onCancel={() => setShowPasswordForm(false)}
+        />
+      )}
 
       {/* Preset editor */}
       {showPresets && (
@@ -605,6 +642,13 @@ function SubTabMembers() {
     }
   }, [loadMembers, members, audit])
 
+  const handleSetPassword = useCallback(async (userId: string, password: string) => {
+    const target = members.find((m) => m.id === userId)
+    await setMemberPassword(userId, password)
+    // Who and when, never the password itself.
+    audit({ action: 'Set a member\'s password', category: 'user', entityType: 'profile', entityId: userId, details: { targetEmail: target?.email } })
+  }, [members, audit])
+
   const adminCount = members.filter((m) => m.role === 'admin').length
 
   if (loading) {
@@ -683,6 +727,8 @@ function SubTabMembers() {
             onNameChange={handleNameChange}
             onPresetChange={handlePresetChange}
             onRemove={handleRemove}
+            canSetPassword={isAdmin}
+            onSetPassword={handleSetPassword}
           />
         ))}
       </div>
