@@ -18,7 +18,7 @@ const brief = {
 
 const state = vi.hoisted(() => ({
   role: 'producer', customRoleId: null as string | null, settings: {} as Record<string, unknown>,
-  trigger: vi.fn(), download: vi.fn(), audit: vi.fn(), fetchBrief: vi.fn(),
+  trigger: vi.fn(), testSend: vi.fn(), download: vi.fn(), audit: vi.fn(), fetchBrief: vi.fn(),
 }))
 
 vi.mock('../../../contexts/AuthContext', () => ({
@@ -31,6 +31,7 @@ vi.mock('../../../lib/downloadHtml', () => ({ downloadHtml: state.download }))
 vi.mock('../../../lib/powerAutomateService', async () => ({
   ...(await vi.importActual<typeof import('../../../lib/powerAutomateService')>('../../../lib/powerAutomateService')),
   triggerChecklistSend: state.trigger,
+  triggerTestEmail: state.testSend,
 }))
 
 import { mergePowerAutomate } from '../../../lib/settingsDefaults'
@@ -38,7 +39,7 @@ import { CardChecklist } from '../CardChecklist'
 import type { CardEmail } from '../useCardEmail'
 
 const ready: CardEmail = { status: 'ready', html: EMAIL }
-const flowOn = mergePowerAutomate({ enabled: true, checklistFlow: { webhookUrl: 'https://flow.test/x', enabled: true } })
+const flowOn = mergePowerAutomate({ enabled: true, checklistFlow: { webhookUrl: 'https://flow.test/x', enabled: true }, testEmailFlow: { webhookUrl: 'https://flow.test/proof', enabled: true } })
 
 const show = (email: CardEmail = ready) => render(<CardChecklist briefId="b1" email={email} />)
 
@@ -47,6 +48,7 @@ beforeEach(() => {
   state.customRoleId = null
   state.settings = { greetings: [], brandThemes: [], powerAutomate: flowOn, preSendChecklist: { recipients: ['a@ninetyone.com', 'b@ninetyone.com'] } }
   state.trigger.mockReset().mockResolvedValue({ ok: true, status: 200 })
+  state.testSend.mockReset().mockResolvedValue({ ok: true, status: 200 })
   state.download.mockReset()
   state.audit.mockReset()
   state.fetchBrief.mockReset().mockResolvedValue(brief)
@@ -54,13 +56,45 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('the pre-send checklist buttons in a card\'s drawer', () => {
-  it('are two buttons, Send Checklist first as the main one and Download Checklist second', () => {
+  it('are Send me a Proof above, then Send Checklist (the main one) and Download Checklist side by side', () => {
     show()
     const buttons = screen.getAllByRole('button')
-    expect(buttons.map((b) => b.textContent)).toEqual(['Send Checklist', 'Download Checklist'])
-    expect(buttons[0].className).toContain('bg-brand-primary')
-    expect(buttons[1].className).not.toContain('bg-brand-primary')
+    expect(buttons.map((b) => b.textContent)).toEqual(['Send me a Proof', 'Send Checklist', 'Download Checklist'])
+    const [proof, send, download] = buttons
+    expect(send.className).toContain('bg-brand-primary')
+    expect(download.className).not.toContain('bg-brand-primary')
+    expect(proof.className).not.toContain('bg-brand-primary')
+    expect(send.parentElement).toBe(download.parentElement)
+    expect(proof.parentElement).not.toBe(send.parentElement)
     expect(screen.getByText(/2 recipients/)).toBeTruthy()
+  })
+
+  it('Send me a Proof sends the email, as the Test Email flow does, to the person who is signed in', async () => {
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Send me a Proof' }))
+    await waitFor(() => expect(state.testSend).toHaveBeenCalledTimes(1))
+    const args = state.testSend.mock.calls[0][1] as { recipient: string; subject: string; html: string; emailName: string }
+    expect(args.recipient).toBe('s@ninetyone.com')
+    expect(args.subject).toBe('Subject here')
+    expect(args.html).toContain('Global ETFs added to your toolkit')
+    expect(args.emailName).toMatch(/advisor impact/i)
+    expect(state.trigger).not.toHaveBeenCalled()
+    expect((await screen.findByText('Proof sent to s@ninetyone.com.')).textContent).toBeTruthy()
+  })
+
+  it('Send me a Proof says so when the Test Email flow is not set up, and sends nothing', async () => {
+    state.settings = { ...state.settings, powerAutomate: mergePowerAutomate({ enabled: true, checklistFlow: { webhookUrl: 'https://flow.test/x', enabled: true } }) }
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Send me a Proof' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Test Email flow/)
+    expect(state.testSend).not.toHaveBeenCalled()
+  })
+
+  it('Send me a Proof shows the flow\'s own refusal', async () => {
+    state.testSend.mockResolvedValue({ ok: false, error: 'Flow returned 502: NoResponse' })
+    show()
+    fireEvent.click(screen.getByRole('button', { name: 'Send me a Proof' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Flow returned 502: NoResponse')
   })
 
   it('are shown only to the roles chosen in Settings', () => {
