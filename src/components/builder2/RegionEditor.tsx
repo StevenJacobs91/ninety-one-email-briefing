@@ -1,7 +1,7 @@
 import { RichTextarea } from '../ui/RichTextarea'
 import { AssetLibraryPicker } from './AssetLibraryPicker'
 import type { FieldInfo } from '../../lib/moduleEngine/describe'
-import type { RegionValue } from '../../lib/moduleEngine/regions'
+import { recolourBrand, type RegionValue } from '../../lib/moduleEngine/regions'
 import type { AssetCategory } from '../../types/settings.types'
 
 interface Props {
@@ -27,7 +27,7 @@ export function RegionEditor({ field, saved, accentColour, imageCategory, onChan
     return (
       <RichTextarea
         label={field.label}
-        value={saved?.value ?? ''}
+        value={accentColour ? recolourBrand(saved?.value ?? '', accentColour) : saved?.value ?? ''}
         onChange={(html) => onChange({ value: html })}
         placeholder={plain(field.value).slice(0, 140)}
         rows={6}

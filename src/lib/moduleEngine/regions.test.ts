@@ -240,3 +240,20 @@ test('inline styles cannot carry url(), expression() or javascript: values from 
   assert.equal(sanitizeRich('<span style="behavior: url(#default#x); color: red">x</span>'), '<span style="color: red;">x</span>')
   assert.equal(sanitizeRich('<span style="color: red">x</span>'), '<span style="color: red">x</span>')
 })
+
+test('brand bold and links in saved text follow the theme accent, and other colours are left alone', async () => {
+  const { recolourBrand } = await import('./regions.ts')
+  const bold = (c: string) => `<span style="font-family: Ninety One Visuelt Medium, arial; font-weight: normal; color: ${c};">Bold</span>`
+  const link = (c: string) => `<a href="https://x.test" style="font-family: Ninety One Visuelt Medium, arial; font-weight: normal; text-decoration: underline; color: ${c};">Link</a>`
+  const plain = '<span style="color: #ff0000; background-color: #00ff00;">Red</span>'
+  const out = recolourBrand(`${bold('#cf6f13')} ${link('rgb(207, 111, 19)')} ${plain}`, '#fbaa96')
+  assert.equal(out, `${bold('#fbaa96')} ${link('#fbaa96')} ${plain}`)
+})
+
+test('applyRegions recolours the brand bold in a saved paragraph with the chosen theme accent', () => {
+  const d = parseModuleDom('<tr><td><p pardot-region="paragraph">Hi</p></td></tr>', parse)
+  const saved = '<span style="font-family: Ninety One Visuelt Medium, arial, helvetica, sans-serif; font-weight: normal; color: #cf6f13;">Bold</span>'
+  applyRegions(d, { 'root.0': { value: saved } }, undefined, { accent: '#fbaa96' })
+  assert.ok(moduleHtml(d).includes('color: #fbaa96'))
+  assert.ok(!moduleHtml(d).includes('#cf6f13'))
+})

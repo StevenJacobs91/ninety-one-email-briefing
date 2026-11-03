@@ -284,6 +284,15 @@ function boldSpan(accent: string): string {
   return `<span style="font-family: Ninety One Visuelt Medium, arial, helvetica, sans-serif; font-weight: normal; color: ${accent};">`
 }
 
+/**
+ * The editor writes the accent into each brand bold and link when it is typed, so a theme change would leave the old
+ * colour in saved text. Brand bold and links are the spans and anchors set in Visuelt Medium; their colour follows the theme.
+ */
+export function recolourBrand(html: string, accent: string): string {
+  return html.replace(/<(span|a)\b[^>]*>/gi, (tag) =>
+    /Ninety One Visuelt Medium/i.test(tag) ? tag.replace(/(^|[;\s"'])color:\s*[^;"']+/i, `$1color: ${accent}`) : tag)
+}
+
 const LEGAL_STYLE = new Set(['font-size', 'font-weight', 'font-style', 'text-decoration'])
 const LEGAL_SIZE = { min: 8, max: 24 }
 
@@ -400,7 +409,7 @@ export function effectiveFontSize(el: Element): string {
 export const PARAGRAPH_GAP_PX = 16
 
 function setRichParagraphs(el: Element, html: string, accent?: string): Element[] {
-  const paras = richToParagraphs(html).map((p) => sanitizeRich(p, accent))
+  const paras = richToParagraphs(accent ? recolourBrand(html, accent) : html).map((p) => sanitizeRich(p, accent))
   const tag = el.tagName.toLowerCase()
   const size = effectiveFontSize(el)
   // Only a <p> or <div> can be repeated as a sibling; anything else keeps its paragraphs as line breaks.
