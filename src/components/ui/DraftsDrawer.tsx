@@ -85,7 +85,14 @@ export function DraftsDrawer({ isOpen, onClose, drafts, currentData, onSave, onL
               type="text"
               value={saveNameInput}
               onChange={(e) => setSaveNameInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSave()
+                // Right accepts the hint (the brief's campaign name), as a shell does with a suggestion.
+                if (e.key === 'ArrowRight' && saveNameInput === '' && currentData.campaign.campaignName) {
+                  e.preventDefault()
+                  setSaveNameInput(currentData.campaign.campaignName)
+                }
+              }}
               placeholder={currentData.campaign.campaignName || 'Draft name…'}
               className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
