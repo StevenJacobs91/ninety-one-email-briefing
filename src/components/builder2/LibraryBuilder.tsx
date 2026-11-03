@@ -161,7 +161,8 @@ export const LibraryBuilder = memo(function LibraryBuilder() {
     if (!catalogue || !build) return new Map<string, { html: string; dropped: number }>()
     const map = new Map<string, { html: string; dropped: number }>()
     for (const m of build.modules) {
-      const out = renderBuild({ ...build, modules: [m] }, catalogue, { parse: browserParse, assets, accent })
+      // brandThemes gives the tints their colours, so a Background choice shows here as it will in the email.
+      const out = renderBuild({ ...build, modules: [m] }, catalogue, { parse: browserParse, assets, accent, brandThemes: settings.brandThemes })
       map.set(m.instanceId, { html: out.html, dropped: out.report.droppedKeys.length })
     }
     return map
