@@ -1,6 +1,6 @@
 import { footerSections, isFooterModule } from './footer'
 import { buttonRows } from './buttonWidths'
-import { isAutoEditable, parseModuleDom, parseRegions, regionElements, type ParseDoc, type RegionField } from './regions'
+import { AUTO_ATTR, isAutoEditable, parseModuleDom, parseRegions, regionElements, type ParseDoc, type RegionField } from './regions'
 import { findRepeats, resizeRepeat, type RepeatGroup } from './repeats'
 import { listImageSlots } from './render'
 import { allowsMargin, moduleContainer, readBox, type BoxRead } from './boxModel'
@@ -10,6 +10,10 @@ export interface FieldInfo extends RegionField {
   locked: boolean
   /** For a footer: the part of it this field is in */
   section?: 'signoff' | 'signature' | 'tail'
+  /** What the field is, without which item it is in or its number: "Heading", "Category title", "Media" */
+  name?: string
+  /** The repeating unit (an article, say) the field is in, and which one */
+  unit?: { group: string; index: number }
 }
 
 export interface BoxInfo {
@@ -32,12 +36,18 @@ export interface ModuleInfo {
   buttonRows?: number[]
   /** What each entry of `images` is: a placeholder image, or a person's photo from the profile library */
   imageKinds: ('placeholder' | 'profile' | 'graphic')[]
+  /** Whether each entry of `images` sits inside a repeating unit, and so is edited with that unit rather than as a shared image */
+  imageInUnit?: boolean[]
 }
 
 // Modules whose regions are driven by another feature, not free text (spec §8.2).
 const LOCKED_MODULES = new Set(['Greeting'])
 
-function baseLabel(tag: string, kind: RegionField['kind']): string {
+function baseLabel(tag: string, kind: RegionField['kind'], rawKind: string, inUnit: boolean): string {
+  if (rawKind === 'category') return 'Category title'
+  if (rawKind === 'blurb') return 'Blurb'
+  if (kind === 'image' && inUnit) return 'Media'
+  if (tag === 'a' && inUnit && kind === 'text') return 'Link title'
   if (kind === 'button') return 'Button'
   if (kind === 'image') return 'Image'
   if (tag === 'a') return 'Link'
@@ -65,20 +75,21 @@ export function describeModule(
   const locked = LOCKED_MODULES.has(moduleName)
 
   const infos = fields.map((f, i) => {
-    const base = baseLabel(els[i].tagName.toLowerCase(), f.kind)
+    const base = baseLabel(els[i].tagName.toLowerCase(), f.kind, f.rawKind, unitOf(els[i]) !== null)
     const unit = f.key.match(/^[^[]+\[(\d+)\]/)
     const scope = unit ? `Item ${Number(unit[1]) + 1} — ` : ''
     const bucket = `${scope}${base}`
     seen.set(bucket, (seen.get(bucket) ?? 0) + 1)
-    return { f, bucket }
+    return { f, bucket, base }
   })
   const totals = new Map<string, number>()
   for (const { bucket } of infos) totals.set(bucket, (totals.get(bucket) ?? 0) + 1)
   const running = new Map<string, number>()
-  const fieldInfos: FieldInfo[] = infos.map(({ f, bucket }) => {
+  const fieldInfos: FieldInfo[] = infos.map(({ f, bucket, base }, i) => {
     const n = (running.get(bucket) ?? 0) + 1
     running.set(bucket, n)
-    return { ...f, label: (totals.get(bucket) ?? 1) > 1 ? `${bucket} ${n}` : bucket, locked }
+    const unit = unitOf(els[i])
+    return { ...f, label: (totals.get(bucket) ?? 1) > 1 ? `${bucket} ${n}` : bucket, name: base, ...(unit ? { unit } : {}), locked }
   })
 
   // A footer is a sign-off, a signature and a tail; say which each field is in.
@@ -103,7 +114,12 @@ export function describeModule(
   })
 
   const slots = listImageSlots(html)
-  return { fields: fieldInfos, boxes, repeats: groups, images: slots.map((x) => x.url), imageKinds: slots.map((x) => x.kind),
+  const pictures = Array.from(dom.root.querySelectorAll('img'))
+  const imageInUnit = slots.map((s) => {
+    const same = pictures.filter((img) => img.getAttribute('src') === s.url)
+    return same.length > 0 && same.every((img) => img.hasAttribute(AUTO_ATTR))
+  })
+  return { fields: fieldInfos, boxes, repeats: groups, images: slots.map((x) => x.url), imageKinds: slots.map((x) => x.kind), imageInUnit,
     buttonRows: buttonRows(dom.root).map((r) => r.buttons.length),
     ...(footer ? { footer: { hasSignoff: footer.signoff.length > 0, hasSignature: footer.signature.length > 0, hasSocial: footer.social !== null } } : {}) }
 }

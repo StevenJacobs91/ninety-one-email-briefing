@@ -1,6 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { describePickerModule, groupPickerModules, isLayoutIcon, LAYOUT_ICONS, PICKER_GROUPS } from './moduleKinds.ts'
+import { defaultImageCategory, describePickerModule, groupPickerModules, isLayoutIcon, LAYOUT_ICONS, PICKER_GROUPS } from './moduleKinds.ts'
+
+test('a module\'s pictures start in the media library category that suits it: Images for articles, Profiles for people, else Graphics', () => {
+  assert.equal(defaultImageCategory('Article List V3', 'Articles'), 'images')
+  assert.equal(defaultImageCategory('Investment Views Article List', 'Content'), 'images', 'a module filed elsewhere but named for articles')
+  assert.equal(defaultImageCategory('Promo Banner', 'Articles'), 'images', 'a module filed under Articles')
+  assert.equal(defaultImageCategory('3x Speakers', 'People'), 'profile')
+  assert.equal(defaultImageCategory('Promo Banner', 'Content'), 'graphics')
+})
 
 test('calls to action are grouped and know how many buttons they hold', () => {
   assert.deepEqual(describePickerModule('Single Primary CTA'), { group: 'Calls to action', kind: 'buttons', buttons: 1, blurb: 'One button' })

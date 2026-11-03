@@ -61,12 +61,25 @@ export function ModuleInspector({
   const showDisclaimer = !!disclaimer && /^Disclaimer/i.test(m.moduleName)
   // With a disclaimer chosen from Settings its wording replaces the module's own, so those fields would do nothing.
   const disclaimerDrivesText = showDisclaimer && disclaimer!.selectedId !== 'module'
-  const imageFields = editable.filter((f) => f.kind === 'image')
+  // Where a module repeats (articles, say), each unit is edited as a section of its own, in the order it reads in the email.
+  const repeating = info.repeats.filter((r) => r.canResize)
+  const inUnit = (f: FieldInfo) => !!f.unit && repeating.some((r) => r.group === f.unit!.group)
+  const imageFields = editable.filter((f) => f.kind === 'image' && !inUnit(f))
   const showFooter = !!footer && !!info.footer
-  const textFields = editable.filter((f) => f.kind !== 'image' && !disclaimerDrivesText && !showFooter)
+  const textFields = editable.filter((f) => f.kind !== 'image' && !inUnit(f) && !disclaimerDrivesText && !showFooter)
+  const unitSections = (group: string) => {
+    const sections: { index: number; fields: FieldInfo[] }[] = []
+    for (const f of editable.filter((x) => x.unit?.group === group)) {
+      const found = sections.find((s) => s.index === f.unit!.index)
+      if (found) found.fields.push(f)
+      else sections.push({ index: f.unit!.index, fields: [f] })
+    }
+    return sections.sort((a, b) => a.index - b.index)
+  }
   const footerFields = showFooter ? editable.filter((f) => f.kind !== 'image') : []
-  const hasMedia = showHero || info.images.length > 0 || imageFields.length > 0
-  const hasContent = showHero || showGreeting || editable.length > 0 || info.images.length > 0 || info.repeats.some((r) => r.canResize)
+  const sharedImages = info.images.filter((_, i) => !info.imageInUnit?.[i])
+  const hasMedia = showHero || sharedImages.length > 0 || imageFields.length > 0
+  const hasContent = showHero || showGreeting || editable.length > 0 || info.images.length > 0 || repeating.length > 0
 
   return (
     <aside className="w-full lg:w-[340px] shrink-0 border border-brand-border-warm dark:border-gray-700 bg-white dark:bg-gray-900 lg:sticky lg:top-[7.5rem] lg:max-h-[calc(100vh-12.5rem)] lg:overflow-y-auto shadow-sm">
@@ -160,18 +173,32 @@ export function ModuleInspector({
           <RegionEditor key={f.key} field={f} saved={m.regions[f.key]} accentColour={accentColour} onChange={(patch) => onRegion(f.key, patch)} />
         ))}
 
-        {info.repeats.filter((r) => r.canResize).map((r) => (
-          <div key={r.group} className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Items</span>
-            <div className="flex items-center gap-2">
-              <button type="button" aria-label="Remove an item" disabled={r.units <= 1} onClick={() => onRepeat(r.group, r.units - 1)}
-                className="w-7 h-7 border border-gray-300 dark:border-gray-600 text-gray-600 disabled:opacity-40">−</button>
-              <span className="w-6 text-center text-sm tabular-nums">{r.units}</span>
-              <button type="button" aria-label="Add an item" onClick={() => onRepeat(r.group, r.units + 1)}
-                className="w-7 h-7 border border-gray-300 dark:border-gray-600 text-gray-600">+</button>
+        {repeating.map((r) => {
+          const noun = r.group.charAt(0).toUpperCase() + r.group.slice(1)
+          const sections = unitSections(r.group)
+          return (
+            <div key={r.group} className="space-y-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{sections.length > 0 ? `${noun}s` : 'Items'}</span>
+                <div className="flex items-center gap-2">
+                  <button type="button" aria-label="Remove an item" disabled={r.units <= 1} onClick={() => onRepeat(r.group, r.units - 1)}
+                    className="w-7 h-7 border border-gray-300 dark:border-gray-600 text-gray-600 disabled:opacity-40">−</button>
+                  <span className="w-6 text-center text-sm tabular-nums">{r.units}</span>
+                  <button type="button" aria-label="Add an item" onClick={() => onRepeat(r.group, r.units + 1)}
+                    className="w-7 h-7 border border-gray-300 dark:border-gray-600 text-gray-600">+</button>
+                </div>
+              </div>
+              {sections.map((s) => (
+                <section key={s.index} aria-label={`${noun} ${s.index + 1}`} className="space-y-3 border-t border-gray-100 dark:border-gray-800 pt-4">
+                  <h3 className={SECTION}>{noun} {s.index + 1}</h3>
+                  {s.fields.map((f) => (
+                    <RegionEditor key={f.key} field={{ ...f, label: f.name ?? f.label }} saved={m.regions[f.key]} accentColour={accentColour} imageCategory={imageCategory} onChange={(patch) => onRegion(f.key, patch)} />
+                  ))}
+                </section>
+              ))}
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {!hasContent && lockedCount === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400">This module has no editable text or images; it is used as designed.</p>
@@ -189,6 +216,7 @@ export function ModuleInspector({
 
         {info.images.map((src, i) => {
           if (showHero && i === 0) return null
+          if (info.imageInUnit?.[i]) return null
           const kind = info.imageKinds[i]
           const same = info.imageKinds.filter((k) => (k === 'profile') === (kind === 'profile'))
           const nth = info.imageKinds.slice(0, i + 1).filter((k) => (k === 'profile') === (kind === 'profile')).length

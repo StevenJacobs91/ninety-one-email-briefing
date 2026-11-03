@@ -18,7 +18,7 @@ import { deriveCta } from '../../lib/moduleEngine/derive'
 import { applyGreeting } from '../../lib/moduleEngine/greeting'
 import { signoffSummary } from '../../lib/signoff'
 import { categoryGroup, customLayoutIcons, disabledModuleNames } from '../../lib/customModules'
-import { describePickerModule } from '../../lib/moduleKinds'
+import { defaultImageCategory, describePickerModule } from '../../lib/moduleKinds'
 import { moduleCategories, resolveCategory } from '../../lib/moduleCategories'
 import type { FooterOptions } from '../../lib/moduleEngine/footer'
 import { defaultDisclaimerFor, disclaimerSource, disclaimerToText } from '../../lib/disclaimer'
@@ -174,8 +174,8 @@ export const LibraryBuilder = memo(function LibraryBuilder() {
     return html === undefined ? null : describeModule(selected.moduleName, html, browserParse, selected.repeats)
   }, [catalogue, selected])
 
-  // A module in the People group (speakers, authors, portfolio managers) has photos of people, so its images start in Profiles.
-  const imageCategory = selected && (customGroups[selected.moduleName] ?? describePickerModule(selected.moduleName).group) === 'People' ? 'profile' : 'graphics'
+  // Where a module's pictures start in the media library: Profiles for people, Images for articles, Graphics otherwise.
+  const imageCategory = selected ? defaultImageCategory(selected.moduleName, customGroups[selected.moduleName] ?? describePickerModule(selected.moduleName).group) : 'graphics'
 
   // Undo and redo cover the email and its theme. Edits in the same place within half a second are one step.
   const [history, setHistory] = useState<History>(emptyHistory)

@@ -42,6 +42,7 @@ export function RegionEditor({ field, saved, accentColour, imageCategory, onChan
       <AssetLibraryPicker
         category={profile ? 'profile' : imageCategory ?? 'graphics'}
         label={field.label}
+        id={id}
         url={saved?.value ?? ''}
         alt={saved?.alt ?? ''}
         onChange={(patch) => onChange({
@@ -53,13 +54,15 @@ export function RegionEditor({ field, saved, accentColour, imageCategory, onChan
   }
 
   const hasLink = field.href !== undefined
-  const multiline = field.value.includes('\n') || (saved?.value ?? '').includes('\n')
+  // A blurb is a few sentences, so it gets room to read them; text the design breaks over lines does too.
+  const blurb = field.rawKind === 'blurb'
+  const multiline = blurb || field.value.includes('\n') || (saved?.value ?? '').includes('\n')
   return (
     <div className="space-y-2">
       <label htmlFor={id} className={LABEL}>{field.kind === 'button' ? 'Button label' : field.label}</label>
       {multiline ? (
         // The design breaks this text over two lines; each line of the box is a line of the email.
-        <textarea id={id} rows={2} className={`${INPUT} resize-y`} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
+        <textarea id={id} rows={blurb ? 5 : 2} className={`${INPUT} resize-y`} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
       ) : (
         <input id={id} className={INPUT} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
       )}

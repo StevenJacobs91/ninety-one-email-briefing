@@ -1,4 +1,5 @@
 import { parseStyle, serializeStyle, setStyleProp } from './inlineStyle'
+import { explicitUnits } from './repeats'
 
 export type RegionKind = 'text' | 'rich' | 'button' | 'image'
 
@@ -85,6 +86,10 @@ const HIDDEN = '[style*="display:none"],[style*="display: none"],[style*="mso-hi
 
 const hasWords = (text: string) => /[\p{L}\p{N}]/u.test(text)
 
+// Brand logos and stripes follow the theme, and icons, spacers and tracking pixels are not content.
+export const NOT_MEDIA = /(91_logo|logo_|_logo|stripe|icon_|spacer|pixel|arrow)/i
+export const MIN_SIZE = 64
+
 function tagAutoRegions(root: Element): void {
   for (const el of Array.from(root.querySelectorAll('*'))) {
     const tag = el.tagName
@@ -102,6 +107,17 @@ function tagAutoRegions(root: Element): void {
       if (!Array.from(el.childNodes).some((n) => n.nodeType === TEXT && hasWords(n.nodeValue ?? ''))) continue
       el.setAttribute(AUTO_ATTR, 'text')
     }
+  }
+
+  // Each repeating unit's picture is a field of its own, so a copy of the unit never shares its image with the original.
+  const units = [...explicitUnits(root).values()].flat()
+  if (units.length === 0) return
+  for (const img of Array.from(root.querySelectorAll('img'))) {
+    const src = img.getAttribute('src') ?? ''
+    if (!units.some((u) => u.contains(img)) || img.closest('[pardot-region]') || !/^https?:\/\//i.test(src) || NOT_MEDIA.test(src)) continue
+    const w = Number(img.getAttribute('width')), h = Number(img.getAttribute('height'))
+    if ((w && w <= MIN_SIZE) || (h && h <= MIN_SIZE)) continue
+    img.setAttribute(AUTO_ATTR, 'editable-image')
   }
 }
 

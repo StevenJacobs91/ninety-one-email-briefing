@@ -62,4 +62,27 @@ describe('AssetLibraryPicker', () => {
     setup({ url: 'https://cdn/jane.png' })
     expect(screen.getByRole('button', { name: /Jane Smith/ }).getAttribute('aria-pressed')).toBe('true')
   })
+
+  it('"Browse … instead" goes round the library\'s categories, skipping empty ones, and back to where it began', () => {
+    state.settings = { assets: [
+      ...assets,
+      { id: 'd', name: 'Elephants', url: 'https://cdn/elephants.jpg', category: 'images' },
+    ] }
+    setup({ category: 'images', label: 'Media' })
+    expect(screen.getByText('Images')).toBeTruthy()
+    // Header comes next after Images (GIFs is empty), then Profiles, then round to Images again.
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Headers instead' }))
+    expect(screen.getByRole('button', { name: /Bridge header/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Profiles instead' }))
+    expect(screen.getByRole('button', { name: /Marc Lindley/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Browse Images instead' }))
+    expect(screen.getByRole('button', { name: /Elephants/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Browse Headers instead' })).toBeTruthy()
+  })
+
+  it('offers no "Browse … instead" when no other category has anything in it', () => {
+    state.settings = { assets: [{ id: 'd', name: 'Elephants', url: 'https://cdn/elephants.jpg', category: 'images' }] }
+    setup({ category: 'images', label: 'Media' })
+    expect(screen.queryByRole('button', { name: /Browse/ })).toBeNull()
+  })
 })

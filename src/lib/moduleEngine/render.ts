@@ -1,6 +1,6 @@
 import type { ThemeCatalogue } from './catalogue'
 import type { EmailBuild } from './build'
-import { isAutoEditable, parseModuleDom, parseRegions, applyRegions, moduleHtml, type ParseDoc } from './regions'
+import { isAutoEditable, parseModuleDom, parseRegions, applyRegions, moduleHtml, NOT_MEDIA, MIN_SIZE, type ParseDoc } from './regions'
 import { applyBoxStyles } from './boxModel'
 import { applyButtonWidths } from './buttonWidths'
 import { findRepeats, resizeRepeat } from './repeats'
@@ -43,9 +43,6 @@ export function listPlaceholders(html: string): string[] {
 
 // A person's photo: the library names them profile_<name>_<size>.<ext>.
 const PROFILE_PHOTO = /\/profile_[^"'\s)<>/]+\.(?:png|jpe?g|webp)(?:[?#]|$)/i
-// Brand logos and stripes follow the theme, and icons, spacers and tracking pixels are not content.
-const NOT_MEDIA = /(91_logo|logo_|_logo|stripe|icon_|spacer|pixel|arrow)/i
-const MIN_SIZE = 64
 
 export interface ImageSlot {
   url: string

@@ -1,4 +1,5 @@
 import { DEFAULT_MODULE_CATEGORIES } from './moduleCategories'
+import type { AssetCategory } from '../types/settings.types'
 
 // The group of a module is the id of one of the categories in Settings (see moduleCategories.ts), so people can add and rename them.
 export type PickerGroup = string
@@ -76,6 +77,15 @@ export function describePickerModule(name: string, fallbackGroup: PickerGroup = 
   const named = describeByName(name, fallbackGroup)
   // An icon chosen in Settings replaces the one the name suggests; where it is the button icon, one button is drawn unless the name says more.
   return icon ? { ...named, kind: icon, buttons: icon === 'buttons' ? Math.max(named.buttons, 1) : 0 } : named
+}
+
+/**
+ * Where a module's picture picker starts in the media library: Images for an article module, Profiles for a module in
+ * People (photos of people), Graphics otherwise. The picker can browse the other categories from there.
+ */
+export function defaultImageCategory(name: string, group: PickerGroup): AssetCategory {
+  if (group === 'Articles' || /article/i.test(name)) return 'images'
+  return group === 'People' ? 'profile' : 'graphics'
 }
 
 function describeByName(name: string, fallbackGroup: PickerGroup): PickerModuleInfo {
