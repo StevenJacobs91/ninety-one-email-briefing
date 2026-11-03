@@ -240,11 +240,10 @@ function ContentPresetFields({
           value={contentPreset.subjectLine}
           onChange={(e) => onChange({ subjectLine: e.target.value })}
           placeholder="e.g. Taking Stock — March 2026"
-          maxLength={60}
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
         {contentPreset.subjectLine && (
-          <p className="text-[10px] text-gray-400 mt-0.5 text-right">{contentPreset.subjectLine.length}/60</p>
+          <p className="text-[10px] text-gray-400 mt-0.5 text-right">{contentPreset.subjectLine.length} characters</p>
         )}
       </div>
 

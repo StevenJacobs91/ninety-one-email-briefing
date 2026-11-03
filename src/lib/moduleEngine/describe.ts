@@ -2,6 +2,7 @@ import { footerSections, isFooterModule } from './footer'
 import { buttonRows } from './buttonWidths'
 import { AUTO_ATTR, isAutoEditable, parseModuleDom, parseRegions, regionElements, type ParseDoc, type RegionField } from './regions'
 import { findRepeats, resizeRepeat, type RepeatGroup } from './repeats'
+import { removables, type Removable } from './removables'
 import { listImageSlots } from './render'
 import { allowsMargin, moduleContainer, readBox, type BoxRead } from './boxModel'
 
@@ -14,7 +15,12 @@ export interface FieldInfo extends RegionField {
   name?: string
   /** The repeating unit (an article, say) the field is in, and which one */
   unit?: { group: string; index: number }
+  /** The key of the removable section (pardot-removable) the field is in, when it is in one */
+  removable?: string
 }
+
+/** A section of the module the person can take out */
+export type RemovableInfo = Pick<Removable, 'key' | 'name' | 'label' | 'unit'>
 
 export interface BoxInfo {
   /** 'container' (the module's outer cell) or a region key */
@@ -36,6 +42,8 @@ export interface ModuleInfo {
   buttonRows?: number[]
   /** What each entry of `images` is: a placeholder image, or a person's photo from the profile library */
   imageKinds: ('placeholder' | 'profile' | 'graphic')[]
+  /** The sections marked pardot-removable, in the order they read in the module */
+  removables?: RemovableInfo[]
   /** Whether each entry of `images` sits inside a repeating unit, and so is edited with that unit rather than as a shared image */
   imageInUnit?: boolean[]
 }
@@ -44,6 +52,7 @@ export interface ModuleInfo {
 const LOCKED_MODULES = new Set(['Greeting'])
 
 function baseLabel(tag: string, kind: RegionField['kind'], rawKind: string, inUnit: boolean): string {
+  if (kind === 'link') return 'Link URL'
   if (rawKind === 'category') return 'Category title'
   if (rawKind === 'blurb') return 'Blurb'
   if (kind === 'image' && inUnit) return 'Media'
@@ -85,11 +94,14 @@ export function describeModule(
   const totals = new Map<string, number>()
   for (const { bucket } of infos) totals.set(bucket, (totals.get(bucket) ?? 0) + 1)
   const running = new Map<string, number>()
+  const sections = removables(dom, unitOf)
   const fieldInfos: FieldInfo[] = infos.map(({ f, bucket, base }, i) => {
     const n = (running.get(bucket) ?? 0) + 1
     running.set(bucket, n)
     const unit = unitOf(els[i])
-    return { ...f, label: (totals.get(bucket) ?? 1) > 1 ? `${bucket} ${n}` : bucket, name: base, ...(unit ? { unit } : {}), locked }
+    // The innermost section the field is in: the last one, in module order, that holds it.
+    const section = sections.filter((r) => r.el.contains(els[i])).pop()
+    return { ...f, label: (totals.get(bucket) ?? 1) > 1 ? `${bucket} ${n}` : bucket, name: base, ...(unit ? { unit } : {}), ...(section ? { removable: section.key } : {}), locked }
   })
 
   // A footer is a sign-off, a signature and a tail; say which each field is in.
@@ -109,7 +121,7 @@ export function describeModule(
   const container = moduleContainer(dom)
   if (container) boxes.push({ key: 'container', label: 'Module container', allowMargin: false, read: readBox(container) })
   fieldInfos.forEach((f, i) => {
-    if (f.locked || f.kind === 'image') return
+    if (f.locked || f.kind === 'image' || f.kind === 'link') return
     boxes.push({ key: f.key, label: f.label, allowMargin: allowsMargin(els[i]), read: readBox(els[i]) })
   })
 
@@ -120,6 +132,7 @@ export function describeModule(
     return same.length > 0 && same.every((img) => img.hasAttribute(AUTO_ATTR))
   })
   return { fields: fieldInfos, boxes, repeats: groups, images: slots.map((x) => x.url), imageKinds: slots.map((x) => x.kind), imageInUnit,
+    removables: sections.map(({ key, name, label, unit }) => ({ key, name, label, ...(unit ? { unit } : {}) })),
     buttonRows: buttonRows(dom.root).map((r) => r.buttons.length),
     ...(footer ? { footer: { hasSignoff: footer.signoff.length > 0, hasSignature: footer.signature.length > 0, hasSocial: footer.social !== null } } : {}) }
 }

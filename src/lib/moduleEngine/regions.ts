@@ -1,7 +1,8 @@
 import { parseStyle, serializeStyle, setStyleProp } from './inlineStyle'
 import { explicitUnits } from './repeats'
+import { linkGroups, LINK_ATTR, LINK_UTM_ATTR } from './linkGroups'
 
-export type RegionKind = 'text' | 'rich' | 'button' | 'image'
+export type RegionKind = 'text' | 'rich' | 'button' | 'image' | 'link'
 
 export interface RegionField {
   key: string
@@ -55,6 +56,10 @@ export function parseModuleDom(html: string, parse: ParseDoc = browserParse, opt
 export function moduleHtml(dom: ModuleDom): string {
   // The editing markers are only for the editor; they never reach the email.
   for (const el of Array.from(dom.root.querySelectorAll(`[${AUTO_ATTR}]`))) el.removeAttribute(AUTO_ATTR)
+  for (const el of Array.from(dom.root.querySelectorAll(`[${LINK_ATTR}], [${LINK_UTM_ATTR}]`))) {
+    el.removeAttribute(LINK_ATTR)
+    el.removeAttribute(LINK_UTM_ATTR)
+  }
   return dom.root.innerHTML
 }
 
@@ -63,8 +68,9 @@ export function regionElements(dom: ModuleDom): Element[] {
   // A region that wraps another region is a container (e.g. a detail paragraph
   // around a button link); only the innermost region is the editable field.
   const marked = all.filter((el) => !el.querySelector('[pardot-region]'))
-  // Text the design left unmarked follows, so the keys of the marked regions never move.
-  return [...marked, ...Array.from(dom.root.querySelectorAll(`[${AUTO_ATTR}]`))]
+  // Text the design left unmarked follows, so the keys of the marked regions never move. Last come the link groups,
+  // each standing for its last link: they are not text, but one address shared by every link in the group.
+  return [...marked, ...Array.from(dom.root.querySelectorAll(`[${AUTO_ATTR}]`)), ...linkGroups(dom).map((g) => g.anchors[g.anchors.length - 1])]
 }
 
 // ─── Text the design did not mark as editable ────────────────
@@ -155,7 +161,14 @@ function textOf(el: Element): string {
 
 export function parseRegions(dom: ModuleDom, unitOf?: UnitLookup): RegionField[] {
   const counters = new Map<string, number>()
-  return regionElements(dom).map((el) => {
+  const els = regionElements(dom)
+  const groups = linkGroups(dom)
+  const plain = els.length - groups.length
+  return els.map((el, i): RegionField => {
+    if (i >= plain) {
+      const unit = unitOf?.(el) ?? null
+      return { key: `${unit ? `${unit.group}[${unit.index}]` : 'root'}.l.${groups[i - plain].group}`, rawKind: 'link', kind: 'link', value: groups[i - plain].anchors[0].getAttribute('href') ?? '' }
+    }
     const auto = el.hasAttribute(AUTO_ATTR)
     const rawKind = auto ? (el.getAttribute(AUTO_ATTR) ?? '') : (el.getAttribute('pardot-region') ?? '')
     const kind = kindOf(el, rawKind)
@@ -173,7 +186,8 @@ export function parseRegions(dom: ModuleDom, unitOf?: UnitLookup): RegionField[]
     if (kind === 'rich') return { key, rawKind, kind, value: el.innerHTML }
     const a = anchorOf(el)
     const field: RegionField = { key, rawKind, kind, value: textOf(a ?? el) }
-    if (a) field.href = a.getAttribute('href') ?? ''
+    // A link in a group has its address set once, for the whole group, so it has none of its own here.
+    if (a && !a.hasAttribute(LINK_ATTR)) field.href = a.getAttribute('href') ?? ''
     return field
   })
 }
@@ -224,12 +238,18 @@ export function applyRegions(
 ): Map<string, Element[]> {
   const fields = parseRegions(dom, unitOf)
   const els = regionElements(dom)
+  const groups = linkGroups(dom)
+  const plain = els.length - groups.length
   const occupied = new Map<string, Element[]>()
   fields.forEach((field, i) => {
     const el = els[i]
     occupied.set(field.key, [el])
     const patch = values[field.key]
     if (!patch) return
+    if (field.kind === 'link') {
+      if (patch.value) for (const a of groups[i - plain].anchors) a.setAttribute('href', patch.value)
+      return
+    }
     if (patch.removed) {
       el.parentNode?.removeChild(el)
       occupied.set(field.key, [])
@@ -248,7 +268,7 @@ export function applyRegions(
     }
     const target = anchorOf(el) ?? el
     if (patch.value !== undefined) setText(target, patch.value)
-    if (patch.href !== undefined && anchorOf(el)) anchorOf(el)!.setAttribute('href', patch.href)
+    if (patch.href !== undefined && anchorOf(el) && !anchorOf(el)!.hasAttribute(LINK_ATTR)) anchorOf(el)!.setAttribute('href', patch.href)
   })
   return occupied
 }

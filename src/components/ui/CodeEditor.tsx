@@ -9,6 +9,7 @@ import { highlightSelectionMatches, openSearchPanel, search, searchKeymap } from
 import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { beautifyHtml } from '../../lib/beautifyHtml'
+import { insertionText, variableText, type CodeVariable } from '../../lib/codeVariables'
 
 interface Props {
   value: string
@@ -20,6 +21,8 @@ interface Props {
   invalid?: boolean
   /** Turns the code into a full HTML document for the live preview beside the code in full screen. Without it there is no preview. */
   previewDoc?: (code: string) => string
+  /** The {{variables}} the code can use. With them there is a Variables panel: click one to put it in the code at the cursor. */
+  variables?: readonly CodeVariable[]
 }
 
 // Changes made from outside (a new value from the parent) are not reported back as edits.
@@ -39,7 +42,7 @@ const TOOL = 'px-2 py-1 text-[11px] font-medium rounded border border-gray-300 d
  * An HTML editor for module and header code: highlighting, line numbers, indentation guides, folding, tag
  * auto-closing, find and replace, and a Format button that re-indents the markup.
  */
-export default function CodeEditor({ value, onChange, label, id, placeholder, invalid, previewDoc }: Props) {
+export default function CodeEditor({ value, onChange, label, id, placeholder, invalid, previewDoc, variables }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const latest = useRef(onChange)
@@ -48,6 +51,7 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
   const [wrap, setWrap] = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
+  const [showVariables, setShowVariables] = useState(false)
   const [position, setPosition] = useState({ line: 1, col: 1 })
 
   const attributes = (): Record<string, string> => ({ 'aria-label': label, 'aria-multiline': 'true', ...(id ? { id } : {}), ...(invalid ? { 'aria-invalid': 'true' } : {}) })
@@ -129,6 +133,17 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
     editor.focus()
   }
 
+  // Put the variable (or attribute) where the cursor is, in place of any selected text, and leave the cursor after it, in the editor.
+  const insertVariable = (v: CodeVariable) => {
+    const editor = view.current
+    if (!editor) return
+    const { from, to } = editor.state.selection.main
+    const doc = editor.state.doc
+    const text = insertionText(doc.sliceString(Math.max(0, from - 1), from), doc.sliceString(to, to + 1), variableText(v), v.snippet !== undefined)
+    editor.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true })
+    editor.focus()
+  }
+
   const find = () => {
     const editor = view.current
     if (!editor) return
@@ -146,6 +161,9 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
         <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
           <button type="button" onClick={format} className={TOOL} title="Re-indent the code">Format code</button>
           <button type="button" onClick={find} className={TOOL} title="Find and replace (Ctrl or Cmd + F)">Find &amp; replace</button>
+          {variables && variables.length > 0 && (
+            <button type="button" onClick={() => setShowVariables((x) => !x)} aria-pressed={showVariables} className={TOOL} title="The variables you can use: click one to insert it">Variables</button>
+          )}
           <button type="button" onClick={() => setWrap((w) => !w)} aria-pressed={wrap} className={TOOL} title="Wrap long lines">Wrap lines</button>
           <button type="button" onClick={() => setExpanded((x) => !x)} aria-pressed={expanded} className={TOOL} title={expanded ? 'Back to the form (Esc)' : 'Make the editor bigger'}>{expanded ? 'Close full screen' : 'Full screen'}</button>
           {expanded && previewDoc && (
@@ -153,6 +171,27 @@ export default function CodeEditor({ value, onChange, label, id, placeholder, in
           )}
           <span className="ml-auto text-[11px] tabular-nums text-gray-400 dark:text-gray-500" aria-live="off">Ln {position.line}, Col {position.col}</span>
         </div>
+        {variables && showVariables && (
+          <div role="group" aria-label="Variables" className="mb-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-2 space-y-1.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">Click one to put it in the code where the cursor is. A {'{{variable}}'} becomes the selected theme&rsquo;s value when the email is built; an attribute goes inside a tag.</p>
+            {[...new Set(variables.map((v) => v.group))].map((group) => (
+              <div key={group} className="flex flex-wrap items-center gap-1">
+                <span className="w-14 shrink-0 text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">{group}</span>
+                {variables.filter((v) => v.group === group).map((v) => (
+                  <button
+                    key={v.token}
+                    type="button"
+                    title={v.label}
+                    onClick={() => insertVariable(v)}
+                    className="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono text-[11px] text-gray-700 dark:text-gray-200 hover:border-brand-primary hover:text-brand-primary dark:hover:text-brand-accent"
+                  >
+                    {variableText(v)}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
         {/* The code box keeps its place in the tree whether or not the preview is beside it, so the editor is never rebuilt. */}
         <div className={expanded ? 'flex flex-1 min-h-0 gap-3' : ''}>
           <div

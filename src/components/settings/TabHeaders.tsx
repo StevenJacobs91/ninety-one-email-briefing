@@ -7,6 +7,7 @@ import { loadCatalogue } from '../../lib/moduleEngine/catalogue'
 import { libraryHeaderName } from '../../lib/moduleEngine/seed'
 import { DEFAULT_BRAND_THEMES } from '../../lib/settingsDefaults'
 import { LazyCodeEditor } from '../ui/LazyCodeEditor'
+import { codeVariables } from '../../lib/codeVariables'
 
 // The theme whose library supplies a built-in header's code: it has every module.
 const LIBRARY_THEME = 'agulhas-gold'
@@ -377,6 +378,7 @@ function HeaderTypeCard({
               value={code}
               onChange={(v) => onChange({ ...headerType, htmlSnippet: libraryCode !== undefined && v.trim() === libraryCode ? '' : v })}
               invalid={!!code.trim() && !!validateModuleHtml(code)}
+              variables={codeVariables('header')}
               previewDoc={(c) => modulePreviewDoc(c, {
                 ...themeColoursOf(appSettings.brandThemes?.[0]),
                 // The header type's own images stand in for the theme's where it sets them.

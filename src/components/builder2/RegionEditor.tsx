@@ -53,6 +53,15 @@ export function RegionEditor({ field, saved, accentColour, imageCategory, onChan
     )
   }
 
+  if (field.kind === 'link') {
+    return (
+      <div>
+        <label htmlFor={id} className={LABEL}>{field.label}</label>
+        <input id={id} className={INPUT} value={saved?.value ?? ''} placeholder={field.value} onChange={(e) => onChange({ value: e.target.value })} />
+      </div>
+    )
+  }
+
   const hasLink = field.href !== undefined
   // A blurb is a few sentences, so it gets room to read them; text the design breaks over lines does too.
   const blurb = field.rawKind === 'blurb'

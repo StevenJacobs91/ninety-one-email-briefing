@@ -7,10 +7,10 @@ import { Switch } from '../ui/Switch'
 import { modulePreviewDoc, themeTokensFor, tokeniseModule, validateModuleHtml, type ThemeColours } from '../../lib/customModules'
 import { loadCatalogue } from '../../lib/moduleEngine/catalogue'
 import { DEFAULT_BRAND_THEMES, LIBRARY_MODULES } from '../../lib/settingsDefaults'
-import { THEME_ICONS } from '../../lib/themeIcons'
 import { describePickerModule, LAYOUT_ICONS } from '../../lib/moduleKinds'
 import { ModuleThumb } from '../builder2/ModuleThumb'
 import { LazyCodeEditor } from '../ui/LazyCodeEditor'
+import { codeVariables } from '../../lib/codeVariables'
 
 
 // The theme whose library supplies a built-in module's code: it has every module.
@@ -285,15 +285,6 @@ export function TabModules() {
   )
 }
 
-const IMAGE_VARIABLES = [
-  { token: 'logo', label: 'Header logo' },
-  { token: 'stripe', label: 'Stripe' },
-  { token: 'slimStripe', label: 'Slim stripe' },
-  { token: 'footerLogo', label: 'Footer logo' },
-  { token: 'anniversary', label: '35 year logo' },
-  ...THEME_ICONS.map((i) => ({ token: i.token, label: `${i.label} icon` })),
-]
-
 function ModuleEditRow({
   categories,
   draft,
@@ -419,6 +410,7 @@ function ModuleEditRow({
           value={code}
           onChange={(v) => onChange({ ...draft, html: v })}
           invalid={!!codeError}
+          variables={codeVariables('module')}
           previewDoc={(c) => modulePreviewDoc(c, previewColours)}
           placeholder={isNew ? '<tr>\n  <td bgcolor="{{primary}}" style="padding: 30px 40px;">\n    <p pardot-region="paragraph" style="color: #ffffff;">Your text</p>\n  </td>\n</tr>' : 'Leave empty to keep the library\'s own code for this module'}
         />
@@ -428,15 +420,6 @@ function ModuleEditRow({
           {' '}<code>{'{{primary}}'}</code>, <code>{'{{accent}}'}</code> and <code>{'{{tint01}}'}</code>–<code>{'{{tint03}}'}</code> for the theme&rsquo;s colours so one module suits every theme. Use <code>{'{{text}}'}</code> for text that must be light on a dark theme and dark on a light one.
           {libraryCode !== undefined && ' This is the library\'s own code for the module, with variables in place of a theme\'s colours and images. Edit it and save to change the module in every theme.'}
         </p>
-        <details className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-          <summary className="cursor-pointer text-brand-primary dark:text-brand-accent">Image variables</summary>
-          <p className="mt-1">Each becomes the selected theme&rsquo;s image, set in Brand Themes:</p>
-          <ul className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5">
-            {IMAGE_VARIABLES.map(({ token, label }) => (
-              <li key={token} className="flex items-center justify-between gap-2"><code>{`{{${token}}}`}</code><span className="text-gray-400">{label}</span></li>
-            ))}
-          </ul>
-        </details>
         {showPreview && (
           <iframe
             title="Module preview"

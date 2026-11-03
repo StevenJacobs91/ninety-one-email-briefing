@@ -68,6 +68,22 @@ describe('ModuleInspector with repeating articles', () => {
     expect(screen.getByText('Articles')).toBeTruthy()
   })
 
+  it('asks for one Link URL per article when its links are a group, and the heading and link title have no address of their own', () => {
+    const grouped = (i: number): FieldInfo[] => [
+      ...articleFields(i).map((f) => (f.name === 'Link title' ? { ...f, href: undefined } : f)),
+      { key: `article[${i}].l.article`, rawKind: 'link', kind: 'link', value: `https://x/${i + 1}`, label: `Item ${i + 1} — Link URL`, name: 'Link URL', unit: { group: 'article', index: i }, locked: false },
+    ]
+    const onRegion = vi.fn()
+    render(
+      <ModuleInspector module={module_} info={{ ...info, fields: [...grouped(0), ...grouped(1)] }} headerTypes={[]} headerTypeId="" onRegion={onRegion} onRepeat={vi.fn()}
+        onImage={vi.fn()} onStyle={vi.fn()} onClearStyle={vi.fn()} onHeaderType={vi.fn()} onClose={vi.fn()} />,
+    )
+    const second = screen.getByRole('region', { name: 'Article 2' })
+    expect(labelsIn(second)).toEqual(['Media URL', 'Media alt text', 'Category title', 'Heading', 'Blurb', 'Link title', 'Link URL'])
+    fireEvent.change(within(second).getByLabelText('Link URL'), { target: { value: 'https://new.test/story' } })
+    expect(onRegion).toHaveBeenCalledWith('article[1].l.article', { value: 'https://new.test/story' })
+  })
+
   it('has no separate Media tab for pictures that belong to an article', () => {
     setup()
     expect(screen.queryByRole('tab', { name: 'Media' })).toBeNull()

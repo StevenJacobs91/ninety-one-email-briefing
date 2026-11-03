@@ -65,3 +65,23 @@ test('every module with a repeat marker parses, and ambiguous ones are not resiz
   assert.ok(withMarkers >= 25, `expected ~28 repeatable modules, found ${withMarkers}`)
   console.log('NOT RESIZABLE:', fixed.join(', ') || '(none)')
 })
+
+const TABLE = (marks: { outer?: boolean } = {}) => `<tr><td><table><tbody>
+<tr${marks.outer ? ' pardot-repeatable="table"' : ''}><th><table><tbody>
+<tr pardot-repeatable="table-row"><td><p pardot-region="paragraph">Title:</p></td><td><p pardot-region="paragraph">Description</p></td></tr>
+</tbody></table></th></tr></tbody></table></td></tr>`
+
+test('a lone pardot-repeatable on a nested table row is a repeatable unit', () => {
+  const d = parseModuleDom(TABLE(), parse)
+  const g = findRepeats(d).groups.find((x) => x.group === 'table-row')
+  assert.ok(g)
+  assert.equal(g!.units, 1)
+  assert.equal(g!.canResize, true)
+  resizeRepeat(d, 'table-row', 3)
+  assert.equal(findRepeats(parseModuleDom(moduleHtml(d), parse)).groups.find((x) => x.group === 'table-row')?.units, 3)
+})
+
+test('a lone marker inside another marked element stays a stray and is ignored', () => {
+  const g = findRepeats(parseModuleDom(TABLE({ outer: true }), parse)).groups.map((x) => x.group)
+  assert.ok(!g.includes('table-row'))
+})

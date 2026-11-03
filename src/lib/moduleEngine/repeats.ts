@@ -54,7 +54,9 @@ export function explicitUnits(root: Element): Map<string, Element[]> {
     if (!parent) continue
     const value = marker.getAttribute('pardot-repeatable')
     const peers = elementChildren(parent).filter((c) => c.tagName === marker.tagName && c.getAttribute('pardot-repeatable') === value)
-    if (peers.length < 2 && parent !== root) continue
+    // A lone marked table row is a template row, wherever it sits, unless a marked element already contains it.
+    const loneRow = marker.tagName === 'TR' && !marker.parentElement?.closest('[pardot-repeatable]')
+    if (peers.length < 2 && parent !== root && !loneRow) continue
     const name = value || 'unnamed'
     const list = found.get(name) ?? []
     for (const p of peers) if (!list.includes(p)) list.push(p)

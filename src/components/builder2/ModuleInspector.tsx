@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { BuildModule } from '../../lib/moduleEngine/build'
-import type { FieldInfo, ModuleInfo } from '../../lib/moduleEngine/describe'
+import type { FieldInfo, ModuleInfo, RemovableInfo } from '../../lib/moduleEngine/describe'
 import type { RegionValue } from '../../lib/moduleEngine/regions'
 import { headerModuleFor } from '../../lib/moduleEngine/seed'
 import type { HeaderTypeConfig } from '../../types/settings.types'
@@ -76,6 +76,34 @@ export function ModuleInspector({
     }
     return sections.sort((a, b) => a.index - b.index)
   }
+
+  // The fields in the order they read. Those in a pardot-removable section are kept together under its name with a ×
+  // to take the section out; a removed section is shown as removed, with a way to put it back.
+  const renderEditors = (fields: FieldInfo[], sections: RemovableInfo[], named: boolean): React.ReactNode[] => {
+    const editor = (f: FieldInfo) => (
+      <RegionEditor key={f.key} field={named ? { ...f, label: f.name ?? f.label } : f} saved={m.regions[f.key]} accentColour={accentColour} imageCategory={imageCategory} onChange={(patch) => onRegion(f.key, patch)} />
+    )
+    const out: React.ReactNode[] = []
+    const shown = new Set<string>()
+    const section = (r: RemovableInfo, inside: FieldInfo[]) => (
+      <RemovableSection key={`removable-${r.key}`} label={r.label} removed={!!m.regions[r.key]?.removed} single={inside.length === 1} onChange={(removed) => onRegion(r.key, { removed })}>
+        {inside.map(editor)}
+      </RemovableSection>
+    )
+    for (let i = 0; i < fields.length; ) {
+      const key = fields[i].removable
+      const r = key ? sections.find((x) => x.key === key) : undefined
+      if (!r) { out.push(editor(fields[i])); i++; continue }
+      const inside: FieldInfo[] = []
+      while (i < fields.length && fields[i].removable === r.key) inside.push(fields[i++])
+      shown.add(r.key)
+      out.push(section(r, inside))
+    }
+    // A removable section with nothing to edit in it can still be taken out.
+    for (const r of sections) if (!shown.has(r.key)) out.push(section(r, []))
+    return out
+  }
+  const flatSections = showFooter || disclaimerDrivesText ? [] : (info.removables ?? []).filter((r) => !r.unit)
   const footerFields = showFooter ? editable.filter((f) => f.kind !== 'image') : []
   const sharedImages = info.images.filter((_, i) => !info.imageInUnit?.[i])
   const hasMedia = showHero || sharedImages.length > 0 || imageFields.length > 0
@@ -169,9 +197,7 @@ export function ModuleInspector({
           <RegionEditor key={f.key} field={f} saved={m.regions[f.key]} accentColour={accentColour} onChange={(patch) => onRegion(f.key, patch)} />
         )} />}
 
-        {textFields.map((f) => (
-          <RegionEditor key={f.key} field={f} saved={m.regions[f.key]} accentColour={accentColour} onChange={(patch) => onRegion(f.key, patch)} />
-        ))}
+        {renderEditors(textFields, flatSections, false)}
 
         {repeating.map((r) => {
           const noun = r.group.charAt(0).toUpperCase() + r.group.slice(1)
@@ -191,9 +217,7 @@ export function ModuleInspector({
               {sections.map((s) => (
                 <section key={s.index} aria-label={`${noun} ${s.index + 1}`} className="space-y-3 border-t border-gray-100 dark:border-gray-800 pt-4">
                   <h3 className={SECTION}>{noun} {s.index + 1}</h3>
-                  {s.fields.map((f) => (
-                    <RegionEditor key={f.key} field={{ ...f, label: f.name ?? f.label }} saved={m.regions[f.key]} accentColour={accentColour} imageCategory={imageCategory} onChange={(patch) => onRegion(f.key, patch)} />
-                  ))}
+                  {renderEditors(s.fields, (info.removables ?? []).filter((x) => x.unit?.group === r.group && x.unit.index === s.index), true)}
                 </section>
               ))}
             </div>
@@ -295,6 +319,53 @@ function TabbedPanels({ tabs }: { tabs: Tab[] }) {
 }
 
 const SECTION = 'text-[11px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500'
+
+/** A section of the module marked pardot-removable, with a small × on the right that takes it out of the email. */
+function RemovableSection({ label, removed, single, onChange, children }: {
+  label: string
+  removed: boolean
+  /** A section that is one field needs no heading of its own: the × sits beside the field */
+  single: boolean
+  onChange: (removed: boolean) => void
+  children: React.ReactNode
+}) {
+  if (removed) {
+    return (
+      <div className="flex items-center justify-between rounded-md border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+        <span>{label} removed</span>
+        <button type="button" aria-label={`Restore ${label}`} onClick={() => onChange(false)} className="text-brand-primary dark:text-brand-accent hover:underline">Restore</button>
+      </div>
+    )
+  }
+  const remove = (
+    <button
+      type="button"
+      aria-label={`Remove ${label}`}
+      title="Remove this section from the module"
+      onClick={() => onChange(true)}
+      className="w-5 h-5 flex items-center justify-center rounded text-base leading-none text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+    >
+      &times;
+    </button>
+  )
+  if (single) {
+    return (
+      <div className="relative">
+        <div className="absolute right-0 top-0">{remove}</div>
+        {children}
+      </div>
+    )
+  }
+  return (
+    <div role="group" aria-label={label} className="space-y-3 rounded-md border border-gray-200 dark:border-gray-700 p-3">
+      <div className="flex items-center justify-between">
+        <h3 className={SECTION}>{label}</h3>
+        {remove}
+      </div>
+      {children}
+    </div>
+  )
+}
 const CHECK = 'flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200 cursor-pointer'
 
 /** A footer as its three parts, each with its own choice and the text that belongs to it. */

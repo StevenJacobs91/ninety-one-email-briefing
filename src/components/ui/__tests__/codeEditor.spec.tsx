@@ -106,6 +106,72 @@ describe('CodeEditor', () => {
     expect(screen.queryByRole('button', { name: 'Hide preview' })).toBeNull()
   })
 
+  describe('variables', () => {
+    const variables = [
+      { token: 'primary', label: 'Primary colour', group: 'Colours' as const },
+      { token: 'accent', label: 'Accent colour', group: 'Colours' as const },
+      { token: 'logo', label: 'Header logo', group: 'Images' as const },
+      { token: 'iconClock', label: 'Clock icon', group: 'Icons' as const },
+      { token: 'pardot-region="paragraph"', snippet: 'pardot-region="paragraph"', label: 'Editable rich text', group: 'Pardot' as const },
+    ]
+    const open = () => fireEvent.click(screen.getByRole('button', { name: 'Variables' }))
+
+    it('has no Variables button when the caller gives none', () => {
+      setup()
+      expect(screen.queryByRole('button', { name: 'Variables' })).toBeNull()
+    })
+
+    it('lists the variables in groups when Variables is pressed, and hides them again', () => {
+      setup({ variables })
+      expect(screen.queryByRole('button', { name: '{{primary}}' })).toBeNull()
+      open()
+      for (const heading of ['Colours', 'Images', 'Icons', 'Pardot']) expect(screen.getByText(heading)).toBeTruthy()
+      expect(screen.getByRole('button', { name: '{{iconClock}}' }).getAttribute('title')).toBe('Clock icon')
+      open()
+      expect(screen.queryByRole('button', { name: '{{primary}}' })).toBeNull()
+    })
+
+    it('inserts a variable where the cursor is, and puts the cursor after it', () => {
+      const { onChange } = setup({ value: '<td bgcolor=""></td>', variables })
+      editorView().dispatch({ selection: { anchor: 13 } })
+      open()
+      fireEvent.click(screen.getByRole('button', { name: '{{primary}}' }))
+      expect(editorView().state.doc.toString()).toBe('<td bgcolor="{{primary}}"></td>')
+      expect(onChange).toHaveBeenLastCalledWith('<td bgcolor="{{primary}}"></td>')
+      expect(editorView().state.selection.main.head).toBe(13 + '{{primary}}'.length)
+    })
+
+    it('replaces the text that is selected', () => {
+      const { onChange } = setup({ value: '<p>XXX</p>', variables })
+      editorView().dispatch({ selection: { anchor: 3, head: 6 } })
+      open()
+      fireEvent.click(screen.getByRole('button', { name: '{{accent}}' }))
+      expect(onChange).toHaveBeenLastCalledWith('<p>{{accent}}</p>')
+    })
+
+    it('puts an attribute in a tag with the spaces it needs', () => {
+      setup({ value: '<td>', variables })
+      editorView().dispatch({ selection: { anchor: 3 } })
+      open()
+      fireEvent.click(screen.getByRole('button', { name: 'pardot-region="paragraph"' }))
+      expect(editorView().state.doc.toString()).toBe('<td pardot-region="paragraph">')
+      cleanup()
+      setup({ value: '<td class="x">', variables })
+      editorView().dispatch({ selection: { anchor: 4 } })
+      open()
+      fireEvent.click(screen.getByRole('button', { name: 'pardot-region="paragraph"' }))
+      expect(editorView().state.doc.toString()).toBe('<td pardot-region="paragraph" class="x">')
+    })
+
+    it('inserts one after another, each where the last left the cursor', () => {
+      setup({ value: '', variables })
+      open()
+      fireEvent.click(screen.getByRole('button', { name: '{{logo}}' }))
+      fireEvent.click(screen.getByRole('button', { name: '{{logo}}' }))
+      expect(editorView().state.doc.toString()).toBe('{{logo}}{{logo}}')
+    })
+  })
+
   it('marks the editor invalid when the code has a problem', () => {
     setup({ invalid: true })
     expect((document.querySelector('.cm-content') as HTMLElement).getAttribute('aria-invalid')).toBe('true')

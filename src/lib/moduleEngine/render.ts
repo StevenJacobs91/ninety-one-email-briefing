@@ -4,6 +4,8 @@ import { isAutoEditable, parseModuleDom, parseRegions, applyRegions, moduleHtml,
 import { applyBoxStyles } from './boxModel'
 import { applyButtonWidths } from './buttonWidths'
 import { findRepeats, resizeRepeat } from './repeats'
+import { applyLinkUtm } from './linkGroups'
+import { applyRemovals, removables } from './removables'
 import { applyDisclaimer } from '../disclaimer'
 import { applyFooter } from './footer'
 import { rgbToHex } from '../hexColours'
@@ -119,19 +121,23 @@ export function renderBuild(
     const hasDisclaimer = m.disclaimerHtml !== undefined
     const hasFooter = m.footer !== undefined
     const hasButtonWidths = Object.keys(m.buttonWidths ?? {}).length > 0
+    // Links the design groups are tagged and their markers removed, so the module is always put through the DOM.
+    const hasLinkGroups = /\sdata-link\s*=/.test(original)
     let html = original
 
-    if (hasRepeats || hasRegions || hasStyles || hasDisclaimer || hasFooter || hasButtonWidths) {
+    if (hasRepeats || hasRegions || hasStyles || hasDisclaimer || hasFooter || hasButtonWidths || hasLinkGroups) {
       const dom = parseModuleDom(original, opts.parse, { auto: isAutoEditable(m.moduleName) })
       for (const [group, count] of Object.entries(m.repeats)) resizeRepeat(dom, group, count)
       const { unitOf } = findRepeats(dom)
-      const known = new Set(parseRegions(dom, unitOf).map((f) => f.key))
+      const known = new Set([...parseRegions(dom, unitOf).map((f) => f.key), ...removables(dom, unitOf).map((r) => r.key)])
       for (const key of Object.keys(m.regions)) {
         if (!known.has(key)) report.droppedKeys.push({ instanceId: m.instanceId, key })
       }
       const regionEls = applyRegions(dom, m.regions, unitOf, { accent: opts.accent })
+      applyRemovals(dom, m.regions, unitOf)
       if (m.styles) applyBoxStyles(dom, m.styles, regionEls, tokens)
       applyButtonWidths(dom.root, m.buttonWidths)
+      applyLinkUtm(dom, unitOf)
       if (m.disclaimerHtml !== undefined) applyDisclaimer(dom.root, m.disclaimerHtml)
       if (m.footer) applyFooter(dom, m.footer, { parse: opts.parse, footerV1Html: cat.modules['Footer v1'] })
       html = moduleHtml(dom)
