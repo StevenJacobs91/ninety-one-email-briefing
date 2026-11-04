@@ -9,6 +9,7 @@ import { SENDER_TYPES, SENDER_TYPE_LABELS, type EmailType, type ClientGroup, typ
 import { FieldText } from '../ui/FieldText'
 import { ThemeSelect } from '../ui/ThemeSelect'
 import { campaignUtm, slugifyUtm } from '../../lib/utm'
+import { fillMonth, monthName } from '../../lib/templateVars'
 import { FieldTextarea } from '../ui/FieldTextarea'
 import { BriefSection } from '../brief/BriefSection'
 import { FieldSlot } from '../brief/FieldSlot'
@@ -155,11 +156,16 @@ export function StepCampaign() {
       const set = (field: Parameters<typeof setValue>[0], value: string) =>
         setValue(field, value as never, { shouldDirty: true, shouldValidate: false })
 
+      // {{month}} becomes the month the email goes out: the send date's when it is set, else this month.
+      const month = monthName(getValues('deadlines.sendDate'))
+      const filled = (text: string) => fillMonth(text, month)
+
+      if (cp.emailType) set('campaign.emailType', cp.emailType)
       if (cp.theme) set('campaign.theme', cp.theme)
-      if (cp.subjectLine) set('campaign.subjectLine', cp.subjectLine)
-      if (cp.previewText) set('campaign.previewText', cp.previewText)
-      if (cp.headline) set('content.headline', cp.headline)
-      if (cp.subHeadline) set('content.subHeadline', cp.subHeadline)
+      if (cp.subjectLine) set('campaign.subjectLine', filled(cp.subjectLine))
+      if (cp.previewText) set('campaign.previewText', filled(cp.previewText))
+      if (cp.headline) set('content.headline', filled(cp.headline))
+      if (cp.subHeadline) set('content.subHeadline', filled(cp.subHeadline))
       if (cp.heroImageUrl) set('assets.heroImageUrl', cp.heroImageUrl)
       if (cp.signatureId) set('content.footerSignoffId', cp.signatureId)
       if (cp.pardotListId) set('audience.pardotListId', cp.pardotListId)

@@ -243,6 +243,7 @@ export interface CampaignSenderPreset {
 
 /** Content and design defaults that auto-populate when this campaign is selected */
 export interface CampaignContentPreset {
+  emailType?: string         // Email type id (built-in or custom)
   theme: string              // Brand theme id
   subjectLine: string
   previewText: string

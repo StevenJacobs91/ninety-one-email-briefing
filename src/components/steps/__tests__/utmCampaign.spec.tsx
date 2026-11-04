@@ -133,3 +133,50 @@ describe('UTM Campaign in Settings → Campaigns', () => {
     expect(saved?.utmCampaign).toBeUndefined()
   })
 })
+
+describe('Campaign audiences, email type and {{month}}', () => {
+  const openNew = async () => {
+    render(<TabCampaigns />)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '+ Add Campaign' })) })
+  }
+
+  it('offers the custom audiences and client groups made in Settings → Targeting', async () => {
+    store.settings = { ...store.settings, customChannels: [{ id: 'wm', label: 'Wealth Managers' }], customClientGroups: [{ id: 'me', name: 'Middle East', regions: [] }] }
+    await openNew()
+    expect(screen.getByRole('button', { name: 'Wealth Managers' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Middle East' })).toBeTruthy()
+  })
+
+  it('lets the Email Type be set in the content preset, and saves it with the campaign', async () => {
+    store.settings = { ...store.settings, customEmailTypes: [{ id: 'webinar', label: 'Webinar' }] }
+    await openNew()
+    await act(async () => { fireEvent.change(screen.getByPlaceholderText('e.g. SA Intermediary Taking Stock'), { target: { value: 'Assistant Impact' } }) })
+    const toggle = screen.getAllByRole('button').find((b) => /Add ▼/.test(b.textContent ?? '') && /Content & Design/.test(b.parentElement?.textContent ?? b.textContent ?? ''))
+    await act(async () => { fireEvent.click(toggle ?? screen.getAllByText('Add ▼')[1]) })
+    const select = screen.getByLabelText('Email Type') as HTMLSelectElement
+    expect([...select.options].map((o) => o.value)).toContain('webinar')
+    await act(async () => { fireEvent.change(select, { target: { value: 'webinar' } }) })
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Save Campaign' })) })
+    const saved = (store.settings.campaigns as CampaignEntry[]).find((c) => c.name === 'Assistant Impact')
+    expect(saved?.contentPreset?.emailType).toBe('webinar')
+  })
+
+  it('sets the email type and fills {{month}} from the send date when the campaign is chosen', async () => {
+    store.settings = { ...store.settings, campaigns: [campaign('9', 'Assistant Impact', {
+      contentPreset: { emailType: 'fund-update', theme: '', subjectLine: 'Assistant Impact – {{month}} edition | Ninety One', previewText: '', heroImageUrl: '', headline: '', subHeadline: '', signatureId: '', disclaimerId: '', distributionList: '', pardotListId: '' },
+    })] }
+    function Dated() {
+      const form = useForm<BriefFormData>({ defaultValues: { ...FRESH, deadlines: { ...FRESH.deadlines, sendDate: '2026-12-15' } } })
+      return (
+        <FormProvider {...form}>
+          <BriefAttentionProvider attempted={false} problems={[]}><StepCampaign /></BriefAttentionProvider>
+          <output data-testid="values">{JSON.stringify([form.watch('campaign.emailType'), form.watch('campaign.subjectLine')])}</output>
+        </FormProvider>
+      )
+    }
+    render(<Dated />)
+    await act(async () => {})
+    await pick('Assistant Impact')
+    expect(JSON.parse(screen.getByTestId('values').textContent ?? '[]')).toEqual(['fund-update', 'Assistant Impact – December edition | Ninety One'])
+  })
+})

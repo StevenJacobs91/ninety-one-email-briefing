@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { useSettings } from '../../contexts/SettingsContext'
 import type { CampaignEntry, CampaignSenderPreset, CampaignContentPreset } from '../../types/settings.types'
-import { CLIENT_GROUPS, CHANNELS } from '../../lib/constants'
+import { CLIENT_GROUPS, CHANNELS, EMAIL_TYPES, EMAIL_TYPE_LABELS, type EmailType } from '../../lib/constants'
+import { fillMonth, monthName } from '../../lib/templateVars'
 import { PRESET_CAMPAIGNS } from '../../lib/campaignPresets'
 import { slugifyUtm } from '../../lib/utm'
 import { campaignSearchParts, matchesSearch } from '../../lib/settingsSearch'
@@ -75,7 +76,14 @@ interface CampaignFormState {
 }
 
 const EMPTY_PRESET: CampaignSenderPreset = { fromName: '', fromAddress: '', replyToEmail: '' }
+/** The built-in options with any the team has added, without repeats. */
+function mergeUnique(builtIn: readonly string[], custom: string[]): string[] {
+  const seen = new Set(builtIn)
+  return [...builtIn, ...custom.filter((c) => c && !seen.has(c) && seen.add(c))]
+}
+
 const EMPTY_CONTENT_PRESET: CampaignContentPreset = {
+  emailType: '',
   theme: '',
   subjectLine: '',
   previewText: '',
@@ -207,6 +215,25 @@ function ContentPresetFields({
   const greetings = settings.greetings ?? []
   return (
     <div className="space-y-3 pt-1">
+      {/* Email Type */}
+      <div>
+        <label htmlFor="campaign-preset-email-type" className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Email Type</label>
+        <select
+          id="campaign-preset-email-type"
+          value={contentPreset.emailType ?? ''}
+          onChange={(e) => onChange({ emailType: e.target.value })}
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+        >
+          <option value="">— None —</option>
+          {EMAIL_TYPES.map((id) => (
+            <option key={id} value={id}>{EMAIL_TYPE_LABELS[id as EmailType] ?? id}</option>
+          ))}
+          {(settings.customEmailTypes ?? []).filter((et) => !(EMAIL_TYPES as readonly string[]).includes(et.id)).map((et) => (
+            <option key={et.id} value={et.id}>{et.label}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Brand Theme */}
       <div>
         <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Brand Theme</label>
@@ -242,8 +269,12 @@ function ContentPresetFields({
           placeholder="e.g. Taking Stock — March 2026"
           className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
-        {contentPreset.subjectLine && (
-          <p className="text-[10px] text-gray-400 mt-0.5 text-right">{contentPreset.subjectLine.length} characters</p>
+        <p className="text-[10px] text-gray-400 mt-0.5 flex justify-between gap-3">
+          <span>Use {'{{month}}'} for the month the email goes out (the send date's, else this month).</span>
+          {contentPreset.subjectLine && <span className="shrink-0">{contentPreset.subjectLine.length} characters</span>}
+        </p>
+        {/\{\{\s*month\s*\}\}/i.test(contentPreset.subjectLine) && (
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Reads as: {fillMonth(contentPreset.subjectLine, monthName(undefined))}</p>
         )}
       </div>
 
@@ -393,6 +424,10 @@ function CampaignForm({
   signoffs: { id: string; name: string }[]
   disclaimers: { id: string; label: string }[]
 }) {
+  const { settings } = useSettings()
+  // The groups and audiences added in Settings → Targeting are offered here, as they are in the brief form.
+  const clientGroups = mergeUnique(CLIENT_GROUPS, (settings.customClientGroups ?? []).map((cg) => cg.name))
+  const channels = mergeUnique(CHANNELS, (settings.customChannels ?? []).map((ch) => ch.label))
   return (
     <div className="space-y-4">
       <div>
@@ -410,7 +445,7 @@ function CampaignForm({
       <ChipGroup
         label="Client Groups"
         hint="(empty = all)"
-        options={CLIENT_GROUPS}
+        options={clientGroups}
         selected={form.clientGroups}
         onChange={(v) => onChange({ clientGroups: v })}
       />
@@ -418,7 +453,7 @@ function CampaignForm({
       <ChipGroup
         label="Channels / Audiences"
         hint="(empty = all)"
-        options={CHANNELS}
+        options={channels}
         optionLabels={CHANNEL_LABELS}
         selected={form.channels}
         onChange={(v) => onChange({ channels: v })}
